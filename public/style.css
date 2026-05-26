@@ -1230,6 +1230,16 @@ body {
 }
 .btn-share-next:not(:disabled):hover { opacity: 0.88; }
 .btn-share-next:not(:disabled):active { transform: scale(0.98); }
+.share-sub-check {
+  padding: 0.5rem 0.75rem;
+}
+.share-sub-check .share-checkbox-text strong {
+  font-size: 0.85rem;
+}
+#share-group-confirm,
+#share-country-confirm {
+  margin-top: 0.75rem;
+}
 
 /* ════════════════════════════════════════════
    ESTATÍSTICAS DO GRUPO

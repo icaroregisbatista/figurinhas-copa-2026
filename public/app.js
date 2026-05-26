@@ -532,41 +532,47 @@ function openShareModal() {
   showShareStep('step1');
   modalShare.classList.remove('hidden');
 
-  // Popular lista de grupos
+  // Popular lista de grupos (multi-select)
   const groupList = document.getElementById('share-group-list');
   groupList.innerHTML = '';
+  const groupConfirmBtn = document.getElementById('share-group-confirm');
+  groupConfirmBtn.disabled = true;
   const groups = ['-', ...'ABCDEFGHIJKL'.split('')];
   groups.forEach(g => {
     const label = g === '-' ? 'FIFA' : `Grupo ${g}`;
-    const btn = document.createElement('button');
-    btn.className = 'share-sub-btn';
-    btn.textContent = label;
-    btn.addEventListener('click', () => {
-      shareContext.scope = 'group';
-      shareContext.scopeValue = g;
-      shareContext.scopeLabel = label;
-      buildSharePreview();
-      showShareStep('preview');
+    const lbl = document.createElement('label');
+    lbl.className = 'share-checkbox-label share-sub-check';
+    lbl.innerHTML = `
+      <input type="checkbox" value="${g}" data-label="${label}" />
+      <span class="share-checkbox-box"></span>
+      <span class="share-checkbox-text"><strong>${label}</strong></span>
+    `;
+    lbl.querySelector('input').addEventListener('change', () => {
+      const checked = groupList.querySelectorAll('input:checked').length;
+      groupConfirmBtn.disabled = checked === 0;
     });
-    groupList.appendChild(btn);
+    groupList.appendChild(lbl);
   });
 
-  // Popular lista de seleções
+  // Popular lista de seleções (multi-select)
   const countryList = document.getElementById('share-country-list');
   countryList.innerHTML = '';
+  const countryConfirmBtn = document.getElementById('share-country-confirm');
+  countryConfirmBtn.disabled = true;
   const countries = [...new Set(allStickers.map(s => s.country))].sort();
   countries.forEach(c => {
-    const btn = document.createElement('button');
-    btn.className = 'share-sub-btn';
-    btn.textContent = c;
-    btn.addEventListener('click', () => {
-      shareContext.scope = 'country';
-      shareContext.scopeValue = c;
-      shareContext.scopeLabel = c;
-      buildSharePreview();
-      showShareStep('preview');
+    const lbl = document.createElement('label');
+    lbl.className = 'share-checkbox-label share-sub-check';
+    lbl.innerHTML = `
+      <input type="checkbox" value="${c}" data-label="${c}" />
+      <span class="share-checkbox-box"></span>
+      <span class="share-checkbox-text"><strong>${c}</strong></span>
+    `;
+    lbl.querySelector('input').addEventListener('change', () => {
+      const checked = countryList.querySelectorAll('input:checked').length;
+      countryConfirmBtn.disabled = checked === 0;
     });
-    countryList.appendChild(btn);
+    countryList.appendChild(lbl);
   });
 }
 
@@ -615,6 +621,30 @@ document.getElementById('share-back-preview').addEventListener('click', () => {
   else showShareStep('step2');
 });
 
+// Confirmar seleção de grupos
+document.getElementById('share-group-confirm').addEventListener('click', () => {
+  const checked = document.querySelectorAll('#share-group-list input:checked');
+  const values = [...checked].map(i => i.value);
+  const labels = [...checked].map(i => i.dataset.label);
+  shareContext.scope = 'group';
+  shareContext.scopeValues = values;
+  shareContext.scopeLabel = labels.join(', ');
+  buildSharePreview();
+  showShareStep('preview');
+});
+
+// Confirmar seleção de países
+document.getElementById('share-country-confirm').addEventListener('click', () => {
+  const checked = document.querySelectorAll('#share-country-list input:checked');
+  const values = [...checked].map(i => i.value);
+  const labels = [...checked].map(i => i.dataset.label);
+  shareContext.scope = 'country';
+  shareContext.scopeValues = values;
+  shareContext.scopeLabel = labels.join(', ');
+  buildSharePreview();
+  showShareStep('preview');
+});
+
 // Opções do passo 2 (escopo)
 document.querySelectorAll('[data-scope]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -651,16 +681,16 @@ function groupStickers(stickers) {
 
 function buildSharePreview() {
   const name = (currentUser.displayName || currentUser.email).split(' ')[0];
-  const { includeMissing, includeDuplicates, scope, scopeValue, scopeLabel } = shareContext;
+  const { includeMissing, includeDuplicates, scope, scopeValues, scopeLabel } = shareContext;
 
-  // Filtrar por escopo
+  // Filtrar por escopo (suporta múltiplos valores)
   let scopeStickers = allStickers;
   let scopeTitle = 'Álbum Completo';
-  if (scope === 'group') {
-    scopeStickers = allStickers.filter(s => s.group === scopeValue);
+  if (scope === 'group' && scopeValues?.length) {
+    scopeStickers = allStickers.filter(s => scopeValues.includes(s.group));
     scopeTitle = scopeLabel;
-  } else if (scope === 'country') {
-    scopeStickers = allStickers.filter(s => s.country === scopeValue);
+  } else if (scope === 'country' && scopeValues?.length) {
+    scopeStickers = allStickers.filter(s => scopeValues.includes(s.country));
     scopeTitle = scopeLabel;
   }
 
@@ -670,6 +700,9 @@ function buildSharePreview() {
 
   let hasContent = false;
 
+  // Mostrar cabeçalho de grupo quando há múltiplos escopos ou escopo é 'all'
+  const showGroupHeaders = scope === 'all' || (scopeValues && scopeValues.length > 1);
+
   // Seção: Faltando
   if (includeMissing) {
     const missing = scopeStickers.filter(s => !myCollection.has(s.code));
@@ -678,11 +711,11 @@ function buildSharePreview() {
       msg += `*⬜ Faltando (${missing.length})*\n`;
       const { grouped, sortedKeys } = groupStickers(missing);
       sortedKeys.forEach(grp => {
-        if (scope === 'all') msg += `*${grp}*\n`;
+        if (showGroupHeaders) msg += `*${grp}*\n`;
         grouped[grp].forEach(s => { msg += `  ${s.code}\n`; });
-        if (scope === 'all') msg += '\n';
+        if (showGroupHeaders) msg += '\n';
       });
-      if (scope !== 'all') msg += '\n';
+      if (!showGroupHeaders) msg += '\n';
     } else {
       msg += `*⬜ Faltando:* nenhuma! 🎉\n\n`;
     }
@@ -697,14 +730,14 @@ function buildSharePreview() {
       msg += `*🔄 Repetidas (${totalQty} unidades)*\n`;
       const { grouped, sortedKeys } = groupStickers(dups);
       sortedKeys.forEach(grp => {
-        if (scope === 'all') msg += `*${grp}*\n`;
+        if (showGroupHeaders) msg += `*${grp}*\n`;
         grouped[grp].forEach(s => {
           const qty = myDuplicates[s.code];
           msg += `  ${s.code}${qty > 1 ? ` (${qty}x)` : ''}\n`;
         });
-        if (scope === 'all') msg += '\n';
+        if (showGroupHeaders) msg += '\n';
       });
-      if (scope !== 'all') msg += '\n';
+      if (!showGroupHeaders) msg += '\n';
     } else {
       msg += `*🔄 Repetidas:* nenhuma no momento.\n\n`;
     }
