@@ -503,62 +503,204 @@ function showCameraConfirm(title, message, confirmLabel, onConfirm) {
 }
 
 // ════════════════════════════════════════════
-// COMPARTILHAR REPETIDAS (WHATSAPP)
+// MODAL DE COMPARTILHAMENTO
 // ════════════════════════════════════════════
-// Botão de compartilhar na aba Repetidas
-document.getElementById('btn-share-whatsapp').addEventListener('click', shareOnWhatsApp);
+const modalShare       = document.getElementById('modal-share');
+const shareStep1       = document.getElementById('share-step-1');
+const shareStepGroup   = document.getElementById('share-step-group');
+const shareStepCountry = document.getElementById('share-step-country');
+const shareStepPreview = document.getElementById('share-step-preview');
+const sharePreviewText = document.getElementById('share-preview-text');
+let   shareContext     = null; // guarda o tipo e filtro selecionado
 
-function shareOnWhatsApp() {
-  if (Object.keys(myDuplicates).length === 0) {
-    showToast('Você ainda não tem figurinhas repetidas.', '');
+// Abrir modal
+document.getElementById('btn-share').addEventListener('click', () => openShareModal());
+
+// Fechar modal
+document.getElementById('btn-close-share').addEventListener('click', () => closeShareModal());
+modalShare.addEventListener('click', (e) => { if (e.target === modalShare) closeShareModal(); });
+
+function openShareModal() {
+  showShareStep('step1');
+  modalShare.classList.remove('hidden');
+
+  // Popular lista de grupos
+  const groupList = document.getElementById('share-group-list');
+  groupList.innerHTML = '';
+  const groups = ['-', ...'ABCDEFGHIJKL'.split('')];
+  groups.forEach(g => {
+    const label = g === '-' ? 'FIFA' : `Grupo ${g}`;
+    const btn = document.createElement('button');
+    btn.className = 'share-sub-btn';
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      shareContext = { type: 'group', value: g, label };
+      buildSharePreview();
+      showShareStep('preview');
+    });
+    groupList.appendChild(btn);
+  });
+
+  // Popular lista de seleções
+  const countryList = document.getElementById('share-country-list');
+  countryList.innerHTML = '';
+  const countries = [...new Set(allStickers.map(s => s.country))].sort();
+  countries.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'share-sub-btn';
+    btn.textContent = c;
+    btn.addEventListener('click', () => {
+      shareContext = { type: 'country', value: c, label: c };
+      buildSharePreview();
+      showShareStep('preview');
+    });
+    countryList.appendChild(btn);
+  });
+}
+
+function closeShareModal() {
+  modalShare.classList.add('hidden');
+  shareContext = null;
+}
+
+function showShareStep(step) {
+  shareStep1.classList.add('hidden');
+  shareStepGroup.classList.add('hidden');
+  shareStepCountry.classList.add('hidden');
+  shareStepPreview.classList.add('hidden');
+  if (step === 'step1')   shareStep1.classList.remove('hidden');
+  if (step === 'group')   shareStepGroup.classList.remove('hidden');
+  if (step === 'country') shareStepCountry.classList.remove('hidden');
+  if (step === 'preview') shareStepPreview.classList.remove('hidden');
+}
+
+// Navegação entre passos
+document.getElementById('share-back-group').addEventListener('click', () => showShareStep('step1'));
+document.getElementById('share-back-country').addEventListener('click', () => showShareStep('step1'));
+document.getElementById('share-back-preview').addEventListener('click', () => {
+  if (shareContext?.type === 'group') showShareStep('group');
+  else if (shareContext?.type === 'country') showShareStep('country');
+  else showShareStep('step1');
+});
+
+// Opções do passo 1
+document.querySelectorAll('.share-option-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.share;
+    if (type === 'group') {
+      showShareStep('group');
+    } else if (type === 'country') {
+      showShareStep('country');
+    } else {
+      shareContext = { type };
+      buildSharePreview();
+      showShareStep('preview');
+    }
+  });
+});
+
+// Helpers de agrupamento
+const GROUP_ORDER = ['FIFA', ...'ABCDEFGHIJKL'.split('').map(g => `Grupo ${g}`)];
+
+function groupStickers(stickers) {
+  const grouped = {};
+  stickers.forEach(s => {
+    const grp = s.group === '-' ? 'FIFA' : `Grupo ${s.group}`;
+    if (!grouped[grp]) grouped[grp] = [];
+    grouped[grp].push(s);
+  });
+  const sortedKeys = Object.keys(grouped).sort((a, b) => {
+    const ia = GROUP_ORDER.indexOf(a); const ib = GROUP_ORDER.indexOf(b);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+  sortedKeys.forEach(k => grouped[k].sort((a, b) => a.code.localeCompare(b.code)));
+  return { grouped, sortedKeys };
+}
+
+function buildSharePreview() {
+  const name = (currentUser.displayName || currentUser.email).split(' ')[0];
+  const { type, label } = shareContext || {};
+  let stickers = [];
+  let title = '';
+  let footer = '';
+
+  if (type === 'missing') {
+    stickers = allStickers.filter(s => !myCollection.has(s.code));
+    title = `⬜ *Figurinhas Faltando — ${name}*`;
+    footer = `_Total: ${stickers.length} faltando de ${allStickers.length}_`;
+
+  } else if (type === 'duplicates') {
+    stickers = allStickers.filter(s => (myDuplicates[s.code] || 0) > 0);
+    title = `🔄 *Figurinhas Repetidas — ${name}*`;
+    const totalDups = Object.values(myDuplicates).reduce((s, q) => s + (q > 0 ? q : 0), 0);
+    footer = `_Total: ${totalDups} repetidas_`;
+
+  } else if (type === 'owned') {
+    stickers = allStickers.filter(s => myCollection.has(s.code));
+    title = `✅ *Minha Coleção — ${name}*`;
+    footer = `_Total: ${stickers.length} de ${allStickers.length} figurinhas_`;
+
+  } else if (type === 'group') {
+    stickers = allStickers.filter(s => s.group === shareContext.value);
+    title = `🗂️ *${label} — ${name}*`;
+    const owned = stickers.filter(s => myCollection.has(s.code)).length;
+    footer = `_${owned} de ${stickers.length} figurinhas deste grupo_`;
+
+  } else if (type === 'country') {
+    stickers = allStickers.filter(s => s.country === shareContext.value);
+    title = `🌎 *${label} — ${name}*`;
+    const owned = stickers.filter(s => myCollection.has(s.code)).length;
+    footer = `_${owned} de ${stickers.length} figurinhas desta seleção_`;
+  }
+
+  if (stickers.length === 0) {
+    sharePreviewText.value = 'Nenhuma figurinha encontrada para este filtro.';
     return;
   }
 
-  // Agrupar repetidas por grupo, ordenadas
-  const grouped = {};
-  Object.entries(myDuplicates).forEach(([code, qty]) => {
-    if (qty <= 0) return;
-    const sticker = allStickers.find(s => s.code === code);
-    if (!sticker) return;
-    const grp = sticker.group === '-' ? 'FIFA' : `Grupo ${sticker.group}`;
-    if (!grouped[grp]) grouped[grp] = [];
-    grouped[grp].push({ code, qty, name: sticker.name });
-  });
+  const { grouped, sortedKeys } = groupStickers(stickers);
+  let msg = `🏆 ${title}\n_Copa 2026 Panini_\n\n`;
 
-  // Ordenar grupos (FIFA primeiro, depois A-L)
-  const groupOrder = ['FIFA', ...('ABCDEFGHIJKL'.split('').map(g => `Grupo ${g}`))];
-  const sortedGroups = Object.keys(grouped).sort((a, b) => {
-    const ia = groupOrder.indexOf(a); const ib = groupOrder.indexOf(b);
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-  });
-
-  // Ordenar figurinhas dentro de cada grupo por código
-  sortedGroups.forEach(grp => {
-    grouped[grp].sort((a, b) => a.code.localeCompare(b.code));
-  });
-
-  const name = (currentUser.displayName || currentUser.email).split(' ')[0];
-  let msg = `🏆 *Figurinhas Repetidas — ${name}*\n`;
-  msg += `_Copa 2026 Panini_\n\n`;
-
-  sortedGroups.forEach(grp => {
+  sortedKeys.forEach(grp => {
     msg += `*${grp}*\n`;
-    grouped[grp].forEach(({ code, qty }) => {
-      msg += `  ${code}${qty > 1 ? ` (${qty}x)` : ''}\n`;
+    grouped[grp].forEach(s => {
+      const qty = myDuplicates[s.code];
+      const owned = myCollection.has(s.code);
+      let line = `  ${s.code}`;
+      if (type === 'duplicates' && qty > 1) line += ` (${qty}x)`;
+      if (type === 'group' || type === 'country') line += owned ? ' ✅' : ' ⬜';
+      msg += line + '\n';
     });
     msg += '\n';
   });
 
-  const totalDups = Object.values(myDuplicates).reduce((s, q) => s + (q > 0 ? q : 0), 0);
-  msg += `_Total: ${totalDups} repetidas_`;
+  msg += footer;
+  sharePreviewText.value = msg;
+  shareContext.message = msg;
+}
 
-  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-  // Tentar abrir em nova aba; se bloqueado por popup blocker, redirecionar na mesma aba
+// Botão enviar WhatsApp
+document.getElementById('btn-share-whatsapp-send').addEventListener('click', () => {
+  if (!shareContext?.message) return;
+  const url = `https://wa.me/?text=${encodeURIComponent(shareContext.message)}`;
   const newWin = window.open(url, '_blank');
   if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
     window.location.href = url;
   }
-}
+});
+
+// Botão copiar texto
+document.getElementById('btn-share-copy').addEventListener('click', () => {
+  if (!shareContext?.message) return;
+  navigator.clipboard.writeText(shareContext.message)
+    .then(() => showToast('Texto copiado para a área de transferência!', 'success'))
+    .catch(() => {
+      // Fallback para navegadores sem suporte
+      sharePreviewText.select();
+      document.execCommand('copy');
+      showToast('Texto copiado!', 'success');
+    });
+});
 
 // ══════════════════════════════════════════════
 // RENDER — COLEÇÃO
