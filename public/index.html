@@ -273,39 +273,50 @@
       <button class="btn-icon" id="btn-close-share"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
-    <!-- Passo 1: O que compartilhar -->
+    <!-- Passo 1: O que compartilhar (checkboxes) -->
     <div id="share-step-1">
       <p class="share-label">O que você quer compartilhar?</p>
+      <div class="share-checkboxes">
+        <label class="share-checkbox-label">
+          <input type="checkbox" id="chk-missing" value="missing" />
+          <span class="share-checkbox-box"></span>
+          <span class="share-checkbox-text">
+            <strong>⬜ Faltando</strong>
+            <small>Figurinhas que você ainda não tem</small>
+          </span>
+        </label>
+        <label class="share-checkbox-label">
+          <input type="checkbox" id="chk-duplicates" value="duplicates" />
+          <span class="share-checkbox-box"></span>
+          <span class="share-checkbox-text">
+            <strong>🔄 Repetidas</strong>
+            <small>Figurinhas que você tem a mais</small>
+          </span>
+        </label>
+      </div>
+      <button class="btn-share-next" id="share-next-step1" disabled>Próximo →</button>
+    </div>
+
+    <!-- Passo 2: De qual parte? -->
+    <div id="share-step-2" class="hidden">
+      <button class="share-back-btn" id="share-back-2">← Voltar</button>
+      <p class="share-label">De qual parte do álbum?</p>
       <div class="share-options">
-        <button class="share-option-btn" data-share="missing">
-          <span class="share-option-icon">⬜</span>
+        <button class="share-option-btn" data-scope="all">
+          <span class="share-option-icon">📋</span>
           <span class="share-option-text">
-            <strong>Figurinhas faltando</strong>
-            <small>As que você ainda não tem</small>
+            <strong>Álbum completo</strong>
+            <small>Todas as figurinhas</small>
           </span>
         </button>
-        <button class="share-option-btn" data-share="duplicates">
-          <span class="share-option-icon">🔄</span>
-          <span class="share-option-text">
-            <strong>Minhas repetidas</strong>
-            <small>As que você tem a mais</small>
-          </span>
-        </button>
-        <button class="share-option-btn" data-share="owned">
-          <span class="share-option-icon">✅</span>
-          <span class="share-option-text">
-            <strong>Minha coleção completa</strong>
-            <small>Todas que você possui</small>
-          </span>
-        </button>
-        <button class="share-option-btn" data-share="group">
+        <button class="share-option-btn" data-scope="group">
           <span class="share-option-icon">🗂️</span>
           <span class="share-option-text">
             <strong>Por grupo</strong>
             <small>Escolher um grupo específico</small>
           </span>
         </button>
-        <button class="share-option-btn" data-share="country">
+        <button class="share-option-btn" data-scope="country">
           <span class="share-option-icon">🌎</span>
           <span class="share-option-text">
             <strong>Por seleção</strong>
@@ -315,21 +326,21 @@
       </div>
     </div>
 
-    <!-- Passo 2a: Escolher grupo -->
+    <!-- Passo 3a: Escolher grupo -->
     <div id="share-step-group" class="hidden">
       <button class="share-back-btn" id="share-back-group">← Voltar</button>
       <p class="share-label">Escolha o grupo:</p>
       <div class="share-sub-options" id="share-group-list"></div>
     </div>
 
-    <!-- Passo 2b: Escolher seleção -->
+    <!-- Passo 3b: Escolher seleção -->
     <div id="share-step-country" class="hidden">
       <button class="share-back-btn" id="share-back-country">← Voltar</button>
       <p class="share-label">Escolha a seleção:</p>
       <div class="share-sub-options" id="share-country-list"></div>
     </div>
 
-    <!-- Passo 3: Prévia e envio -->
+    <!-- Passo 4: Prévia e envio -->
     <div id="share-step-preview" class="hidden">
       <button class="share-back-btn" id="share-back-preview">← Voltar</button>
       <p class="share-label">Prévia da mensagem:</p>

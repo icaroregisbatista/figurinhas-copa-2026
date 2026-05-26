@@ -507,11 +507,15 @@ function showCameraConfirm(title, message, confirmLabel, onConfirm) {
 // ════════════════════════════════════════════
 const modalShare       = document.getElementById('modal-share');
 const shareStep1       = document.getElementById('share-step-1');
+const shareStep2       = document.getElementById('share-step-2');
 const shareStepGroup   = document.getElementById('share-step-group');
 const shareStepCountry = document.getElementById('share-step-country');
 const shareStepPreview = document.getElementById('share-step-preview');
 const sharePreviewText = document.getElementById('share-preview-text');
-let   shareContext     = null; // guarda o tipo e filtro selecionado
+const chkMissing       = document.getElementById('chk-missing');
+const chkDuplicates    = document.getElementById('chk-duplicates');
+const shareNextBtn     = document.getElementById('share-next-step1');
+let   shareContext     = null;
 
 // Abrir modal
 document.getElementById('btn-share').addEventListener('click', () => openShareModal());
@@ -521,6 +525,10 @@ document.getElementById('btn-close-share').addEventListener('click', () => close
 modalShare.addEventListener('click', (e) => { if (e.target === modalShare) closeShareModal(); });
 
 function openShareModal() {
+  // Reset checkboxes
+  chkMissing.checked = false;
+  chkDuplicates.checked = false;
+  shareNextBtn.disabled = true;
   showShareStep('step1');
   modalShare.classList.remove('hidden');
 
@@ -534,7 +542,9 @@ function openShareModal() {
     btn.className = 'share-sub-btn';
     btn.textContent = label;
     btn.addEventListener('click', () => {
-      shareContext = { type: 'group', value: g, label };
+      shareContext.scope = 'group';
+      shareContext.scopeValue = g;
+      shareContext.scopeLabel = label;
       buildSharePreview();
       showShareStep('preview');
     });
@@ -550,7 +560,9 @@ function openShareModal() {
     btn.className = 'share-sub-btn';
     btn.textContent = c;
     btn.addEventListener('click', () => {
-      shareContext = { type: 'country', value: c, label: c };
+      shareContext.scope = 'country';
+      shareContext.scopeValue = c;
+      shareContext.scopeLabel = c;
       buildSharePreview();
       showShareStep('preview');
     });
@@ -564,35 +576,55 @@ function closeShareModal() {
 }
 
 function showShareStep(step) {
-  shareStep1.classList.add('hidden');
-  shareStepGroup.classList.add('hidden');
-  shareStepCountry.classList.add('hidden');
-  shareStepPreview.classList.add('hidden');
+  [shareStep1, shareStep2, shareStepGroup, shareStepCountry, shareStepPreview]
+    .forEach(el => el.classList.add('hidden'));
   if (step === 'step1')   shareStep1.classList.remove('hidden');
+  if (step === 'step2')   shareStep2.classList.remove('hidden');
   if (step === 'group')   shareStepGroup.classList.remove('hidden');
   if (step === 'country') shareStepCountry.classList.remove('hidden');
   if (step === 'preview') shareStepPreview.classList.remove('hidden');
 }
 
-// Navegação entre passos
-document.getElementById('share-back-group').addEventListener('click', () => showShareStep('step1'));
-document.getElementById('share-back-country').addEventListener('click', () => showShareStep('step1'));
-document.getElementById('share-back-preview').addEventListener('click', () => {
-  if (shareContext?.type === 'group') showShareStep('group');
-  else if (shareContext?.type === 'country') showShareStep('country');
-  else showShareStep('step1');
+// Habilitar botão Próximo quando ao menos um checkbox estiver marcado
+[chkMissing, chkDuplicates].forEach(chk => {
+  chk.addEventListener('change', () => {
+    shareNextBtn.disabled = !chkMissing.checked && !chkDuplicates.checked;
+  });
 });
 
-// Opções do passo 1
-document.querySelectorAll('.share-option-btn').forEach(btn => {
+// Passo 1 → Passo 2
+shareNextBtn.addEventListener('click', () => {
+  shareContext = {
+    includeMissing: chkMissing.checked,
+    includeDuplicates: chkDuplicates.checked,
+    scope: 'all',
+    scopeValue: null,
+    scopeLabel: null,
+    message: null
+  };
+  showShareStep('step2');
+});
+
+// Navegação entre passos
+document.getElementById('share-back-2').addEventListener('click', () => showShareStep('step1'));
+document.getElementById('share-back-group').addEventListener('click', () => showShareStep('step2'));
+document.getElementById('share-back-country').addEventListener('click', () => showShareStep('step2'));
+document.getElementById('share-back-preview').addEventListener('click', () => {
+  if (shareContext?.scope === 'group') showShareStep('group');
+  else if (shareContext?.scope === 'country') showShareStep('country');
+  else showShareStep('step2');
+});
+
+// Opções do passo 2 (escopo)
+document.querySelectorAll('[data-scope]').forEach(btn => {
   btn.addEventListener('click', () => {
-    const type = btn.dataset.share;
-    if (type === 'group') {
+    const scope = btn.dataset.scope;
+    if (scope === 'group') {
       showShareStep('group');
-    } else if (type === 'country') {
+    } else if (scope === 'country') {
       showShareStep('country');
     } else {
-      shareContext = { type };
+      shareContext.scope = 'all';
       buildSharePreview();
       showShareStep('preview');
     }
@@ -619,62 +651,71 @@ function groupStickers(stickers) {
 
 function buildSharePreview() {
   const name = (currentUser.displayName || currentUser.email).split(' ')[0];
-  const { type, label } = shareContext || {};
-  let stickers = [];
-  let title = '';
-  let footer = '';
+  const { includeMissing, includeDuplicates, scope, scopeValue, scopeLabel } = shareContext;
 
-  if (type === 'missing') {
-    stickers = allStickers.filter(s => !myCollection.has(s.code));
-    title = `⬜ *Figurinhas Faltando — ${name}*`;
-    footer = `_Total: ${stickers.length} faltando de ${allStickers.length}_`;
-
-  } else if (type === 'duplicates') {
-    stickers = allStickers.filter(s => (myDuplicates[s.code] || 0) > 0);
-    title = `🔄 *Figurinhas Repetidas — ${name}*`;
-    const totalDups = Object.values(myDuplicates).reduce((s, q) => s + (q > 0 ? q : 0), 0);
-    footer = `_Total: ${totalDups} repetidas_`;
-
-  } else if (type === 'owned') {
-    stickers = allStickers.filter(s => myCollection.has(s.code));
-    title = `✅ *Minha Coleção — ${name}*`;
-    footer = `_Total: ${stickers.length} de ${allStickers.length} figurinhas_`;
-
-  } else if (type === 'group') {
-    stickers = allStickers.filter(s => s.group === shareContext.value);
-    title = `🗂️ *${label} — ${name}*`;
-    const owned = stickers.filter(s => myCollection.has(s.code)).length;
-    footer = `_${owned} de ${stickers.length} figurinhas deste grupo_`;
-
-  } else if (type === 'country') {
-    stickers = allStickers.filter(s => s.country === shareContext.value);
-    title = `🌎 *${label} — ${name}*`;
-    const owned = stickers.filter(s => myCollection.has(s.code)).length;
-    footer = `_${owned} de ${stickers.length} figurinhas desta seleção_`;
+  // Filtrar por escopo
+  let scopeStickers = allStickers;
+  let scopeTitle = 'Álbum Completo';
+  if (scope === 'group') {
+    scopeStickers = allStickers.filter(s => s.group === scopeValue);
+    scopeTitle = scopeLabel;
+  } else if (scope === 'country') {
+    scopeStickers = allStickers.filter(s => s.country === scopeValue);
+    scopeTitle = scopeLabel;
   }
 
-  if (stickers.length === 0) {
-    sharePreviewText.value = 'Nenhuma figurinha encontrada para este filtro.';
+  const name1st = name;
+  let msg = `🏆 *Figurinhas Copa 2026 — ${name1st}*\n`;
+  msg += `_${scopeTitle}_\n\n`;
+
+  let hasContent = false;
+
+  // Seção: Faltando
+  if (includeMissing) {
+    const missing = scopeStickers.filter(s => !myCollection.has(s.code));
+    if (missing.length > 0) {
+      hasContent = true;
+      msg += `*⬜ Faltando (${missing.length})*\n`;
+      const { grouped, sortedKeys } = groupStickers(missing);
+      sortedKeys.forEach(grp => {
+        if (scope === 'all') msg += `*${grp}*\n`;
+        grouped[grp].forEach(s => { msg += `  ${s.code}\n`; });
+        if (scope === 'all') msg += '\n';
+      });
+      if (scope !== 'all') msg += '\n';
+    } else {
+      msg += `*⬜ Faltando:* nenhuma! 🎉\n\n`;
+    }
+  }
+
+  // Seção: Repetidas
+  if (includeDuplicates) {
+    const dups = scopeStickers.filter(s => (myDuplicates[s.code] || 0) > 0);
+    if (dups.length > 0) {
+      hasContent = true;
+      const totalQty = dups.reduce((sum, s) => sum + (myDuplicates[s.code] || 0), 0);
+      msg += `*🔄 Repetidas (${totalQty} unidades)*\n`;
+      const { grouped, sortedKeys } = groupStickers(dups);
+      sortedKeys.forEach(grp => {
+        if (scope === 'all') msg += `*${grp}*\n`;
+        grouped[grp].forEach(s => {
+          const qty = myDuplicates[s.code];
+          msg += `  ${s.code}${qty > 1 ? ` (${qty}x)` : ''}\n`;
+        });
+        if (scope === 'all') msg += '\n';
+      });
+      if (scope !== 'all') msg += '\n';
+    } else {
+      msg += `*🔄 Repetidas:* nenhuma no momento.\n\n`;
+    }
+  }
+
+  if (!hasContent) {
+    sharePreviewText.value = 'Nenhuma figurinha encontrada para os filtros selecionados.';
     return;
   }
 
-  const { grouped, sortedKeys } = groupStickers(stickers);
-  let msg = `🏆 ${title}\n_Copa 2026 Panini_\n\n`;
-
-  sortedKeys.forEach(grp => {
-    msg += `*${grp}*\n`;
-    grouped[grp].forEach(s => {
-      const qty = myDuplicates[s.code];
-      const owned = myCollection.has(s.code);
-      let line = `  ${s.code}`;
-      if (type === 'duplicates' && qty > 1) line += ` (${qty}x)`;
-      if (type === 'group' || type === 'country') line += owned ? ' ✅' : ' ⬜';
-      msg += line + '\n';
-    });
-    msg += '\n';
-  });
-
-  msg += footer;
+  msg = msg.trimEnd();
   sharePreviewText.value = msg;
   shareContext.message = msg;
 }
