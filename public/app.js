@@ -227,6 +227,7 @@ searchInput.addEventListener('input', () => {
   btnClearSearch.classList.toggle('hidden', !searchQuery);
   renderGrid();
   renderDuplicatesGrid();
+  if (activeTab === 'trocas') renderMatchesList();
 });
 
 btnClearSearch.addEventListener('click', () => {
@@ -235,6 +236,7 @@ btnClearSearch.addEventListener('click', () => {
   btnClearSearch.classList.add('hidden');
   renderGrid();
   renderDuplicatesGrid();
+  if (activeTab === 'trocas') renderMatchesList();
 });
 
 document.querySelectorAll('.filter-chip[data-group]').forEach(btn => {
@@ -244,6 +246,7 @@ document.querySelectorAll('.filter-chip[data-group]').forEach(btn => {
     activeGroup = btn.dataset.group;
     renderGrid();
     renderDuplicatesGrid();
+    if (activeTab === 'trocas') renderMatchesList();
   });
 });
 
@@ -303,26 +306,27 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelector('.filter-status').style.display =
       activeTab === 'colecao' ? 'flex' : 'none';
 
+    // Ocultar barra de filtro inteira apenas na aba Admin
+    const filterBar = document.querySelector('.filter-bar');
+    if (filterBar) {
+      filterBar.style.display = activeTab === 'admin' ? 'none' : '';
+    }
+
     if (activeTab === 'trocas') loadTradingPanel();
     if (activeTab === 'admin') loadAdminPanel();
   });
 });
 
-// Filtro de grupo na aba Trocas
-document.querySelectorAll('.filter-chip[data-trade-group]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-chip[data-trade-group]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeTradeGroup = btn.dataset.tradeGroup;
-    renderMatchesList();
-  });
-});
+// Os chips de grupo do topo (data-group) já controlam activeGroup e chamam renderMatchesList via renderGrid/renderDuplicatesGrid
+// Quando a aba Trocas está ativa, o filtro de grupo usa activeGroup diretamente
 
 function renderMatchesList() {
   const matchesList = document.getElementById('matches-list');
   if (!matchesList) return;
   matchesList.innerHTML = '';
   let matchCount = 0;
+
+  const tradeSearch = (searchQuery || '').toLowerCase();
 
   const sortedDupEntries = Object.entries(window._tradeDuplicates || myDuplicates)
     .filter(([, qty]) => qty > 0)
@@ -331,8 +335,14 @@ function renderMatchesList() {
   sortedDupEntries.forEach(([code, qty]) => {
     const sticker = allStickers.find(s => s.code === code);
     if (!sticker) return;
-    // Aplicar filtro de grupo
-    if (activeTradeGroup !== 'all' && sticker.group !== activeTradeGroup) return;
+    // Aplicar filtro de grupo (usa o mesmo activeGroup dos chips do topo)
+    if (activeGroup !== 'all' && sticker.group !== activeGroup) return;
+    // Aplicar filtro de busca
+    if (tradeSearch) {
+      const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
+      const searchable = `${sticker.code} ${sticker.name} ${groupLabel} ${sticker.page}`.toLowerCase();
+      if (!searchable.includes(tradeSearch)) return;
+    }
 
     const needers = Object.entries(window._tradeOthersCollection || {})
       .filter(([, oSet]) => !oSet.has(code))
@@ -805,15 +815,28 @@ function buildSharePreview() {
 
   // Formata lista agrupada por país com bandeiras
   // Formato: 🇦🇷 ARG: 1, 2, 5, 10
+  // Agrupa por prefixo do código (não por país) para evitar duplicatas
+  // Ex: CC6 (COL) e COL6 ficam em grupos separados
   function formatList(stickers) {
-    const { grouped, sortedKeys } = groupStickersByCountry(stickers);
+    // Agrupar por prefixo do código (ex: ARG, BRA, CC, FWC)
+    const byPrefix = {};
+    stickers.forEach(s => {
+      const prefix = s.code.replace(/[0-9]/g, '').trim();
+      if (!byPrefix[prefix]) byPrefix[prefix] = [];
+      byPrefix[prefix].push(s);
+    });
+    const sortedPrefixes = Object.keys(byPrefix).sort();
     let lines = '';
-    sortedKeys.forEach(country => {
-      const flag = getFlag(country);
-      const items = grouped[country];
-      const countryCode = items[0].code.replace(/[0-9]/g, '').trim();
+    sortedPrefixes.forEach(prefix => {
+      const items = byPrefix[prefix].sort((a, b) => {
+        const na = parseInt(a.code.replace(/[^0-9]/g, '')) || 0;
+        const nb = parseInt(b.code.replace(/[^0-9]/g, '')) || 0;
+        return na - nb;
+      });
+      // Usar país do primeiro item para a bandeira
+      const flag = getFlag(items[0].country);
       const nums = items.map(s => s.code.replace(/[^0-9]/g, '') || s.code).join(', ');
-      lines += `${flag} *${countryCode}:* ${nums}\n`;
+      lines += `${flag} *${prefix}:* ${nums}\n`;
     });
     return lines;
   }
@@ -839,17 +862,26 @@ function buildSharePreview() {
       const totalQty = dups.reduce((sum, s) => sum + (myDuplicates[s.code] || 0), 0);
       msg += `*🔄 Repetidas (${totalQty} unidades)*\n`;
       // Para repetidas, mostrar quantidade ao lado do número quando > 1
-      const { grouped, sortedKeys } = groupStickersByCountry(dups);
-      sortedKeys.forEach(country => {
-        const flag = getFlag(country);
-        const items = grouped[country];
-        const countryCode = items[0].code.replace(/[0-9]/g, '').trim();
+      // Agrupar por prefixo do código para evitar duplicatas (ex: CC6 e COL6)
+      const byPrefix = {};
+      dups.forEach(s => {
+        const prefix = s.code.replace(/[0-9]/g, '').trim();
+        if (!byPrefix[prefix]) byPrefix[prefix] = [];
+        byPrefix[prefix].push(s);
+      });
+      Object.keys(byPrefix).sort().forEach(prefix => {
+        const items = byPrefix[prefix].sort((a, b) => {
+          const na = parseInt(a.code.replace(/[^0-9]/g, '')) || 0;
+          const nb = parseInt(b.code.replace(/[^0-9]/g, '')) || 0;
+          return na - nb;
+        });
+        const flag = getFlag(items[0].country);
         const nums = items.map(s => {
           const num = s.code.replace(/[^0-9]/g, '') || s.code;
           const qty = myDuplicates[s.code] || 1;
           return qty > 1 ? `${num}(${qty}x)` : num;
         }).join(', ');
-        msg += `${flag} *${countryCode}:* ${nums}\n`;
+        msg += `${flag} *${prefix}:* ${nums}\n`;
       });
       msg += '\n';
     } else {
