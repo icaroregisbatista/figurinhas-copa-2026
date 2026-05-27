@@ -54,6 +54,7 @@ let myDuplicates = {};          // { code: quantity }
 let activeTab = 'colecao';
 let activeGroup = 'all';
 let activeStatus = null;        // 'missing' | 'owned' | null
+let activeTradeGroup = 'all';   // filtro de grupo na aba trocas
 let searchQuery = '';
 
 // ── Elementos do DOM ──────────────────────────────────────────
@@ -307,6 +308,70 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// Filtro de grupo na aba Trocas
+document.querySelectorAll('.filter-chip[data-trade-group]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip[data-trade-group]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTradeGroup = btn.dataset.tradeGroup;
+    renderMatchesList();
+  });
+});
+
+function renderMatchesList() {
+  const matchesList = document.getElementById('matches-list');
+  if (!matchesList) return;
+  matchesList.innerHTML = '';
+  let matchCount = 0;
+
+  const sortedDupEntries = Object.entries(window._tradeDuplicates || myDuplicates)
+    .filter(([, qty]) => qty > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  sortedDupEntries.forEach(([code, qty]) => {
+    const sticker = allStickers.find(s => s.code === code);
+    if (!sticker) return;
+    // Aplicar filtro de grupo
+    if (activeTradeGroup !== 'all' && sticker.group !== activeTradeGroup) return;
+
+    const needers = Object.entries(window._tradeOthersCollection || {})
+      .filter(([, oSet]) => !oSet.has(code))
+      .map(([oUid]) => oUid);
+
+    if (needers.length > 0) {
+      matchCount++;
+      const groupLabel = sticker.group === '-' ? 'FIFA' : sticker.group === 'CC' ? 'Coca-Cola' : `Grupo ${sticker.group}`;
+      const card = document.createElement('div');
+      card.className = 'trade-card is-match';
+      card.innerHTML = `
+        <div class="trade-code">${sticker.code}</div>
+        <div class="trade-name">${sticker.name}</div>
+        <div class="trade-meta">
+          <span class="trade-group">${groupLabel}</span>
+          <span class="trade-page">Pág. ${sticker.page}</span>
+        </div>
+        <div class="trade-users">
+          <div class="trade-user">
+            <span class="trade-user-dot" style="background:var(--gold)"></span>
+            <span>Você tem</span>
+            <span class="trade-user-qty" style="color:var(--gold);background:var(--gold-dim)">${qty}x</span>
+          </div>
+          ${needers.map(nUid => `
+            <div class="trade-user">
+              <span class="trade-user-dot blue"></span>
+              <span>${(window._tradeUserNames || {})[nUid] || nUid} precisa</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      matchesList.appendChild(card);
+    }
+  });
+
+  const countEl = document.getElementById('matches-count');
+  if (countEl) countEl.textContent = matchCount;
+}
+
 // ════════════════════════════════════════════
 // CÂMERA OCR
 // ════════════════════════════════════════════
@@ -503,62 +568,327 @@ function showCameraConfirm(title, message, confirmLabel, onConfirm) {
 }
 
 // ════════════════════════════════════════════
-// COMPARTILHAR REPETIDAS (WHATSAPP)
+// MODAL DE COMPARTILHAMENTO
 // ════════════════════════════════════════════
-// Botão de compartilhar na aba Repetidas
-document.getElementById('btn-share-whatsapp').addEventListener('click', shareOnWhatsApp);
+const modalShare       = document.getElementById('modal-share');
+const shareStep1       = document.getElementById('share-step-1');
+const shareStep2       = document.getElementById('share-step-2');
+const shareStepGroup   = document.getElementById('share-step-group');
+const shareStepCountry = document.getElementById('share-step-country');
+const shareStepPreview = document.getElementById('share-step-preview');
+const sharePreviewText = document.getElementById('share-preview-text');
+const chkMissing       = document.getElementById('chk-missing');
+const chkDuplicates    = document.getElementById('chk-duplicates');
+const shareNextBtn     = document.getElementById('share-next-step1');
+let   shareContext     = null;
 
-function shareOnWhatsApp() {
-  if (Object.keys(myDuplicates).length === 0) {
-    showToast('Você ainda não tem figurinhas repetidas.', '');
+// Abrir modal
+document.getElementById('btn-share').addEventListener('click', () => openShareModal());
+
+// Fechar modal
+document.getElementById('btn-close-share').addEventListener('click', () => closeShareModal());
+modalShare.addEventListener('click', (e) => { if (e.target === modalShare) closeShareModal(); });
+
+function openShareModal() {
+  // Reset checkboxes
+  chkMissing.checked = false;
+  chkDuplicates.checked = false;
+  shareNextBtn.disabled = true;
+  showShareStep('step1');
+  modalShare.classList.remove('hidden');
+
+  // Popular lista de grupos (multi-select)
+  const groupList = document.getElementById('share-group-list');
+  groupList.innerHTML = '';
+  const groupConfirmBtn = document.getElementById('share-group-confirm');
+  groupConfirmBtn.disabled = true;
+  const groups = ['-', ...'ABCDEFGHIJKL'.split('')];
+  groups.forEach(g => {
+    const label = g === '-' ? 'FIFA' : `Grupo ${g}`;
+    const lbl = document.createElement('label');
+    lbl.className = 'share-checkbox-label share-sub-check';
+    lbl.innerHTML = `
+      <input type="checkbox" value="${g}" data-label="${label}" />
+      <span class="share-checkbox-box"></span>
+      <span class="share-checkbox-text"><strong>${label}</strong></span>
+    `;
+    lbl.querySelector('input').addEventListener('change', () => {
+      const checked = groupList.querySelectorAll('input:checked').length;
+      groupConfirmBtn.disabled = checked === 0;
+    });
+    groupList.appendChild(lbl);
+  });
+
+  // Popular lista de seleções (multi-select)
+  const countryList = document.getElementById('share-country-list');
+  countryList.innerHTML = '';
+  const countryConfirmBtn = document.getElementById('share-country-confirm');
+  countryConfirmBtn.disabled = true;
+  const countries = [...new Set(allStickers.map(s => s.country))].sort();
+  countries.forEach(c => {
+    const lbl = document.createElement('label');
+    lbl.className = 'share-checkbox-label share-sub-check';
+    lbl.innerHTML = `
+      <input type="checkbox" value="${c}" data-label="${c}" />
+      <span class="share-checkbox-box"></span>
+      <span class="share-checkbox-text"><strong>${c}</strong></span>
+    `;
+    lbl.querySelector('input').addEventListener('change', () => {
+      const checked = countryList.querySelectorAll('input:checked').length;
+      countryConfirmBtn.disabled = checked === 0;
+    });
+    countryList.appendChild(lbl);
+  });
+}
+
+function closeShareModal() {
+  modalShare.classList.add('hidden');
+  shareContext = null;
+}
+
+function showShareStep(step) {
+  [shareStep1, shareStep2, shareStepGroup, shareStepCountry, shareStepPreview]
+    .forEach(el => el.classList.add('hidden'));
+  if (step === 'step1')   shareStep1.classList.remove('hidden');
+  if (step === 'step2')   shareStep2.classList.remove('hidden');
+  if (step === 'group')   shareStepGroup.classList.remove('hidden');
+  if (step === 'country') shareStepCountry.classList.remove('hidden');
+  if (step === 'preview') shareStepPreview.classList.remove('hidden');
+}
+
+// Habilitar botão Próximo quando ao menos um checkbox estiver marcado
+[chkMissing, chkDuplicates].forEach(chk => {
+  chk.addEventListener('change', () => {
+    shareNextBtn.disabled = !chkMissing.checked && !chkDuplicates.checked;
+  });
+});
+
+// Passo 1 → Passo 2
+shareNextBtn.addEventListener('click', () => {
+  shareContext = {
+    includeMissing: chkMissing.checked,
+    includeDuplicates: chkDuplicates.checked,
+    scope: 'all',
+    scopeValue: null,
+    scopeLabel: null,
+    message: null
+  };
+  showShareStep('step2');
+});
+
+// Navegação entre passos
+document.getElementById('share-back-2').addEventListener('click', () => showShareStep('step1'));
+document.getElementById('share-back-group').addEventListener('click', () => showShareStep('step2'));
+document.getElementById('share-back-country').addEventListener('click', () => showShareStep('step2'));
+document.getElementById('share-back-preview').addEventListener('click', () => {
+  if (shareContext?.scope === 'group') showShareStep('group');
+  else if (shareContext?.scope === 'country') showShareStep('country');
+  else showShareStep('step2');
+});
+
+// Confirmar seleção de grupos
+document.getElementById('share-group-confirm').addEventListener('click', () => {
+  const checked = document.querySelectorAll('#share-group-list input:checked');
+  const values = [...checked].map(i => i.value);
+  const labels = [...checked].map(i => i.dataset.label);
+  shareContext.scope = 'group';
+  shareContext.scopeValues = values;
+  shareContext.scopeLabel = labels.join(', ');
+  buildSharePreview();
+  showShareStep('preview');
+});
+
+// Confirmar seleção de países
+document.getElementById('share-country-confirm').addEventListener('click', () => {
+  const checked = document.querySelectorAll('#share-country-list input:checked');
+  const values = [...checked].map(i => i.value);
+  const labels = [...checked].map(i => i.dataset.label);
+  shareContext.scope = 'country';
+  shareContext.scopeValues = values;
+  shareContext.scopeLabel = labels.join(', ');
+  buildSharePreview();
+  showShareStep('preview');
+});
+
+// Opções do passo 2 (escopo)
+document.querySelectorAll('[data-scope]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const scope = btn.dataset.scope;
+    if (scope === 'group') {
+      showShareStep('group');
+    } else if (scope === 'country') {
+      showShareStep('country');
+    } else {
+      shareContext.scope = 'all';
+      buildSharePreview();
+      showShareStep('preview');
+    }
+  });
+});
+
+// Helpers de agrupamento
+const GROUP_ORDER = ['FIFA', ...'ABCDEFGHIJKL'.split('').map(g => `Grupo ${g}`), 'Coca-Cola'];
+
+// Mapa de bandeiras por país
+const COUNTRY_FLAGS = {
+  'ALG': '🇩🇿', 'ARG': '🇦🇷', 'AUT': '🇦🇹', 'Australia': '🇦🇺',
+  'BEL': '🇧🇪', 'Bosnia and Herzegovina': '🇧🇦', 'Brazil': '🇧🇷',
+  'COD': '🇨🇩', 'COL': '🇨🇴', 'CPV': '🇨🇻', 'CRO': '🇭🇷',
+  'Canada': '🇨🇦', 'Curaçao': '🇨🇼', 'Czechia': '🇨🇿',
+  'EGY': '🇪🇬', 'ENG': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'ESP': '🇪🇸', 'Ecuador': '🇪🇨',
+  'FIFA World Cup': '🏆', 'FRA': '🇫🇷', 'GHA': '🇬🇭', 'Germany': '🇩🇪',
+  'Haiti': '🇭🇹', 'IRN': '🇮🇷', 'IRQ': '🇮🇶', 'Ivory Coast': '🇨🇮',
+  'JOR': '🇯🇴', 'Japan': '🇯🇵', 'KAS': '🇰🇿', 'KSA': '🇸🇦',
+  'Mexico': '🇲🇽', 'Morocco': '🇲🇦', 'NOR': '🇳🇴', 'NZL': '🇳🇿',
+  'Netherlands': '🇳🇱', 'PAN': '🇵🇦', 'POR': '🇵🇹', 'Paraguay': '🇵🇾',
+  'Qatar': '🇶🇦', 'SEN': '🇸🇳', 'SWE': '🇸🇪', 'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'South Africa': '🇿🇦', 'South Korea': '🇰🇷', 'Switzerland': '🇨🇭',
+  'TUN': '🇹🇳', 'Türkiye': '🇹🇷', 'URU': '🇺🇾', 'USA': '🇺🇸', 'UZB': '🇺🇿',
+};
+
+function getFlag(country) {
+  return COUNTRY_FLAGS[country] || '';
+}
+
+function groupStickers(stickers) {
+  const grouped = {};
+  stickers.forEach(s => {
+    const grp = s.group === '-' ? 'FIFA' : s.group === 'CC' ? 'Coca-Cola' : `Grupo ${s.group}`;
+    if (!grouped[grp]) grouped[grp] = [];
+    grouped[grp].push(s);
+  });
+  const sortedKeys = Object.keys(grouped).sort((a, b) => {
+    const ia = GROUP_ORDER.indexOf(a); const ib = GROUP_ORDER.indexOf(b);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+  sortedKeys.forEach(k => grouped[k].sort((a, b) => a.code.localeCompare(b.code)));
+  return { grouped, sortedKeys };
+}
+
+// Agrupa figurinhas por país para a mensagem de compartilhamento
+function groupStickersByCountry(stickers) {
+  const grouped = {};
+  stickers.forEach(s => {
+    const key = s.country;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(s);
+  });
+  const sortedKeys = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+  sortedKeys.forEach(k => grouped[k].sort((a, b) => {
+    // Extrair número do código para ordenação numérica (ex: ARG1, ARG2, ARG10)
+    const numA = parseInt(a.code.replace(/[^0-9]/g, '')) || 0;
+    const numB = parseInt(b.code.replace(/[^0-9]/g, '')) || 0;
+    return numA - numB;
+  }));
+  return { grouped, sortedKeys };
+}
+
+function buildSharePreview() {
+  const name = (currentUser.displayName || currentUser.email).split(' ')[0];
+  const { includeMissing, includeDuplicates, scope, scopeValues, scopeLabel } = shareContext;
+
+  // Filtrar por escopo (suporta múltiplos valores)
+  let scopeStickers = allStickers;
+  let scopeTitle = 'Álbum Completo';
+  if (scope === 'group' && scopeValues?.length) {
+    scopeStickers = allStickers.filter(s => scopeValues.includes(s.group));
+    scopeTitle = scopeLabel;
+  } else if (scope === 'country' && scopeValues?.length) {
+    scopeStickers = allStickers.filter(s => scopeValues.includes(s.country));
+    scopeTitle = scopeLabel;
+  }
+
+  let msg = `🏆 *Figurinhas Copa 2026 — ${name}*\n`;
+  msg += `_${scopeTitle}_\n\n`;
+
+  let hasContent = false;
+
+  // Formata lista agrupada por país com bandeiras
+  // Formato: 🇦🇷 ARG: 1, 2, 5, 10
+  function formatList(stickers) {
+    const { grouped, sortedKeys } = groupStickersByCountry(stickers);
+    let lines = '';
+    sortedKeys.forEach(country => {
+      const flag = getFlag(country);
+      const items = grouped[country];
+      const countryCode = items[0].code.replace(/[0-9]/g, '').trim();
+      const nums = items.map(s => s.code.replace(/[^0-9]/g, '') || s.code).join(', ');
+      lines += `${flag} *${countryCode}:* ${nums}\n`;
+    });
+    return lines;
+  }
+
+  // Seção: Faltando
+  if (includeMissing) {
+    const missing = scopeStickers.filter(s => !myCollection.has(s.code));
+    if (missing.length > 0) {
+      hasContent = true;
+      msg += `*⬜ Faltando (${missing.length})*\n`;
+      msg += formatList(missing);
+      msg += '\n';
+    } else {
+      msg += `*⬜ Faltando:* nenhuma! 🎉\n\n`;
+    }
+  }
+
+  // Seção: Repetidas
+  if (includeDuplicates) {
+    const dups = scopeStickers.filter(s => (myDuplicates[s.code] || 0) > 0);
+    if (dups.length > 0) {
+      hasContent = true;
+      const totalQty = dups.reduce((sum, s) => sum + (myDuplicates[s.code] || 0), 0);
+      msg += `*🔄 Repetidas (${totalQty} unidades)*\n`;
+      // Para repetidas, mostrar quantidade ao lado do número quando > 1
+      const { grouped, sortedKeys } = groupStickersByCountry(dups);
+      sortedKeys.forEach(country => {
+        const flag = getFlag(country);
+        const items = grouped[country];
+        const countryCode = items[0].code.replace(/[0-9]/g, '').trim();
+        const nums = items.map(s => {
+          const num = s.code.replace(/[^0-9]/g, '') || s.code;
+          const qty = myDuplicates[s.code] || 1;
+          return qty > 1 ? `${num}(${qty}x)` : num;
+        }).join(', ');
+        msg += `${flag} *${countryCode}:* ${nums}\n`;
+      });
+      msg += '\n';
+    } else {
+      msg += `*🔄 Repetidas:* nenhuma no momento.\n\n`;
+    }
+  }
+
+  if (!hasContent) {
+    sharePreviewText.value = 'Nenhuma figurinha encontrada para os filtros selecionados.';
     return;
   }
 
-  // Agrupar repetidas por grupo, ordenadas
-  const grouped = {};
-  Object.entries(myDuplicates).forEach(([code, qty]) => {
-    if (qty <= 0) return;
-    const sticker = allStickers.find(s => s.code === code);
-    if (!sticker) return;
-    const grp = sticker.group === '-' ? 'FIFA' : `Grupo ${sticker.group}`;
-    if (!grouped[grp]) grouped[grp] = [];
-    grouped[grp].push({ code, qty, name: sticker.name });
-  });
+  msg = msg.trimEnd();
+  sharePreviewText.value = msg;
+  shareContext.message = msg;
+}
 
-  // Ordenar grupos (FIFA primeiro, depois A-L)
-  const groupOrder = ['FIFA', ...('ABCDEFGHIJKL'.split('').map(g => `Grupo ${g}`))];
-  const sortedGroups = Object.keys(grouped).sort((a, b) => {
-    const ia = groupOrder.indexOf(a); const ib = groupOrder.indexOf(b);
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-  });
-
-  // Ordenar figurinhas dentro de cada grupo por código
-  sortedGroups.forEach(grp => {
-    grouped[grp].sort((a, b) => a.code.localeCompare(b.code));
-  });
-
-  const name = (currentUser.displayName || currentUser.email).split(' ')[0];
-  let msg = `🏆 *Figurinhas Repetidas — ${name}*\n`;
-  msg += `_Copa 2026 Panini_\n\n`;
-
-  sortedGroups.forEach(grp => {
-    msg += `*${grp}*\n`;
-    grouped[grp].forEach(({ code, qty }) => {
-      msg += `  ${code}${qty > 1 ? ` (${qty}x)` : ''}\n`;
-    });
-    msg += '\n';
-  });
-
-  const totalDups = Object.values(myDuplicates).reduce((s, q) => s + (q > 0 ? q : 0), 0);
-  msg += `_Total: ${totalDups} repetidas_`;
-
-  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-  // Tentar abrir em nova aba; se bloqueado por popup blocker, redirecionar na mesma aba
+// Botão enviar WhatsApp
+document.getElementById('btn-share-whatsapp-send').addEventListener('click', () => {
+  if (!shareContext?.message) return;
+  const url = `https://wa.me/?text=${encodeURIComponent(shareContext.message)}`;
   const newWin = window.open(url, '_blank');
   if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
     window.location.href = url;
   }
-}
+});
+
+// Botão copiar texto
+document.getElementById('btn-share-copy').addEventListener('click', () => {
+  if (!shareContext?.message) return;
+  navigator.clipboard.writeText(shareContext.message)
+    .then(() => showToast('Texto copiado para a área de transferência!', 'success'))
+    .catch(() => {
+      // Fallback para navegadores sem suporte
+      sharePreviewText.select();
+      document.execCommand('copy');
+      showToast('Texto copiado!', 'success');
+    });
+});
 
 // ══════════════════════════════════════════════
 // RENDER — COLEÇÃO
@@ -772,50 +1102,19 @@ async function loadTradingPanel() {
       }
     });
 
-    // Minhas repetidas que outros precisam
-    const matchesList = document.getElementById('matches-list');
-    matchesList.innerHTML = '';
-    let matchCount = 0;
+    // Armazenar dados para uso pelo filtro de grupo
+    window._tradeDuplicates = myDuplicates;
+    window._tradeOthersCollection = othersCollection;
+    window._tradeUserNames = userNames;
 
-    Object.entries(myDuplicates).forEach(([code, qty]) => {
-      if (qty <= 0) return;
-      // Quem não tem essa figurinha na coleção?
-      const needers = Object.entries(othersCollection)
-        .filter(([oUid, oSet]) => !oSet.has(code))
-        .map(([oUid]) => oUid);
+    // Resetar filtro de grupo ao recarregar
+    activeTradeGroup = 'all';
+    document.querySelectorAll('.filter-chip[data-trade-group]').forEach(b => b.classList.remove('active'));
+    const allChip = document.querySelector('.filter-chip[data-trade-group="all"]');
+    if (allChip) allChip.classList.add('active');
 
-      if (needers.length > 0) {
-        matchCount++;
-        const sticker = allStickers.find(s => s.code === code);
-        if (!sticker) return;
-        const card = document.createElement('div');
-        card.className = 'trade-card is-match';
-        card.innerHTML = `
-          <div class="trade-code">${sticker.code}</div>
-          <div class="trade-name">${sticker.name}</div>
-          <div class="trade-meta">
-            ${sticker.group && sticker.group !== '-' ? `<span class="trade-group">Grupo ${sticker.group}</span>` : sticker.group === '-' ? '<span class="trade-group">FIFA</span>' : ''}
-            <span class="trade-page">Pág. ${sticker.page}</span>
-          </div>
-          <div class="trade-users">
-            <div class="trade-user">
-              <span class="trade-user-dot" style="background:var(--gold)"></span>
-              <span>Você tem</span>
-              <span class="trade-user-qty" style="color:var(--gold);background:var(--gold-dim)">${qty}x</span>
-            </div>
-            ${needers.map(nUid => `
-              <div class="trade-user">
-                <span class="trade-user-dot blue"></span>
-                <span>${userNames[nUid] || nUid} precisa</span>
-              </div>
-            `).join('')}
-          </div>
-        `;
-        matchesList.appendChild(card);
-      }
-    });
-
-    document.getElementById('matches-count').textContent = matchCount;
+    // Renderizar lista de matches
+    renderMatchesList();
 
     // Renderizar estatísticas do grupo
     renderGroupStats(colSnaps, dupSnaps);
