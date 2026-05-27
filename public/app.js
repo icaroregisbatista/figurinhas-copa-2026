@@ -54,6 +54,7 @@ let myDuplicates = {};          // { code: quantity }
 let activeTab = 'colecao';
 let activeGroup = 'all';
 let activeStatus = null;        // 'missing' | 'owned' | null
+let activeTradeGroup = 'all';   // filtro de grupo na aba trocas
 let searchQuery = '';
 
 // ── Elementos do DOM ──────────────────────────────────────────
@@ -306,6 +307,70 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (activeTab === 'admin') loadAdminPanel();
   });
 });
+
+// Filtro de grupo na aba Trocas
+document.querySelectorAll('.filter-chip[data-trade-group]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip[data-trade-group]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTradeGroup = btn.dataset.tradeGroup;
+    renderMatchesList();
+  });
+});
+
+function renderMatchesList() {
+  const matchesList = document.getElementById('matches-list');
+  if (!matchesList) return;
+  matchesList.innerHTML = '';
+  let matchCount = 0;
+
+  const sortedDupEntries = Object.entries(window._tradeDuplicates || myDuplicates)
+    .filter(([, qty]) => qty > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  sortedDupEntries.forEach(([code, qty]) => {
+    const sticker = allStickers.find(s => s.code === code);
+    if (!sticker) return;
+    // Aplicar filtro de grupo
+    if (activeTradeGroup !== 'all' && sticker.group !== activeTradeGroup) return;
+
+    const needers = Object.entries(window._tradeOthersCollection || {})
+      .filter(([, oSet]) => !oSet.has(code))
+      .map(([oUid]) => oUid);
+
+    if (needers.length > 0) {
+      matchCount++;
+      const groupLabel = sticker.group === '-' ? 'FIFA' : sticker.group === 'CC' ? 'Coca-Cola' : `Grupo ${sticker.group}`;
+      const card = document.createElement('div');
+      card.className = 'trade-card is-match';
+      card.innerHTML = `
+        <div class="trade-code">${sticker.code}</div>
+        <div class="trade-name">${sticker.name}</div>
+        <div class="trade-meta">
+          <span class="trade-group">${groupLabel}</span>
+          <span class="trade-page">Pág. ${sticker.page}</span>
+        </div>
+        <div class="trade-users">
+          <div class="trade-user">
+            <span class="trade-user-dot" style="background:var(--gold)"></span>
+            <span>Você tem</span>
+            <span class="trade-user-qty" style="color:var(--gold);background:var(--gold-dim)">${qty}x</span>
+          </div>
+          ${needers.map(nUid => `
+            <div class="trade-user">
+              <span class="trade-user-dot blue"></span>
+              <span>${(window._tradeUserNames || {})[nUid] || nUid} precisa</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      matchesList.appendChild(card);
+    }
+  });
+
+  const countEl = document.getElementById('matches-count');
+  if (countEl) countEl.textContent = matchCount;
+}
 
 // ════════════════════════════════════════════
 // CÂMERA OCR
@@ -662,12 +727,33 @@ document.querySelectorAll('[data-scope]').forEach(btn => {
 });
 
 // Helpers de agrupamento
-const GROUP_ORDER = ['FIFA', ...'ABCDEFGHIJKL'.split('').map(g => `Grupo ${g}`)];
+const GROUP_ORDER = ['FIFA', ...'ABCDEFGHIJKL'.split('').map(g => `Grupo ${g}`), 'Coca-Cola'];
+
+// Mapa de bandeiras por país
+const COUNTRY_FLAGS = {
+  'ALG': '🇩🇿', 'ARG': '🇦🇷', 'AUT': '🇦🇹', 'Australia': '🇦🇺',
+  'BEL': '🇧🇪', 'Bosnia and Herzegovina': '🇧🇦', 'Brazil': '🇧🇷',
+  'COD': '🇨🇩', 'COL': '🇨🇴', 'CPV': '🇨🇻', 'CRO': '🇭🇷',
+  'Canada': '🇨🇦', 'Curaçao': '🇨🇼', 'Czechia': '🇨🇿',
+  'EGY': '🇪🇬', 'ENG': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'ESP': '🇪🇸', 'Ecuador': '🇪🇨',
+  'FIFA World Cup': '🏆', 'FRA': '🇫🇷', 'GHA': '🇬🇭', 'Germany': '🇩🇪',
+  'Haiti': '🇭🇹', 'IRN': '🇮🇷', 'IRQ': '🇮🇶', 'Ivory Coast': '🇨🇮',
+  'JOR': '🇯🇴', 'Japan': '🇯🇵', 'KAS': '🇰🇿', 'KSA': '🇸🇦',
+  'Mexico': '🇲🇽', 'Morocco': '🇲🇦', 'NOR': '🇳🇴', 'NZL': '🇳🇿',
+  'Netherlands': '🇳🇱', 'PAN': '🇵🇦', 'POR': '🇵🇹', 'Paraguay': '🇵🇾',
+  'Qatar': '🇶🇦', 'SEN': '🇸🇳', 'SWE': '🇸🇪', 'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'South Africa': '🇿🇦', 'South Korea': '🇰🇷', 'Switzerland': '🇨🇭',
+  'TUN': '🇹🇳', 'Türkiye': '🇹🇷', 'URU': '🇺🇾', 'USA': '🇺🇸', 'UZB': '🇺🇿',
+};
+
+function getFlag(country) {
+  return COUNTRY_FLAGS[country] || '';
+}
 
 function groupStickers(stickers) {
   const grouped = {};
   stickers.forEach(s => {
-    const grp = s.group === '-' ? 'FIFA' : `Grupo ${s.group}`;
+    const grp = s.group === '-' ? 'FIFA' : s.group === 'CC' ? 'Coca-Cola' : `Grupo ${s.group}`;
     if (!grouped[grp]) grouped[grp] = [];
     grouped[grp].push(s);
   });
@@ -676,6 +762,24 @@ function groupStickers(stickers) {
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
   });
   sortedKeys.forEach(k => grouped[k].sort((a, b) => a.code.localeCompare(b.code)));
+  return { grouped, sortedKeys };
+}
+
+// Agrupa figurinhas por país para a mensagem de compartilhamento
+function groupStickersByCountry(stickers) {
+  const grouped = {};
+  stickers.forEach(s => {
+    const key = s.country;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(s);
+  });
+  const sortedKeys = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+  sortedKeys.forEach(k => grouped[k].sort((a, b) => {
+    // Extrair número do código para ordenação numérica (ex: ARG1, ARG2, ARG10)
+    const numA = parseInt(a.code.replace(/[^0-9]/g, '')) || 0;
+    const numB = parseInt(b.code.replace(/[^0-9]/g, '')) || 0;
+    return numA - numB;
+  }));
   return { grouped, sortedKeys };
 }
 
@@ -694,14 +798,25 @@ function buildSharePreview() {
     scopeTitle = scopeLabel;
   }
 
-  const name1st = name;
-  let msg = `🏆 *Figurinhas Copa 2026 — ${name1st}*\n`;
+  let msg = `🏆 *Figurinhas Copa 2026 — ${name}*\n`;
   msg += `_${scopeTitle}_\n\n`;
 
   let hasContent = false;
 
-  // Mostrar cabeçalho de grupo quando há múltiplos escopos ou escopo é 'all'
-  const showGroupHeaders = scope === 'all' || (scopeValues && scopeValues.length > 1);
+  // Formata lista agrupada por país com bandeiras
+  // Formato: 🇦🇷 ARG: 1, 2, 5, 10
+  function formatList(stickers) {
+    const { grouped, sortedKeys } = groupStickersByCountry(stickers);
+    let lines = '';
+    sortedKeys.forEach(country => {
+      const flag = getFlag(country);
+      const items = grouped[country];
+      const countryCode = items[0].code.replace(/[0-9]/g, '').trim();
+      const nums = items.map(s => s.code.replace(/[^0-9]/g, '') || s.code).join(', ');
+      lines += `${flag} *${countryCode}:* ${nums}\n`;
+    });
+    return lines;
+  }
 
   // Seção: Faltando
   if (includeMissing) {
@@ -709,13 +824,8 @@ function buildSharePreview() {
     if (missing.length > 0) {
       hasContent = true;
       msg += `*⬜ Faltando (${missing.length})*\n`;
-      const { grouped, sortedKeys } = groupStickers(missing);
-      sortedKeys.forEach(grp => {
-        if (showGroupHeaders) msg += `*${grp}*\n`;
-        grouped[grp].forEach(s => { msg += `  ${s.code}\n`; });
-        if (showGroupHeaders) msg += '\n';
-      });
-      if (!showGroupHeaders) msg += '\n';
+      msg += formatList(missing);
+      msg += '\n';
     } else {
       msg += `*⬜ Faltando:* nenhuma! 🎉\n\n`;
     }
@@ -728,16 +838,20 @@ function buildSharePreview() {
       hasContent = true;
       const totalQty = dups.reduce((sum, s) => sum + (myDuplicates[s.code] || 0), 0);
       msg += `*🔄 Repetidas (${totalQty} unidades)*\n`;
-      const { grouped, sortedKeys } = groupStickers(dups);
-      sortedKeys.forEach(grp => {
-        if (showGroupHeaders) msg += `*${grp}*\n`;
-        grouped[grp].forEach(s => {
-          const qty = myDuplicates[s.code];
-          msg += `  ${s.code}${qty > 1 ? ` (${qty}x)` : ''}\n`;
-        });
-        if (showGroupHeaders) msg += '\n';
+      // Para repetidas, mostrar quantidade ao lado do número quando > 1
+      const { grouped, sortedKeys } = groupStickersByCountry(dups);
+      sortedKeys.forEach(country => {
+        const flag = getFlag(country);
+        const items = grouped[country];
+        const countryCode = items[0].code.replace(/[0-9]/g, '').trim();
+        const nums = items.map(s => {
+          const num = s.code.replace(/[^0-9]/g, '') || s.code;
+          const qty = myDuplicates[s.code] || 1;
+          return qty > 1 ? `${num}(${qty}x)` : num;
+        }).join(', ');
+        msg += `${flag} *${countryCode}:* ${nums}\n`;
       });
-      if (!showGroupHeaders) msg += '\n';
+      msg += '\n';
     } else {
       msg += `*🔄 Repetidas:* nenhuma no momento.\n\n`;
     }
@@ -988,50 +1102,19 @@ async function loadTradingPanel() {
       }
     });
 
-    // Minhas repetidas que outros precisam
-    const matchesList = document.getElementById('matches-list');
-    matchesList.innerHTML = '';
-    let matchCount = 0;
+    // Armazenar dados para uso pelo filtro de grupo
+    window._tradeDuplicates = myDuplicates;
+    window._tradeOthersCollection = othersCollection;
+    window._tradeUserNames = userNames;
 
-    Object.entries(myDuplicates).forEach(([code, qty]) => {
-      if (qty <= 0) return;
-      // Quem não tem essa figurinha na coleção?
-      const needers = Object.entries(othersCollection)
-        .filter(([oUid, oSet]) => !oSet.has(code))
-        .map(([oUid]) => oUid);
+    // Resetar filtro de grupo ao recarregar
+    activeTradeGroup = 'all';
+    document.querySelectorAll('.filter-chip[data-trade-group]').forEach(b => b.classList.remove('active'));
+    const allChip = document.querySelector('.filter-chip[data-trade-group="all"]');
+    if (allChip) allChip.classList.add('active');
 
-      if (needers.length > 0) {
-        matchCount++;
-        const sticker = allStickers.find(s => s.code === code);
-        if (!sticker) return;
-        const card = document.createElement('div');
-        card.className = 'trade-card is-match';
-        card.innerHTML = `
-          <div class="trade-code">${sticker.code}</div>
-          <div class="trade-name">${sticker.name}</div>
-          <div class="trade-meta">
-            ${sticker.group && sticker.group !== '-' ? `<span class="trade-group">Grupo ${sticker.group}</span>` : sticker.group === '-' ? '<span class="trade-group">FIFA</span>' : ''}
-            <span class="trade-page">Pág. ${sticker.page}</span>
-          </div>
-          <div class="trade-users">
-            <div class="trade-user">
-              <span class="trade-user-dot" style="background:var(--gold)"></span>
-              <span>Você tem</span>
-              <span class="trade-user-qty" style="color:var(--gold);background:var(--gold-dim)">${qty}x</span>
-            </div>
-            ${needers.map(nUid => `
-              <div class="trade-user">
-                <span class="trade-user-dot blue"></span>
-                <span>${userNames[nUid] || nUid} precisa</span>
-              </div>
-            `).join('')}
-          </div>
-        `;
-        matchesList.appendChild(card);
-      }
-    });
-
-    document.getElementById('matches-count').textContent = matchCount;
+    // Renderizar lista de matches
+    renderMatchesList();
 
     // Renderizar estatísticas do grupo
     renderGroupStats(colSnaps, dupSnaps);
