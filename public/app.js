@@ -602,9 +602,9 @@ function openShareModal() {
   groupList.innerHTML = '';
   const groupConfirmBtn = document.getElementById('share-group-confirm');
   groupConfirmBtn.disabled = true;
-  const groups = ['-', ...'ABCDEFGHIJKL'.split('')];
+  const groups = ['-', ...'ABCDEFGHIJKL'.split(''), 'CC'];
   groups.forEach(g => {
-    const label = g === '-' ? 'FIFA' : `Grupo ${g}`;
+    const label = g === '-' ? 'FIFA' : g === 'CC' ? 'Coca-Cola' : `Grupo ${g}`;
     const lbl = document.createElement('label');
     lbl.className = 'share-checkbox-label share-sub-check';
     lbl.innerHTML = `
