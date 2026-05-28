@@ -2204,9 +2204,45 @@ function updateProgressBar() {
 }
 
 
+
 // ══════════════════════════════════════════════
-// EXPORTAÇÃO PDF — CONTROLE DO ÁLBUM
+// EXPORTAÇÃO PDF — CONTROLE DO ÁLBUM v2
 // ══════════════════════════════════════════════
+
+// Mapa completo: código ISO → nome em português
+const TEAM_NAMES_PT = {
+  ALG: 'Argélia', ARG: 'Argentina', AUS: 'Austrália', AUT: 'Áustria',
+  BEL: 'Bélgica', BIH: 'Bósnia e Herz.', BRA: 'Brasil', CAN: 'Canadá',
+  CC: 'Figurinhas Coca-Cola', CIV: 'Costa do Marfim', COD: 'Congo',
+  COL: 'Colômbia', CPV: 'Cabo Verde', CRO: 'Croácia', CUW: 'Curaçao',
+  CZE: 'Rep. Tcheca', ECU: 'Equador', EGY: 'Egito', ENG: 'Inglaterra',
+  ESP: 'Espanha', FRA: 'França', FWC: 'FIFA World Cup History',
+  GER: 'Alemanha', GHA: 'Gana', HAI: 'Haiti', IRN: 'Irã',
+  IRQ: 'Iraque', JOR: 'Jordânia', JPN: 'Japão', KOR: 'Coreia do Sul',
+  KSA: 'Arábia Saudita', MAR: 'Marrocos', MEX: 'México', NED: 'Holanda',
+  NOR: 'Noruega', NZL: 'Nova Zelândia', PAN: 'Panamá', PAR: 'Paraguai',
+  POR: 'Portugal', QAT: 'Catar', RSA: 'África do Sul', SCO: 'Escócia',
+  SEN: 'Senegal', SUI: 'Suíça', SWE: 'Suécia', SWI: 'Suíça',
+  TUN: 'Tunísia', TUR: 'Turquia', URU: 'Uruguai', USA: 'Estados Unidos',
+  UZB: 'Uzbequistão',
+};
+
+// Mapa código → código ISO 2 letras para flagcdn.com
+const TEAM_FLAG_ISO = {
+  ALG: 'dz', ARG: 'ar', AUS: 'au', AUT: 'at',
+  BEL: 'be', BIH: 'ba', BRA: 'br', CAN: 'ca',
+  CIV: 'ci', COD: 'cd', COL: 'co', CPV: 'cv',
+  CRO: 'hr', CUW: 'cw', CZE: 'cz', ECU: 'ec',
+  EGY: 'eg', ENG: 'gb-eng', ESP: 'es', FRA: 'fr',
+  GER: 'de', GHA: 'gh', HAI: 'ht', IRN: 'ir',
+  IRQ: 'iq', JOR: 'jo', JPN: 'jp', KOR: 'kr',
+  KSA: 'sa', MAR: 'ma', MEX: 'mx', NED: 'nl',
+  NOR: 'no', NZL: 'nz', PAN: 'pa', PAR: 'py',
+  POR: 'pt', QAT: 'qa', RSA: 'za', SCO: 'gb-sct',
+  SEN: 'sn', SUI: 'ch', SWE: 'se', SWI: 'ch',
+  TUN: 'tn', TUR: 'tr', URU: 'uy', USA: 'us',
+  UZB: 'uz',
+};
 
 document.getElementById('btn-export-pdf').addEventListener('click', exportAlbumPDF);
 
@@ -2216,11 +2252,11 @@ async function exportAlbumPDF() {
     return;
   }
 
-  showToast('Gerando PDF…', 'info');
+  // Mostrar mensagem de progresso
+  showToast('Gerando PDF, aguarde… (carregando bandeiras)', 'info');
 
   try {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
     const userName = currentUser.displayName || currentUser.email.split('@')[0];
     const today = new Date().toLocaleDateString('pt-BR');
@@ -2228,71 +2264,72 @@ async function exportAlbumPDF() {
     const totalStickers = allStickers.length;
     const pct = Math.round((totalOwned / totalStickers) * 100);
 
-    // Tentar carregar foto do usuário
+    // Carregar foto do usuário
     let userPhotoDataUrl = null;
     if (currentUser.photoURL) {
-      try {
-        userPhotoDataUrl = await loadImageAsDataUrl(currentUser.photoURL);
-      } catch (_) { userPhotoDataUrl = null; }
+      try { userPhotoDataUrl = await loadImageAsDataUrl(currentUser.photoURL); } catch (_) {}
     }
 
     // ── Construir lista de times ordenada ──
-    // Agrupar por código de time (prefixo do código da figurinha)
     const teamMap = {};
     allStickers.forEach(s => {
-      const match = s.code.match(/^([A-Z]+)/);
-      if (!match) return;
-      const teamCode = match[1];
-      if (!teamMap[teamCode]) {
-        teamMap[teamCode] = {
-          code: teamCode,
-          name: s.country || teamCode,
-          group: s.group,
-          stickers: []
-        };
+      const m = s.code.match(/^([A-Z]+)/);
+      if (!m) return;
+      const tc = m[1];
+      if (!teamMap[tc]) {
+        teamMap[tc] = { code: tc, country: s.country, group: s.group, stickers: [] };
       }
-      teamMap[teamCode].stickers.push(s);
+      teamMap[tc].stickers.push(s);
     });
 
-    // Ordenar: times regulares por nome, FWC depois, CC por último
+    // Mesclar SUI e SWI (mesmo time, códigos diferentes)
+    if (teamMap['SUI'] && teamMap['SWI']) {
+      teamMap['SUI'].stickers = [...teamMap['SUI'].stickers, ...teamMap['SWI'].stickers]
+        .sort((a, b) => {
+          const na = parseInt(a.code.replace(/^[A-Z]+/, ''));
+          const nb = parseInt(b.code.replace(/^[A-Z]+/, ''));
+          return na - nb;
+        });
+      delete teamMap['SWI'];
+    }
+
     const teams = Object.values(teamMap);
-    const regular = teams
-      .filter(t => t.group !== '-' && t.group !== 'CC')
-      .sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+    const regular = teams.filter(t => t.group !== '-' && t.group !== 'CC')
+      .sort((a, b) => (TEAM_NAMES_PT[a.code] || a.code).localeCompare(TEAM_NAMES_PT[b.code] || b.code, 'pt'));
     const fwc = teams.filter(t => t.group === '-');
     const cc = teams.filter(t => t.group === 'CC');
     const orderedTeams = [...regular, ...fwc, ...cc];
 
+    // Pré-carregar bandeiras
+    showToast('Gerando PDF, aguarde… (carregando bandeiras)', 'info');
+    const flagCache = {};
+    const flagPromises = orderedTeams.map(async team => {
+      const iso = TEAM_FLAG_ISO[team.code];
+      if (!iso) return;
+      try {
+        const url = `https://flagcdn.com/w20/${iso}.png`;
+        flagCache[team.code] = await loadImageAsDataUrl(url);
+      } catch (_) {}
+    });
+    await Promise.all(flagPromises);
+
+    showToast('Gerando PDF, aguarde… (montando páginas)', 'info');
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
     // ── PÁGINA 1: Controle do Álbum ──
-    drawPDFPage(doc, {
-      teams: orderedTeams,
-      collection: myCollection,
-      duplicates: null,
-      pageTitle: 'Controle do Álbum',
-      userName,
-      today,
-      totalOwned,
-      totalStickers,
-      pct,
-      userPhotoDataUrl,
-      mode: 'collection'
+    await drawPDFPageV2(doc, {
+      teams: orderedTeams, collection: myCollection, duplicates: null,
+      pageTitle: 'Controle do Álbum', userName, today, totalOwned, totalStickers, pct,
+      userPhotoDataUrl, flagCache, mode: 'collection', isFirstPage: true
     });
 
     // ── PÁGINA 2: Controle de Repetidas ──
     doc.addPage();
-    const dupCollection = myDuplicates || {};
-    drawPDFPage(doc, {
-      teams: orderedTeams,
-      collection: myCollection,
-      duplicates: dupCollection,
-      pageTitle: 'Repetidas para Troca',
-      userName,
-      today,
-      totalOwned,
-      totalStickers,
-      pct,
-      userPhotoDataUrl,
-      mode: 'duplicates'
+    await drawPDFPageV2(doc, {
+      teams: orderedTeams, collection: myCollection, duplicates: myDuplicates || {},
+      pageTitle: 'Repetidas para Troca', userName, today, totalOwned, totalStickers, pct,
+      userPhotoDataUrl, flagCache, mode: 'duplicates', isFirstPage: false
     });
 
     doc.save(`album-copa-2026-${userName.replace(/\s+/g, '-').toLowerCase()}.pdf`);
@@ -2303,93 +2340,93 @@ async function exportAlbumPDF() {
   }
 }
 
-function drawPDFPage(doc, { teams, collection, duplicates, pageTitle, userName, today, totalOwned, totalStickers, pct, userPhotoDataUrl, mode }) {
+async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, userName, today, totalOwned, totalStickers, pct, userPhotoDataUrl, flagCache, mode }) {
   const pageW = 210;
   const pageH = 297;
-  const margin = 6;
+  const margin = 5;
   const contentW = pageW - margin * 2;
 
-  // ── Cabeçalho ──
-  doc.setFillColor(13, 17, 23); // --bg
-  doc.rect(0, 0, pageW, 28, 'F');
+  // ── Fundo branco ──
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, pageW, pageH, 'F');
 
-  // Título
+  // ── Cabeçalho branco ──
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(margin, 26, margin + contentW, 26);
+
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(240, 192, 64); // --gold
-  doc.text('Planilha de Controle de Figurinhas', pageW / 2, 8, { align: 'center' });
-  doc.setFontSize(9);
-  doc.setTextColor(230, 237, 243);
-  doc.text(`Copa do Mundo 2026 — ${pageTitle}`, pageW / 2, 13, { align: 'center' });
+  doc.setFontSize(10);
+  doc.setTextColor(20, 20, 20);
+  doc.text('Planilha de Controle de Figurinhas — Copa do Mundo 2026', pageW / 2, 8, { align: 'center' });
 
-  // Nome do usuário e data
-  doc.setFontSize(7.5);
-  doc.setTextColor(139, 148, 158);
-  doc.text(`${userName}  ·  ${today}  ·  ${totalOwned}/${totalStickers} (${pct}%)`, pageW / 2, 18, { align: 'center' });
+  doc.setFontSize(8);
+  doc.setTextColor(60, 60, 60);
+  doc.text(pageTitle, pageW / 2, 13.5, { align: 'center' });
 
-  // Foto do usuário (canto superior direito)
-  const photoSize = 18;
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`${userName}  ·  Gerado em ${today}  ·  ${totalOwned}/${totalStickers} figurinhas (${pct}%)`, pageW / 2, 19, { align: 'center' });
+
+  // Foto do usuário (canto superior direito, sem moldura)
+  const photoSize = 16;
   const photoX = pageW - margin - photoSize;
-  const photoY = 5;
+  const photoY = 4;
   if (userPhotoDataUrl) {
     try {
       doc.addImage(userPhotoDataUrl, 'JPEG', photoX, photoY, photoSize, photoSize);
-      // Borda circular simulada com retângulo arredondado
-      doc.setDrawColor(240, 192, 64);
-      doc.setLineWidth(0.5);
-      doc.roundedRect(photoX, photoY, photoSize, photoSize, 2, 2, 'S');
     } catch (_) {
-      drawPhotoPlaceholder(doc, photoX, photoY, photoSize, userName);
+      drawPhotoPlaceholderV2(doc, photoX, photoY, photoSize, userName);
     }
   } else {
-    drawPhotoPlaceholder(doc, photoX, photoY, photoSize, userName);
+    drawPhotoPlaceholderV2(doc, photoX, photoY, photoSize, userName);
   }
 
-  // Legenda Tenho/Falta
-  const legendX = margin;
-  const legendY = 22;
-  doc.setFillColor(63, 185, 80);
-  doc.rect(legendX, legendY, 8, 3.5, 'F');
-  doc.setFontSize(6.5);
-  doc.setTextColor(230, 237, 243);
-  doc.text('Tenho', legendX + 9, legendY + 2.8);
+  // Legenda
+  const legX = margin;
+  const legY = 20;
+  doc.setFillColor(0, 0, 0);
+  doc.rect(legX, legY, 7, 3, 'F');
+  doc.setFontSize(6);
+  doc.setTextColor(60, 60, 60);
+  doc.text('Tenho', legX + 8, legY + 2.3);
 
-  doc.setFillColor(33, 38, 45);
-  doc.setDrawColor(80, 80, 80);
-  doc.setLineWidth(0.3);
-  doc.rect(legendX + 22, legendY, 8, 3.5, 'FD');
-  doc.text('Falta', legendX + 31, legendY + 2.8);
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(150, 150, 150);
+  doc.setLineWidth(0.2);
+  doc.rect(legX + 20, legY, 7, 3, 'FD');
+  doc.setFontSize(6);
+  doc.setTextColor(60, 60, 60);
+  doc.text('Falta', legX + 28, legY + 2.3);
 
-  // ── Tabela de times ──
-  let y = 30;
-  const rowH = 4.2;
-  const colCodeW = 9;
-  const numW = 4.2;
-  const midCodeW = 9; // repetição da sigla entre col 10 e 11
-  const labelW = 28;
-
-  // Calcular largura total disponível para os números
-  // Layout: [nome(labelW)] [código(colCodeW)] [1..10] [código(colCodeW)] [11..20]
-  // Máx figurinhas por time = 20 → 2 grupos de 10
-  const maxNums = 20;
+  // ── Tabela ──
+  let y = 28;
+  const rowH = 4.0;
+  const flagW = 5;
+  const flagH = 3.3;
+  const labelW = 30;   // nome da seleção
+  const codeW = 8;     // código (sigla)
   const halfNums = 10;
-  const totalNumW = contentW - labelW - colCodeW * 2;
-  const cellW = totalNumW / maxNums;
+  const maxNums = 20;
+  // Largura disponível para células numéricas (2 grupos de 10 + 1 coluna de código no meio)
+  const numAreaW = contentW - labelW - flagW - codeW * 2;
+  const cellW = numAreaW / maxNums;
 
   // Cabeçalho da tabela
-  doc.setFillColor(22, 27, 34);
+  doc.setFillColor(230, 235, 240);
   doc.rect(margin, y, contentW, rowH, 'F');
   doc.setFontSize(5.5);
-  doc.setTextColor(139, 148, 158);
-  doc.text('Seleção', margin + 1, y + rowH - 1.2);
-  doc.text('Cód', margin + labelW + 1, y + rowH - 1.2);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(60, 70, 80);
+  doc.text('Seleção', margin + flagW + 1, y + rowH - 1.2);
+  doc.text('Cód', margin + flagW + labelW + 1, y + rowH - 1.2);
   for (let n = 1; n <= halfNums; n++) {
-    const cx = margin + labelW + colCodeW + (n - 1) * cellW + cellW / 2;
+    const cx = margin + flagW + labelW + codeW + (n - 1) * cellW + cellW / 2;
     doc.text(String(n), cx, y + rowH - 1.2, { align: 'center' });
   }
-  doc.text('Cód', margin + labelW + colCodeW + halfNums * cellW + 1, y + rowH - 1.2);
+  doc.text('Cód', margin + flagW + labelW + codeW + halfNums * cellW + 1, y + rowH - 1.2);
   for (let n = halfNums + 1; n <= maxNums; n++) {
-    const cx = margin + labelW + colCodeW * 2 + (n - 1) * cellW + cellW / 2;
+    const cx = margin + flagW + labelW + codeW * 2 + (n - 1) * cellW + cellW / 2;
     doc.text(String(n), cx, y + rowH - 1.2, { align: 'center' });
   }
   y += rowH;
@@ -2397,65 +2434,78 @@ function drawPDFPage(doc, { teams, collection, duplicates, pageTitle, userName, 
   // Linhas dos times
   let rowIndex = 0;
   for (const team of teams) {
-    if (y + rowH > pageH - 14) {
-      // Nova página se não couber
+    if (y + rowH > pageH - 12) {
       doc.addPage();
-      y = 10;
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pageW, pageH, 'F');
+      y = 8;
     }
 
+    // Fundo alternado: branco e cinza muito leve
     const isEven = rowIndex % 2 === 0;
-    doc.setFillColor(isEven ? 22 : 18, isEven ? 27 : 23, isEven ? 34 : 28);
+    doc.setFillColor(isEven ? 255 : 245, isEven ? 255 : 246, isEven ? 255 : 248);
     doc.rect(margin, y, contentW, rowH, 'F');
 
+    // Bandeira
+    const flagDataUrl = flagCache[team.code];
+    if (flagDataUrl) {
+      try {
+        doc.addImage(flagDataUrl, 'PNG', margin + 0.5, y + (rowH - flagH) / 2, flagW - 1, flagH);
+      } catch (_) {}
+    }
+
     // Nome da seleção
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(5.8);
-    doc.setTextColor(230, 237, 243);
-    const displayName = getTeamDisplayName(team.name, team.code);
-    doc.text(displayName.substring(0, 22), margin + 1, y + rowH - 1.2);
+    doc.setTextColor(30, 30, 30);
+    const displayName = TEAM_NAMES_PT[team.code] || team.country || team.code;
+    doc.text(displayName.substring(0, 24), margin + flagW + 0.5, y + rowH - 1.2);
 
     // Código (1ª metade)
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(5.5);
-    doc.setTextColor(240, 192, 64);
-    doc.text(team.code, margin + labelW + 1, y + rowH - 1.2);
+    doc.setTextColor(100, 100, 100);
+    doc.text(team.code, margin + flagW + labelW + 0.5, y + rowH - 1.2);
 
     // Células 1-10
     for (let n = 1; n <= halfNums; n++) {
-      const cx = margin + labelW + colCodeW + (n - 1) * cellW;
+      const cx = margin + flagW + labelW + codeW + (n - 1) * cellW;
       const sticker = team.stickers.find(s => {
         const num = parseInt(s.code.replace(/^[A-Z]+/, ''));
         return num === n;
       });
       if (sticker) {
-        drawStickerCell(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode);
+        drawStickerCellV2(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode, n, rowIndex);
       } else {
-        // Célula vazia (time tem menos de 10 figurinhas)
-        doc.setFillColor(13, 17, 23);
-        doc.rect(cx, y, cellW, rowH, 'F');
+        // Posição não existe — célula vazia escura
+        doc.setFillColor(200, 200, 200);
+        doc.rect(cx + 0.3, y + 0.3, cellW - 0.6, rowH - 0.6, 'F');
       }
     }
 
     // Código (2ª metade)
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(5.5);
-    doc.setTextColor(240, 192, 64);
-    doc.text(team.code, margin + labelW + colCodeW + halfNums * cellW + 1, y + rowH - 1.2);
+    doc.setTextColor(100, 100, 100);
+    doc.text(team.code, margin + flagW + labelW + codeW + halfNums * cellW + 0.5, y + rowH - 1.2);
 
     // Células 11-20
     for (let n = halfNums + 1; n <= maxNums; n++) {
-      const cx = margin + labelW + colCodeW * 2 + (n - 1) * cellW;
+      const cx = margin + flagW + labelW + codeW * 2 + (n - 1) * cellW;
       const sticker = team.stickers.find(s => {
         const num = parseInt(s.code.replace(/^[A-Z]+/, ''));
         return num === n;
       });
       if (sticker) {
-        drawStickerCell(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode);
+        drawStickerCellV2(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode, n, rowIndex);
       } else {
-        doc.setFillColor(13, 17, 23);
-        doc.rect(cx, y, cellW, rowH, 'F');
+        doc.setFillColor(200, 200, 200);
+        doc.rect(cx + 0.3, y + 0.3, cellW - 0.6, rowH - 0.6, 'F');
       }
     }
 
-    // Borda inferior da linha
-    doc.setDrawColor(40, 46, 56);
+    // Linha divisória leve
+    doc.setDrawColor(220, 220, 220);
     doc.setLineWidth(0.1);
     doc.line(margin, y + rowH, margin + contentW, y + rowH);
 
@@ -2464,93 +2514,74 @@ function drawPDFPage(doc, { teams, collection, duplicates, pageTitle, userName, 
   }
 
   // ── Rodapé de patrocínio ──
-  const footerY = pageH - 10;
-  doc.setFillColor(22, 27, 34);
-  doc.rect(0, footerY, pageW, 10, 'F');
-  doc.setFontSize(7);
-  doc.setTextColor(139, 148, 158);
-  doc.text('Deixe seu patrocínio aqui', pageW / 2, footerY + 5.5, { align: 'center' });
-  doc.setDrawColor(240, 192, 64);
+  const footerY = pageH - 11;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(180, 180, 180);
   doc.setLineWidth(0.3);
-  doc.rect(margin, footerY + 1, contentW, 7, 'S');
+  doc.rect(margin, footerY, contentW, 8, 'FD');
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7);
+  doc.setTextColor(150, 150, 150);
+  doc.text('Deixe seu patrocínio aqui', pageW / 2, footerY + 4.5, { align: 'center' });
 }
 
-function drawStickerCell(doc, x, y, w, h, code, collection, duplicates, mode) {
-  const padding = 0.3;
+function drawStickerCellV2(doc, x, y, w, h, code, collection, duplicates, mode, num, rowIndex) {
+  const pad = 0.3;
+  const cx = x + w / 2;
+  const cy = y + h / 2 + 1.2;
+  // Cor do número da posição: mais escuro na linha cinza, mais claro na linha branca
+  const numColor = (rowIndex % 2 === 0) ? 130 : 100;
 
   if (mode === 'collection') {
     const owned = collection && collection.has(code);
     if (owned) {
-      // Preenchido em preto/verde escuro = coletada
-      doc.setFillColor(30, 70, 35);
-      doc.rect(x + padding, y + padding, w - padding * 2, h - padding * 2, 'F');
-      doc.setFontSize(4);
-      doc.setTextColor(63, 185, 80);
-      doc.text('✓', x + w / 2, y + h / 2 + 1.2, { align: 'center' });
+      // Preenchido preto = coletada
+      doc.setFillColor(0, 0, 0);
+      doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'F');
     } else {
-      // Vazio = faltando
-      doc.setFillColor(33, 38, 45);
-      doc.setDrawColor(60, 66, 76);
+      // Vazio com número da posição
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(170, 170, 170);
       doc.setLineWidth(0.2);
-      doc.rect(x + padding, y + padding, w - padding * 2, h - padding * 2, 'FD');
+      doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'FD');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(4);
+      doc.setTextColor(numColor, numColor, numColor);
+      doc.text(String(num), cx, cy, { align: 'center' });
     }
   } else {
     // Modo repetidas
     const qty = duplicates ? (duplicates[code] || 0) : 0;
     if (qty > 0) {
-      // Mostrar quantidade
-      doc.setFillColor(30, 50, 80);
-      doc.setDrawColor(88, 166, 255);
-      doc.setLineWidth(0.2);
-      doc.rect(x + padding, y + padding, w - padding * 2, h - padding * 2, 'FD');
+      // Fundo cinza escuro com número da quantidade
+      doc.setFillColor(60, 60, 60);
+      doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'F');
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(qty > 9 ? 3.5 : 4.5);
-      doc.setTextColor(88, 166, 255);
-      doc.text(String(qty), x + w / 2, y + h / 2 + 1.2, { align: 'center' });
+      doc.setTextColor(255, 255, 255);
+      doc.text(String(qty), cx, cy, { align: 'center' });
     } else {
-      // Vazio
-      doc.setFillColor(33, 38, 45);
-      doc.setDrawColor(60, 66, 76);
+      // Vazio com número da posição
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(170, 170, 170);
       doc.setLineWidth(0.2);
-      doc.rect(x + padding, y + padding, w - padding * 2, h - padding * 2, 'FD');
+      doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'FD');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(4);
+      doc.setTextColor(numColor, numColor, numColor);
+      doc.text(String(num), cx, cy, { align: 'center' });
     }
   }
 }
 
-function drawPhotoPlaceholder(doc, x, y, size, name) {
+function drawPhotoPlaceholderV2(doc, x, y, size, name) {
   doc.setFillColor(33, 38, 45);
-  doc.setDrawColor(240, 192, 64);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(x, y, size, size, 2, 2, 'FD');
+  doc.rect(x, y, size, size, 'F');
   const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(240, 192, 64);
   doc.text(initials, x + size / 2, y + size / 2 + 2, { align: 'center' });
-}
-
-function getTeamDisplayName(countryName, code) {
-  // Mapa de nomes em português
-  const ptNames = {
-    'Mexico': 'México', 'Brazil': 'Brasil', 'Canada': 'Canadá',
-    'Australia': 'Austrália', 'Japan': 'Japão', 'Germany': 'Alemanha',
-    'Netherlands': 'Holanda', 'Scotland': 'Escócia', 'Switzerland': 'Suíça',
-    'South Africa': 'África do Sul', 'South Korea': 'Coreia do Sul',
-    'Czechia': 'Rep. Tcheca', 'Ivory Coast': 'Costa do Marfim',
-    'Bosnia and Herzegovina': 'Bósnia e Herz.', 'Ecuador': 'Equador',
-    'Paraguay': 'Paraguai', 'Uruguay': 'Uruguai', 'Colombia': 'Colômbia',
-    'Argentina': 'Argentina', 'Portugal': 'Portugal', 'Spain': 'Espanha',
-    'France': 'França', 'England': 'Inglaterra', 'Croatia': 'Croácia',
-    'Belgium': 'Bélgica', 'Morocco': 'Marrocos', 'Senegal': 'Senegal',
-    'Egypt': 'Egito', 'Ghana': 'Gana', 'Panama': 'Panamá',
-    'Haiti': 'Haiti', 'Iraq': 'Iraque', 'Iran': 'Irã',
-    'Norway': 'Noruega', 'Sweden': 'Suécia', 'Tunisia': 'Tunísia',
-    'Turkey': 'Turquia', 'Qatar': 'Catar', 'Saudi Arabia': 'Arábia Saudita',
-    'New Zealand': 'Nova Zelândia', 'Cape Verde': 'Cabo Verde',
-    'Uzbekistan': 'Uzbequistão', 'Jordan': 'Jordânia',
-    'Congo': 'Congo', 'Algeria': 'Argélia', 'Austria': 'Áustria',
-    'Curaçao': 'Curaçao', 'USA': 'Estados Unidos',
-    'FIFA World Cup': 'FIFA World Cup History',
-  };
-  return ptNames[countryName] || countryName || code;
 }
 
 async function loadImageAsDataUrl(url) {
@@ -2563,9 +2594,11 @@ async function loadImageAsDataUrl(url) {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/jpeg', 0.8));
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
     };
     img.onerror = reject;
+    // Timeout para não travar se a bandeira não carregar
+    setTimeout(() => reject(new Error('timeout')), 5000);
     img.src = url;
   });
 }
