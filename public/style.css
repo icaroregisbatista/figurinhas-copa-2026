@@ -166,6 +166,19 @@ body {
   font-weight: 700;
   color: var(--gold);
   flex-shrink: 0;
+  overflow: hidden;
+}
+.user-avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.tab-btn-pdf {
+  margin-left: auto;
+  color: var(--red) !important;
+  border-left: 1px solid var(--border);
+  padding-left: 1rem;
+  flex-shrink: 0;
 }
 .user-name { font-size: 0.82rem; color: var(--text-muted); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 

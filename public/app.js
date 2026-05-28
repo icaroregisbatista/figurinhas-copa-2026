@@ -171,7 +171,17 @@ async function initApp() {
   // Exibir dados do usuário no header
   const initials = (currentUser.displayName || currentUser.email)
     .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  userAvatar.textContent = initials;
+  const initialsEl = document.getElementById('user-avatar-initials');
+  if (currentUser.photoURL) {
+    const img = document.createElement('img');
+    img.src = currentUser.photoURL;
+    img.alt = initials;
+    img.onerror = () => { img.remove(); if (initialsEl) initialsEl.textContent = initials; };
+    userAvatar.innerHTML = '';
+    userAvatar.appendChild(img);
+  } else {
+    if (initialsEl) initialsEl.textContent = initials;
+  }
   userName.textContent = (currentUser.displayName || currentUser.email).split(' ')[0];
 
   // Registrar UID no documento do usuário autorizado (para mapeamento UID→nome nas trocas)
@@ -2191,4 +2201,371 @@ function updateProgressBar() {
   if (progressFill) progressFill.style.width = pct + '%';
   if (progressText) progressText.textContent = `${owned} / ${total}`;
   if (progressPct) progressPct.textContent = pct + '%';
+}
+
+
+// ══════════════════════════════════════════════
+// EXPORTAÇÃO PDF — CONTROLE DO ÁLBUM
+// ══════════════════════════════════════════════
+
+document.getElementById('btn-export-pdf').addEventListener('click', exportAlbumPDF);
+
+async function exportAlbumPDF() {
+  if (!allStickers || allStickers.length === 0) {
+    showToast('Aguarde o carregamento das figurinhas.', 'error');
+    return;
+  }
+
+  showToast('Gerando PDF…', 'info');
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const userName = currentUser.displayName || currentUser.email.split('@')[0];
+    const today = new Date().toLocaleDateString('pt-BR');
+    const totalOwned = myCollection ? myCollection.size : 0;
+    const totalStickers = allStickers.length;
+    const pct = Math.round((totalOwned / totalStickers) * 100);
+
+    // Tentar carregar foto do usuário
+    let userPhotoDataUrl = null;
+    if (currentUser.photoURL) {
+      try {
+        userPhotoDataUrl = await loadImageAsDataUrl(currentUser.photoURL);
+      } catch (_) { userPhotoDataUrl = null; }
+    }
+
+    // ── Construir lista de times ordenada ──
+    // Agrupar por código de time (prefixo do código da figurinha)
+    const teamMap = {};
+    allStickers.forEach(s => {
+      const match = s.code.match(/^([A-Z]+)/);
+      if (!match) return;
+      const teamCode = match[1];
+      if (!teamMap[teamCode]) {
+        teamMap[teamCode] = {
+          code: teamCode,
+          name: s.country || teamCode,
+          group: s.group,
+          stickers: []
+        };
+      }
+      teamMap[teamCode].stickers.push(s);
+    });
+
+    // Ordenar: times regulares por nome, FWC depois, CC por último
+    const teams = Object.values(teamMap);
+    const regular = teams
+      .filter(t => t.group !== '-' && t.group !== 'CC')
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+    const fwc = teams.filter(t => t.group === '-');
+    const cc = teams.filter(t => t.group === 'CC');
+    const orderedTeams = [...regular, ...fwc, ...cc];
+
+    // ── PÁGINA 1: Controle do Álbum ──
+    drawPDFPage(doc, {
+      teams: orderedTeams,
+      collection: myCollection,
+      duplicates: null,
+      pageTitle: 'Controle do Álbum',
+      userName,
+      today,
+      totalOwned,
+      totalStickers,
+      pct,
+      userPhotoDataUrl,
+      mode: 'collection'
+    });
+
+    // ── PÁGINA 2: Controle de Repetidas ──
+    doc.addPage();
+    const dupCollection = myDuplicates || {};
+    drawPDFPage(doc, {
+      teams: orderedTeams,
+      collection: myCollection,
+      duplicates: dupCollection,
+      pageTitle: 'Repetidas para Troca',
+      userName,
+      today,
+      totalOwned,
+      totalStickers,
+      pct,
+      userPhotoDataUrl,
+      mode: 'duplicates'
+    });
+
+    doc.save(`album-copa-2026-${userName.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+    showToast('PDF gerado com sucesso!', 'success');
+  } catch (e) {
+    console.error('Erro ao gerar PDF:', e);
+    showToast('Erro ao gerar PDF. Tente novamente.', 'error');
+  }
+}
+
+function drawPDFPage(doc, { teams, collection, duplicates, pageTitle, userName, today, totalOwned, totalStickers, pct, userPhotoDataUrl, mode }) {
+  const pageW = 210;
+  const pageH = 297;
+  const margin = 6;
+  const contentW = pageW - margin * 2;
+
+  // ── Cabeçalho ──
+  doc.setFillColor(13, 17, 23); // --bg
+  doc.rect(0, 0, pageW, 28, 'F');
+
+  // Título
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(240, 192, 64); // --gold
+  doc.text('Planilha de Controle de Figurinhas', pageW / 2, 8, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setTextColor(230, 237, 243);
+  doc.text(`Copa do Mundo 2026 — ${pageTitle}`, pageW / 2, 13, { align: 'center' });
+
+  // Nome do usuário e data
+  doc.setFontSize(7.5);
+  doc.setTextColor(139, 148, 158);
+  doc.text(`${userName}  ·  ${today}  ·  ${totalOwned}/${totalStickers} (${pct}%)`, pageW / 2, 18, { align: 'center' });
+
+  // Foto do usuário (canto superior direito)
+  const photoSize = 18;
+  const photoX = pageW - margin - photoSize;
+  const photoY = 5;
+  if (userPhotoDataUrl) {
+    try {
+      doc.addImage(userPhotoDataUrl, 'JPEG', photoX, photoY, photoSize, photoSize);
+      // Borda circular simulada com retângulo arredondado
+      doc.setDrawColor(240, 192, 64);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(photoX, photoY, photoSize, photoSize, 2, 2, 'S');
+    } catch (_) {
+      drawPhotoPlaceholder(doc, photoX, photoY, photoSize, userName);
+    }
+  } else {
+    drawPhotoPlaceholder(doc, photoX, photoY, photoSize, userName);
+  }
+
+  // Legenda Tenho/Falta
+  const legendX = margin;
+  const legendY = 22;
+  doc.setFillColor(63, 185, 80);
+  doc.rect(legendX, legendY, 8, 3.5, 'F');
+  doc.setFontSize(6.5);
+  doc.setTextColor(230, 237, 243);
+  doc.text('Tenho', legendX + 9, legendY + 2.8);
+
+  doc.setFillColor(33, 38, 45);
+  doc.setDrawColor(80, 80, 80);
+  doc.setLineWidth(0.3);
+  doc.rect(legendX + 22, legendY, 8, 3.5, 'FD');
+  doc.text('Falta', legendX + 31, legendY + 2.8);
+
+  // ── Tabela de times ──
+  let y = 30;
+  const rowH = 4.2;
+  const colCodeW = 9;
+  const numW = 4.2;
+  const midCodeW = 9; // repetição da sigla entre col 10 e 11
+  const labelW = 28;
+
+  // Calcular largura total disponível para os números
+  // Layout: [nome(labelW)] [código(colCodeW)] [1..10] [código(colCodeW)] [11..20]
+  // Máx figurinhas por time = 20 → 2 grupos de 10
+  const maxNums = 20;
+  const halfNums = 10;
+  const totalNumW = contentW - labelW - colCodeW * 2;
+  const cellW = totalNumW / maxNums;
+
+  // Cabeçalho da tabela
+  doc.setFillColor(22, 27, 34);
+  doc.rect(margin, y, contentW, rowH, 'F');
+  doc.setFontSize(5.5);
+  doc.setTextColor(139, 148, 158);
+  doc.text('Seleção', margin + 1, y + rowH - 1.2);
+  doc.text('Cód', margin + labelW + 1, y + rowH - 1.2);
+  for (let n = 1; n <= halfNums; n++) {
+    const cx = margin + labelW + colCodeW + (n - 1) * cellW + cellW / 2;
+    doc.text(String(n), cx, y + rowH - 1.2, { align: 'center' });
+  }
+  doc.text('Cód', margin + labelW + colCodeW + halfNums * cellW + 1, y + rowH - 1.2);
+  for (let n = halfNums + 1; n <= maxNums; n++) {
+    const cx = margin + labelW + colCodeW * 2 + (n - 1) * cellW + cellW / 2;
+    doc.text(String(n), cx, y + rowH - 1.2, { align: 'center' });
+  }
+  y += rowH;
+
+  // Linhas dos times
+  let rowIndex = 0;
+  for (const team of teams) {
+    if (y + rowH > pageH - 14) {
+      // Nova página se não couber
+      doc.addPage();
+      y = 10;
+    }
+
+    const isEven = rowIndex % 2 === 0;
+    doc.setFillColor(isEven ? 22 : 18, isEven ? 27 : 23, isEven ? 34 : 28);
+    doc.rect(margin, y, contentW, rowH, 'F');
+
+    // Nome da seleção
+    doc.setFontSize(5.8);
+    doc.setTextColor(230, 237, 243);
+    const displayName = getTeamDisplayName(team.name, team.code);
+    doc.text(displayName.substring(0, 22), margin + 1, y + rowH - 1.2);
+
+    // Código (1ª metade)
+    doc.setFontSize(5.5);
+    doc.setTextColor(240, 192, 64);
+    doc.text(team.code, margin + labelW + 1, y + rowH - 1.2);
+
+    // Células 1-10
+    for (let n = 1; n <= halfNums; n++) {
+      const cx = margin + labelW + colCodeW + (n - 1) * cellW;
+      const sticker = team.stickers.find(s => {
+        const num = parseInt(s.code.replace(/^[A-Z]+/, ''));
+        return num === n;
+      });
+      if (sticker) {
+        drawStickerCell(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode);
+      } else {
+        // Célula vazia (time tem menos de 10 figurinhas)
+        doc.setFillColor(13, 17, 23);
+        doc.rect(cx, y, cellW, rowH, 'F');
+      }
+    }
+
+    // Código (2ª metade)
+    doc.setFontSize(5.5);
+    doc.setTextColor(240, 192, 64);
+    doc.text(team.code, margin + labelW + colCodeW + halfNums * cellW + 1, y + rowH - 1.2);
+
+    // Células 11-20
+    for (let n = halfNums + 1; n <= maxNums; n++) {
+      const cx = margin + labelW + colCodeW * 2 + (n - 1) * cellW;
+      const sticker = team.stickers.find(s => {
+        const num = parseInt(s.code.replace(/^[A-Z]+/, ''));
+        return num === n;
+      });
+      if (sticker) {
+        drawStickerCell(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode);
+      } else {
+        doc.setFillColor(13, 17, 23);
+        doc.rect(cx, y, cellW, rowH, 'F');
+      }
+    }
+
+    // Borda inferior da linha
+    doc.setDrawColor(40, 46, 56);
+    doc.setLineWidth(0.1);
+    doc.line(margin, y + rowH, margin + contentW, y + rowH);
+
+    y += rowH;
+    rowIndex++;
+  }
+
+  // ── Rodapé de patrocínio ──
+  const footerY = pageH - 10;
+  doc.setFillColor(22, 27, 34);
+  doc.rect(0, footerY, pageW, 10, 'F');
+  doc.setFontSize(7);
+  doc.setTextColor(139, 148, 158);
+  doc.text('Deixe seu patrocínio aqui', pageW / 2, footerY + 5.5, { align: 'center' });
+  doc.setDrawColor(240, 192, 64);
+  doc.setLineWidth(0.3);
+  doc.rect(margin, footerY + 1, contentW, 7, 'S');
+}
+
+function drawStickerCell(doc, x, y, w, h, code, collection, duplicates, mode) {
+  const padding = 0.3;
+
+  if (mode === 'collection') {
+    const owned = collection && collection.has(code);
+    if (owned) {
+      // Preenchido em preto/verde escuro = coletada
+      doc.setFillColor(30, 70, 35);
+      doc.rect(x + padding, y + padding, w - padding * 2, h - padding * 2, 'F');
+      doc.setFontSize(4);
+      doc.setTextColor(63, 185, 80);
+      doc.text('✓', x + w / 2, y + h / 2 + 1.2, { align: 'center' });
+    } else {
+      // Vazio = faltando
+      doc.setFillColor(33, 38, 45);
+      doc.setDrawColor(60, 66, 76);
+      doc.setLineWidth(0.2);
+      doc.rect(x + padding, y + padding, w - padding * 2, h - padding * 2, 'FD');
+    }
+  } else {
+    // Modo repetidas
+    const qty = duplicates ? (duplicates[code] || 0) : 0;
+    if (qty > 0) {
+      // Mostrar quantidade
+      doc.setFillColor(30, 50, 80);
+      doc.setDrawColor(88, 166, 255);
+      doc.setLineWidth(0.2);
+      doc.rect(x + padding, y + padding, w - padding * 2, h - padding * 2, 'FD');
+      doc.setFontSize(qty > 9 ? 3.5 : 4.5);
+      doc.setTextColor(88, 166, 255);
+      doc.text(String(qty), x + w / 2, y + h / 2 + 1.2, { align: 'center' });
+    } else {
+      // Vazio
+      doc.setFillColor(33, 38, 45);
+      doc.setDrawColor(60, 66, 76);
+      doc.setLineWidth(0.2);
+      doc.rect(x + padding, y + padding, w - padding * 2, h - padding * 2, 'FD');
+    }
+  }
+}
+
+function drawPhotoPlaceholder(doc, x, y, size, name) {
+  doc.setFillColor(33, 38, 45);
+  doc.setDrawColor(240, 192, 64);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(x, y, size, size, 2, 2, 'FD');
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  doc.setFontSize(7);
+  doc.setTextColor(240, 192, 64);
+  doc.text(initials, x + size / 2, y + size / 2 + 2, { align: 'center' });
+}
+
+function getTeamDisplayName(countryName, code) {
+  // Mapa de nomes em português
+  const ptNames = {
+    'Mexico': 'México', 'Brazil': 'Brasil', 'Canada': 'Canadá',
+    'Australia': 'Austrália', 'Japan': 'Japão', 'Germany': 'Alemanha',
+    'Netherlands': 'Holanda', 'Scotland': 'Escócia', 'Switzerland': 'Suíça',
+    'South Africa': 'África do Sul', 'South Korea': 'Coreia do Sul',
+    'Czechia': 'Rep. Tcheca', 'Ivory Coast': 'Costa do Marfim',
+    'Bosnia and Herzegovina': 'Bósnia e Herz.', 'Ecuador': 'Equador',
+    'Paraguay': 'Paraguai', 'Uruguay': 'Uruguai', 'Colombia': 'Colômbia',
+    'Argentina': 'Argentina', 'Portugal': 'Portugal', 'Spain': 'Espanha',
+    'France': 'França', 'England': 'Inglaterra', 'Croatia': 'Croácia',
+    'Belgium': 'Bélgica', 'Morocco': 'Marrocos', 'Senegal': 'Senegal',
+    'Egypt': 'Egito', 'Ghana': 'Gana', 'Panama': 'Panamá',
+    'Haiti': 'Haiti', 'Iraq': 'Iraque', 'Iran': 'Irã',
+    'Norway': 'Noruega', 'Sweden': 'Suécia', 'Tunisia': 'Tunísia',
+    'Turkey': 'Turquia', 'Qatar': 'Catar', 'Saudi Arabia': 'Arábia Saudita',
+    'New Zealand': 'Nova Zelândia', 'Cape Verde': 'Cabo Verde',
+    'Uzbekistan': 'Uzbequistão', 'Jordan': 'Jordânia',
+    'Congo': 'Congo', 'Algeria': 'Argélia', 'Austria': 'Áustria',
+    'Curaçao': 'Curaçao', 'USA': 'Estados Unidos',
+    'FIFA World Cup': 'FIFA World Cup History',
+  };
+  return ptNames[countryName] || countryName || code;
+}
+
+async function loadImageAsDataUrl(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
 }
