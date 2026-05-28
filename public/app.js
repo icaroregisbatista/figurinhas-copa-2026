@@ -22,9 +22,13 @@ import {
   deleteDoc,
   collection,
   getDocs,
+  addDoc,
   query,
   where,
-  writeBatch
+  writeBatch,
+  runTransaction,
+  serverTimestamp,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ── ⚙️ CONFIGURAÇÃO DO FIREBASE ──────────────────────────────
@@ -328,6 +332,14 @@ function renderMatchesList() {
 
   const tradeSearch = (searchQuery || '').toLowerCase();
 
+  // Calcular figurinhas reservadas em propostas pendentes
+  const reservedCodes = {}; // { code: qty reservada }
+  (window._myPendingProposals || []).forEach(p => {
+    (p.offeredCodes || []).forEach(code => {
+      reservedCodes[code] = (reservedCodes[code] || 0) + 1;
+    });
+  });
+
   const sortedDupEntries = Object.entries(window._tradeDuplicates || myDuplicates)
     .filter(([, qty]) => qty > 0)
     .sort(([a], [b]) => a.localeCompare(b));
@@ -351,6 +363,8 @@ function renderMatchesList() {
     if (needers.length > 0) {
       matchCount++;
       const groupLabel = sticker.group === '-' ? 'FIFA' : sticker.group === 'CC' ? 'Coca-Cola' : `Grupo ${sticker.group}`;
+      const reserved = reservedCodes[code] || 0;
+      const available = qty - reserved;
       const card = document.createElement('div');
       card.className = 'trade-card is-match';
       card.innerHTML = `
@@ -366,6 +380,12 @@ function renderMatchesList() {
             <span>Você tem</span>
             <span class="trade-user-qty" style="color:var(--gold);background:var(--gold-dim)">${qty}x</span>
           </div>
+          ${reserved > 0 ? `
+          <div class="trade-user">
+            <span class="trade-user-dot" style="background:var(--red)"></span>
+            <span style="color:var(--red)">${reserved}x reservada(s)</span>
+            <span class="trade-user-qty" style="color:var(--green);background:var(--green-dim)">${available}x livre</span>
+          </div>` : ''}
           ${needers.map(nUid => `
             <div class="trade-user">
               <span class="trade-user-dot blue"></span>
@@ -380,6 +400,65 @@ function renderMatchesList() {
 
   const countEl = document.getElementById('matches-count');
   if (countEl) countEl.textContent = matchCount;
+
+  // Renderizar seção "O que eu preciso"
+  renderNeedsList();
+}
+
+function renderNeedsList() {
+  const needsList = document.getElementById('needs-list');
+  if (!needsList) return;
+  needsList.innerHTML = '';
+  let needsCount = 0;
+
+  const tradeSearch = (searchQuery || '').toLowerCase();
+  const othersCollection = window._tradeOthersCollection || {};
+  const othersDuplicates = window._tradeOthersDuplicates || {};
+  const userNames = window._tradeUserNames || {};
+
+  // Para cada figurinha que eu não tenho, verificar se alguém tem repetida
+  allStickers.forEach(sticker => {
+    if (myCollection.has(sticker.code)) return; // já tenho
+    if (activeGroup !== 'all' && sticker.group !== activeGroup) return;
+    if (tradeSearch) {
+      const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
+      const searchable = `${sticker.code} ${sticker.name} ${groupLabel} ${sticker.page}`.toLowerCase();
+      if (!searchable.includes(tradeSearch)) return;
+    }
+
+    // Quem tem essa figurinha como repetida?
+    const providers = Object.entries(othersDuplicates)
+      .filter(([, dups]) => (dups[sticker.code] || 0) > 0)
+      .map(([oUid, dups]) => ({ uid: oUid, qty: dups[sticker.code] }));
+
+    if (providers.length > 0) {
+      needsCount++;
+      const groupLabel = sticker.group === '-' ? 'FIFA' : sticker.group === 'CC' ? 'Coca-Cola' : `Grupo ${sticker.group}`;
+      const card = document.createElement('div');
+      card.className = 'trade-card has-match';
+      card.innerHTML = `
+        <div class="trade-code" style="color:var(--blue)">${sticker.code}</div>
+        <div class="trade-name">${sticker.name}</div>
+        <div class="trade-meta">
+          <span class="trade-group">${groupLabel}</span>
+          <span class="trade-page">Pág. ${sticker.page}</span>
+        </div>
+        <div class="trade-users">
+          ${providers.map(p => `
+            <div class="trade-user">
+              <span class="trade-user-dot" style="background:var(--blue)"></span>
+              <span>${userNames[p.uid] || p.uid} tem</span>
+              <span class="trade-user-qty" style="color:var(--blue);background:var(--blue-dim)">${p.qty}x</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      needsList.appendChild(card);
+    }
+  });
+
+  const countEl = document.getElementById('needs-count');
+  if (countEl) countEl.textContent = needsCount;
 }
 
 // ════════════════════════════════════════════
@@ -1093,10 +1172,12 @@ async function loadTradingPanel() {
   tradingContent.classList.add('hidden');
 
   try {
-    // Buscar coleções e repetidas de todos os usuários
-    const [colSnaps, dupSnaps] = await Promise.all([
+    // Buscar coleções, repetidas e propostas de todos os usuários
+    const [colSnaps, dupSnaps, proposalSnaps] = await Promise.all([
       getDocs(collection(db, 'collections')),
-      getDocs(collection(db, 'duplicates'))
+      getDocs(collection(db, 'duplicates')),
+      getDocs(query(collection(db, 'trade_proposals'),
+        where('status', 'in', ['pending', 'accepted', 'refused', 'cancelled'])))
     ]);
 
     const uid = currentUser.uid;
@@ -1109,24 +1190,32 @@ async function loadTradingPanel() {
       }
     });
 
+    // Mapear repetidas dos outros usuários
+    const othersDuplicates = {}; // { uid: { code: qty } }
+    dupSnaps.forEach(snap => {
+      if (snap.id !== uid) {
+        othersDuplicates[snap.id] = snap.data().items || {};
+      }
+    });
+
     // Buscar nomes dos usuários (mapeamento UID → nome via campo uid em authorized_users)
     const userSnaps = await getDocs(collection(db, 'authorized_users'));
     const userNames = {}; // { uid: nome }
+    const userList = []; // lista de membros para o modal de proposta
     userSnaps.forEach(snap => {
       const data = snap.data();
-      const nome = data.name || snap.id; // nome cadastrado pelo admin ou email
-      // Mapear pelo campo uid salvo no login
+      const nome = data.name || snap.id;
       if (data.uid) {
         userNames[data.uid] = nome;
+        if (data.uid !== uid) {
+          userList.push({ uid: data.uid, name: nome });
+        }
       }
-      // Mapear pelo email como chave extra (fallback)
       const email = snap.data().email || snap.id;
       userNames[email] = nome;
     });
-    // Fallback: se algum UID ainda não tem nome, usar o próprio UID abreviado
     colSnaps.forEach(snap => {
       if (!userNames[snap.id]) {
-        // Tentar pelo email salvo na coleção
         const colEmail = snap.data().email;
         if (colEmail && userNames[colEmail]) {
           userNames[snap.id] = userNames[colEmail];
@@ -1134,10 +1223,24 @@ async function loadTradingPanel() {
       }
     });
 
-    // Armazenar dados para uso pelo filtro de grupo
+    // Separar propostas enviadas e recebidas
+    const sentProposals = [];
+    const receivedProposals = [];
+    proposalSnaps.forEach(snap => {
+      const d = { id: snap.id, ...snap.data() };
+      if (d.fromUid === uid) sentProposals.push(d);
+      else if (d.toUid === uid) receivedProposals.push(d);
+    });
+
+    // Armazenar dados globais
     window._tradeDuplicates = myDuplicates;
     window._tradeOthersCollection = othersCollection;
+    window._tradeOthersDuplicates = othersDuplicates;
     window._tradeUserNames = userNames;
+    window._tradeUserList = userList;
+    window._mySentProposals = sentProposals;
+    window._myReceivedProposals = receivedProposals;
+    window._myPendingProposals = sentProposals.filter(p => p.status === 'pending');
 
     // Resetar filtro de grupo ao recarregar
     activeTradeGroup = 'all';
@@ -1145,16 +1248,16 @@ async function loadTradingPanel() {
     const allChip = document.querySelector('.filter-chip[data-trade-group="all"]');
     if (allChip) allChip.classList.add('active');
 
-    // Renderizar lista de matches
+    // Renderizar
+    renderProposals();
     renderMatchesList();
-
-    // Renderizar estatísticas do grupo
     renderGroupStats(colSnaps, dupSnaps);
 
     tradingLoading.style.display = 'none';
     tradingContent.classList.remove('hidden');
 
   } catch (e) {
+    console.error(e);
     tradingLoading.style.display = 'none';
     showToast('Erro ao carregar painel de trocas.', 'error');
   }
@@ -1385,4 +1488,681 @@ function showToast(msg, type = '') {
   toastTimer = setTimeout(() => {
     toast.classList.remove('show');
   }, 2500);
+}
+
+
+// ══════════════════════════════════════════════
+// MÓDULO DE PROPOSTAS DE TROCA
+// ══════════════════════════════════════════════
+
+// ── Estado do modal de proposta ──────────────
+let proposalState = {
+  type: null,       // 'member' | 'external'
+  partnerUid: null,
+  partnerName: null,
+  offeredCodes: [],
+  requestedCodes: [],
+};
+
+// ── Elementos do modal ───────────────────────
+const modalProposal = document.getElementById('modal-proposal');
+
+function openProposalModal() {
+  proposalState = { type: null, partnerUid: null, partnerName: null, offeredCodes: [], requestedCodes: [] };
+  showProposalStep('type');
+  modalProposal.classList.remove('hidden');
+}
+
+function closeProposalModal() {
+  modalProposal.classList.add('hidden');
+}
+
+function showProposalStep(step) {
+  ['type','member','external','build','confirm'].forEach(s => {
+    document.getElementById(`proposal-step-${s}`).classList.add('hidden');
+  });
+  document.getElementById(`proposal-step-${step}`).classList.remove('hidden');
+}
+
+document.getElementById('btn-new-proposal').addEventListener('click', () => {
+  if (!currentUser) return;
+  openProposalModal();
+});
+
+document.getElementById('btn-close-proposal').addEventListener('click', closeProposalModal);
+modalProposal.addEventListener('click', e => { if (e.target === modalProposal) closeProposalModal(); });
+
+// Tipo: membro
+document.getElementById('proposal-type-member').addEventListener('click', () => {
+  proposalState.type = 'member';
+  buildMemberList();
+  showProposalStep('member');
+});
+
+// Tipo: avulsa
+document.getElementById('proposal-type-external').addEventListener('click', () => {
+  proposalState.type = 'external';
+  document.getElementById('proposal-external-name').value = '';
+  document.getElementById('proposal-external-next').disabled = true;
+  showProposalStep('external');
+});
+
+// Voltar do membro
+document.getElementById('proposal-back-member').addEventListener('click', () => showProposalStep('type'));
+
+// Voltar do externo
+document.getElementById('proposal-back-external').addEventListener('click', () => showProposalStep('type'));
+
+// Habilitar botão próximo no externo
+document.getElementById('proposal-external-name').addEventListener('input', function() {
+  document.getElementById('proposal-external-next').disabled = this.value.trim().length < 2;
+});
+
+// Próximo no externo → ir para build
+document.getElementById('proposal-external-next').addEventListener('click', () => {
+  proposalState.partnerName = document.getElementById('proposal-external-name').value.trim();
+  proposalState.partnerUid = null;
+  buildProposalLists();
+  showProposalStep('build');
+});
+
+// Voltar do build
+document.getElementById('proposal-back-build').addEventListener('click', () => {
+  if (proposalState.type === 'member') showProposalStep('member');
+  else showProposalStep('external');
+});
+
+// Voltar do confirm
+document.getElementById('proposal-back-confirm').addEventListener('click', () => showProposalStep('build'));
+
+function buildMemberList() {
+  const list = document.getElementById('proposal-member-list');
+  list.innerHTML = '';
+  const members = window._tradeUserList || [];
+  if (members.length === 0) {
+    list.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Nenhum outro membro encontrado.</p>';
+    return;
+  }
+  members.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'proposal-member-btn';
+    btn.innerHTML = `
+      <span class="proposal-member-avatar">${m.name.charAt(0).toUpperCase()}</span>
+      <span class="proposal-member-name">${m.name}</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    `;
+    btn.addEventListener('click', () => {
+      proposalState.partnerUid = m.uid;
+      proposalState.partnerName = m.name;
+      buildProposalLists();
+      showProposalStep('build');
+    });
+    list.appendChild(btn);
+  });
+}
+
+function getAvailableQty(code) {
+  const total = myDuplicates[code] || 0;
+  const reserved = (window._myPendingProposals || [])
+    .reduce((sum, p) => sum + (p.offeredCodes || []).filter(c => c === code).length, 0);
+  return total - reserved;
+}
+
+function buildProposalLists() {
+  // Info do parceiro
+  const partnerInfo = document.getElementById('proposal-partner-info');
+  partnerInfo.innerHTML = `<div class="proposal-partner-badge">
+    <span class="proposal-member-avatar" style="width:28px;height:28px;font-size:0.85rem">${proposalState.partnerName.charAt(0).toUpperCase()}</span>
+    <span>${proposalState.partnerName}</span>
+    ${proposalState.type === 'external' ? '<span class="proposal-external-tag">Externo</span>' : ''}
+  </div>`;
+
+  // Resetar seleções
+  proposalState.offeredCodes = [];
+  proposalState.requestedCodes = [];
+  updateBuildCounts();
+
+  // Listas de oferta (minhas repetidas que o parceiro não tem)
+  const offerList = document.getElementById('proposal-offer-list');
+  offerList.innerHTML = '';
+
+  const partnerCollection = proposalState.partnerUid
+    ? (window._tradeOthersCollection || {})[proposalState.partnerUid] || new Set()
+    : new Set();
+
+  const myDupCodes = Object.entries(myDuplicates)
+    .filter(([, qty]) => qty > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  let offerCount = 0;
+  myDupCodes.forEach(([code, qty]) => {
+    // Para membro: só mostrar se o parceiro não tem
+    if (proposalState.type === 'member' && partnerCollection.has(code)) return;
+    const available = getAvailableQty(code);
+    if (available <= 0) return; // tudo reservado
+    const sticker = allStickers.find(s => s.code === code);
+    if (!sticker) return;
+    offerCount++;
+    const item = createChecklistItem(code, sticker, available, 'offer');
+    offerList.appendChild(item);
+  });
+
+  if (offerCount === 0) {
+    offerList.innerHTML = '<p class="proposal-empty">Nenhuma figurinha disponível para oferecer.</p>';
+  }
+
+  // Lista do que quero (repetidas do parceiro que eu não tenho)
+  const wantList = document.getElementById('proposal-want-list');
+  wantList.innerHTML = '';
+
+  if (proposalState.type === 'member' && proposalState.partnerUid) {
+    const partnerDups = (window._tradeOthersDuplicates || {})[proposalState.partnerUid] || {};
+    const wantEntries = Object.entries(partnerDups)
+      .filter(([code, qty]) => qty > 0 && !myCollection.has(code))
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    let wantCount = 0;
+    wantEntries.forEach(([code, qty]) => {
+      const sticker = allStickers.find(s => s.code === code);
+      if (!sticker) return;
+      wantCount++;
+      const item = createChecklistItem(code, sticker, qty, 'want');
+      wantList.appendChild(item);
+    });
+
+    if (wantCount === 0) {
+      wantList.innerHTML = '<p class="proposal-empty">Parceiro não tem repetidas que você precisa.</p>';
+    }
+  } else {
+    // Troca avulsa: mostrar todas as minhas faltantes para o usuário selecionar
+    const missing = allStickers.filter(s => !myCollection.has(s.code))
+      .sort((a, b) => a.code.localeCompare(b.code));
+    missing.forEach(sticker => {
+      const item = createChecklistItem(sticker.code, sticker, 1, 'want');
+      wantList.appendChild(item);
+    });
+    if (missing.length === 0) {
+      wantList.innerHTML = '<p class="proposal-empty">Você já tem todas as figurinhas! 🎉</p>';
+    }
+  }
+}
+
+function createChecklistItem(code, sticker, qty, side) {
+  const groupLabel = sticker.group === '-' ? 'FIFA' : sticker.group === 'CC' ? 'CC' : sticker.group;
+  const div = document.createElement('label');
+  div.className = 'proposal-check-item';
+  div.dataset.code = code;
+  div.dataset.side = side;
+  div.innerHTML = `
+    <input type="checkbox" value="${code}" />
+    <span class="proposal-check-box"></span>
+    <span class="proposal-check-info">
+      <span class="proposal-check-code">${code}</span>
+      <span class="proposal-check-name">${sticker.name}</span>
+    </span>
+    <span class="proposal-check-qty">${qty}x</span>
+  `;
+  div.querySelector('input').addEventListener('change', e => {
+    if (side === 'offer') {
+      if (e.target.checked) proposalState.offeredCodes.push(code);
+      else proposalState.offeredCodes = proposalState.offeredCodes.filter(c => c !== code);
+    } else {
+      if (e.target.checked) proposalState.requestedCodes.push(code);
+      else proposalState.requestedCodes = proposalState.requestedCodes.filter(c => c !== code);
+    }
+    updateBuildCounts();
+  });
+  return div;
+}
+
+function updateBuildCounts() {
+  document.getElementById('offer-count').textContent = proposalState.offeredCodes.length;
+  document.getElementById('want-count').textContent = proposalState.requestedCodes.length;
+  const hasAny = proposalState.offeredCodes.length > 0 || proposalState.requestedCodes.length > 0;
+  document.getElementById('proposal-build-next').disabled = !hasAny;
+}
+
+// Próximo no build → confirmar
+document.getElementById('proposal-build-next').addEventListener('click', () => {
+  buildProposalSummary();
+  showProposalStep('confirm');
+});
+
+function buildProposalSummary() {
+  const summary = document.getElementById('proposal-summary');
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  const formatList = codes => codes.map(code => {
+    const s = allStickers.find(x => x.code === code);
+    return `<li><strong>${code}</strong>${s ? ' · ' + s.name : ''}</li>`;
+  }).join('');
+
+  summary.innerHTML = `
+    <div class="proposal-summary-header">
+      <span>Parceiro: <strong>${proposalState.partnerName}</strong></span>
+      <span class="proposal-summary-date">${dateStr}</span>
+    </div>
+    ${proposalState.offeredCodes.length > 0 ? `
+    <div class="proposal-summary-section offer">
+      <div class="proposal-summary-label">Você oferece (${proposalState.offeredCodes.length})</div>
+      <ul class="proposal-summary-list">${formatList(proposalState.offeredCodes)}</ul>
+    </div>` : ''}
+    ${proposalState.requestedCodes.length > 0 ? `
+    <div class="proposal-summary-section want">
+      <div class="proposal-summary-label">Você quer receber (${proposalState.requestedCodes.length})</div>
+      <ul class="proposal-summary-list">${formatList(proposalState.requestedCodes)}</ul>
+    </div>` : ''}
+  `;
+}
+
+// WhatsApp da proposta
+document.getElementById('proposal-btn-whatsapp').addEventListener('click', () => {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const myName = (currentUser.displayName || currentUser.email).split(' ')[0];
+
+  let msg = `🏆 *Proposta de Troca — Copa 2026*\n`;
+  msg += `📅 ${dateStr}\n\n`;
+  msg += `Olá ${proposalState.partnerName}! Fiz uma oferta de troca no nosso app 👇\n\n`;
+
+  if (proposalState.offeredCodes.length > 0) {
+    msg += `*Eu ofereço para você:*\n`;
+    proposalState.offeredCodes.forEach(code => {
+      const s = allStickers.find(x => x.code === code);
+      msg += `• ${code}${s ? ' · ' + s.name : ''}\n`;
+    });
+    msg += '\n';
+  }
+
+  if (proposalState.requestedCodes.length > 0) {
+    msg += `*Eu quero de você:*\n`;
+    proposalState.requestedCodes.forEach(code => {
+      const s = allStickers.find(x => x.code === code);
+      msg += `• ${code}${s ? ' · ' + s.name : ''}\n`;
+    });
+    msg += '\n';
+  }
+
+  msg += `_App Figurinhas Copa 2026_`;
+
+  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  const newWin = window.open(url, '_blank');
+  if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+    window.location.href = url;
+  }
+});
+
+// Enviar proposta
+document.getElementById('proposal-btn-send').addEventListener('click', async () => {
+  const btn = document.getElementById('proposal-btn-send');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try {
+    const uid = currentUser.uid;
+    const myName = currentUser.displayName || currentUser.email;
+    const now = new Date();
+
+    const proposalData = {
+      createdAt: now.getTime(),
+      updatedAt: now.getTime(),
+      status: 'pending',
+      fromUid: uid,
+      fromName: myName,
+      toUid: proposalState.partnerUid || null,
+      toName: proposalState.partnerName,
+      type: proposalState.type,
+      offeredCodes: proposalState.offeredCodes,
+      requestedCodes: proposalState.requestedCodes,
+      confirmedAt: null,
+    };
+
+    await addDoc(collection(db, 'trade_proposals'), proposalData);
+
+    closeProposalModal();
+    showToast('Proposta enviada com sucesso!', 'success');
+
+    // Recarregar painel
+    await loadTradingPanel();
+
+  } catch (e) {
+    console.error(e);
+    showToast('Erro ao enviar proposta.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Enviar Proposta';
+  }
+});
+
+// ── Renderizar propostas enviadas e recebidas ──────────────
+function renderProposals() {
+  renderSentProposals();
+  renderReceivedProposals();
+}
+
+function renderSentProposals() {
+  const list = document.getElementById('sent-proposals-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const proposals = (window._mySentProposals || [])
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  const countEl = document.getElementById('sent-proposals-count');
+  if (countEl) countEl.textContent = proposals.length;
+
+  const sectionEl = document.getElementById('section-sent-proposals');
+  if (sectionEl) sectionEl.style.display = proposals.length === 0 ? 'none' : '';
+
+  proposals.forEach(p => {
+    const card = createProposalCard(p, 'sent');
+    list.appendChild(card);
+  });
+}
+
+function renderReceivedProposals() {
+  const list = document.getElementById('received-proposals-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const proposals = (window._myReceivedProposals || [])
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  const pending = proposals.filter(p => p.status === 'pending');
+  const countEl = document.getElementById('received-proposals-count');
+  if (countEl) countEl.textContent = pending.length || '';
+
+  const sectionEl = document.getElementById('section-received-proposals');
+  if (sectionEl) sectionEl.style.display = proposals.length === 0 ? 'none' : '';
+
+  proposals.forEach(p => {
+    const card = createProposalCard(p, 'received');
+    list.appendChild(card);
+  });
+}
+
+const STATUS_LABELS = {
+  pending: { label: 'Pendente', cls: 'status-pending' },
+  accepted: { label: 'Aceita', cls: 'status-accepted' },
+  refused: { label: 'Recusada', cls: 'status-refused' },
+  cancelled: { label: 'Cancelada', cls: 'status-cancelled' },
+};
+
+function createProposalCard(p, side) {
+  const card = document.createElement('div');
+  card.className = 'proposal-card';
+  const st = STATUS_LABELS[p.status] || STATUS_LABELS.pending;
+  const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '';
+  const partner = side === 'sent' ? p.toName : p.fromName;
+  const typeTag = p.type === 'external' ? '<span class="proposal-external-tag">Externo</span>' : '';
+
+  const offerSummary = (p.offeredCodes || []).slice(0, 4).join(', ') +
+    ((p.offeredCodes || []).length > 4 ? ` +${p.offeredCodes.length - 4}` : '');
+  const wantSummary = (p.requestedCodes || []).slice(0, 4).join(', ') +
+    ((p.requestedCodes || []).length > 4 ? ` +${p.requestedCodes.length - 4}` : '');
+
+  card.innerHTML = `
+    <div class="proposal-card-header">
+      <div class="proposal-card-partner">
+        <span class="proposal-member-avatar" style="width:24px;height:24px;font-size:0.75rem">${(partner || '?').charAt(0).toUpperCase()}</span>
+        <span>${partner || 'Desconhecido'}</span>
+        ${typeTag}
+      </div>
+      <div class="proposal-card-meta">
+        <span class="proposal-status ${st.cls}">${st.label}</span>
+        <span class="proposal-card-date">${dateStr}</span>
+      </div>
+    </div>
+    <div class="proposal-card-body">
+      ${offerSummary ? `<div class="proposal-card-row"><span class="proposal-card-label offer">Oferece</span><span class="proposal-card-codes">${offerSummary}</span></div>` : ''}
+      ${wantSummary ? `<div class="proposal-card-row"><span class="proposal-card-label want">Quer</span><span class="proposal-card-codes">${wantSummary}</span></div>` : ''}
+    </div>
+    <div class="proposal-card-actions" id="actions-${p.id}"></div>
+  `;
+
+  const actionsEl = card.querySelector(`#actions-${p.id}`);
+
+  if (side === 'sent' && p.status === 'pending') {
+    // Cancelar proposta enviada
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-proposal-cancel';
+    cancelBtn.textContent = 'Cancelar proposta';
+    cancelBtn.addEventListener('click', () => cancelProposal(p.id));
+    actionsEl.appendChild(cancelBtn);
+  }
+
+  if (side === 'sent' && p.type === 'external' && p.status === 'pending') {
+    // Confirmar troca avulsa
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn-proposal-accept';
+    confirmBtn.textContent = '✓ Confirmar troca realizada';
+    confirmBtn.addEventListener('click', () => confirmExternalTrade(p));
+    actionsEl.appendChild(confirmBtn);
+  }
+
+  if (side === 'received' && p.status === 'pending') {
+    const acceptBtn = document.createElement('button');
+    acceptBtn.className = 'btn-proposal-accept';
+    acceptBtn.textContent = '✓ Aceitar';
+    acceptBtn.addEventListener('click', () => acceptProposal(p));
+
+    const refuseBtn = document.createElement('button');
+    refuseBtn.className = 'btn-proposal-cancel';
+    refuseBtn.textContent = '✗ Recusar';
+    refuseBtn.addEventListener('click', () => refuseProposal(p.id));
+
+    actionsEl.appendChild(acceptBtn);
+    actionsEl.appendChild(refuseBtn);
+  }
+
+  return card;
+}
+
+async function cancelProposal(proposalId) {
+  try {
+    await updateDoc(doc(db, 'trade_proposals', proposalId), {
+      status: 'cancelled',
+      updatedAt: Date.now(),
+    });
+    showToast('Proposta cancelada.', '');
+    await loadTradingPanel();
+  } catch (e) {
+    showToast('Erro ao cancelar proposta.', 'error');
+  }
+}
+
+async function refuseProposal(proposalId) {
+  try {
+    await updateDoc(doc(db, 'trade_proposals', proposalId), {
+      status: 'refused',
+      updatedAt: Date.now(),
+    });
+    showToast('Proposta recusada.', '');
+    await loadTradingPanel();
+  } catch (e) {
+    showToast('Erro ao recusar proposta.', 'error');
+  }
+}
+
+async function acceptProposal(proposal) {
+  const btn = event?.target;
+  if (btn) { btn.disabled = true; btn.textContent = 'Processando...'; }
+
+  try {
+    const uid = currentUser.uid;
+
+    await runTransaction(db, async (tx) => {
+      // Ler documentos de coleção e repetidas dos dois usuários
+      const myColRef = doc(db, 'collections', uid);
+      const myDupRef = doc(db, 'duplicates', uid);
+      const theirColRef = doc(db, 'collections', proposal.fromUid);
+      const theirDupRef = doc(db, 'duplicates', proposal.fromUid);
+      const proposalRef = doc(db, 'trade_proposals', proposal.id);
+
+      const [myColSnap, myDupSnap, theirColSnap, theirDupSnap] = await Promise.all([
+        tx.get(myColRef), tx.get(myDupRef), tx.get(theirColRef), tx.get(theirDupRef)
+      ]);
+
+      const myCodes = new Set(myColSnap.data()?.codes || []);
+      const myDups = myDupSnap.data()?.items || {};
+      const theirCodes = new Set(theirColSnap.data()?.codes || []);
+      const theirDups = theirDupSnap.data()?.items || {};
+
+      // Verificar conflito: alguma figurinha que eu quero receber já foi recebida?
+      for (const code of (proposal.requestedCodes || [])) {
+        if (myCodes.has(code)) {
+          throw new Error(`Conflito: você já tem a figurinha ${code}.`);
+        }
+      }
+
+      // Aplicar: eu recebo o que pedi (requestedCodes = repetidas de quem enviou)
+      // requestedCodes: o que EU (receptor) quero = o que o fromUid ofereceu como repetidas
+      // offeredCodes: o que o fromUid me oferece → entram na minha coleção e saem das repetidas dele
+      // requestedCodes: o que eu ofereço ao fromUid → entram na coleção dele e saem das minhas repetidas
+
+      // Eu recebo: offeredCodes do fromUid → entram na minha coleção
+      for (const code of (proposal.offeredCodes || [])) {
+        myCodes.add(code);
+        // Sair das repetidas do fromUid
+        if (theirDups[code] > 0) {
+          theirDups[code] = Math.max(0, (theirDups[code] || 1) - 1);
+          if (theirDups[code] === 0) delete theirDups[code];
+        }
+      }
+
+      // fromUid recebe: requestedCodes → entram na coleção dele
+      for (const code of (proposal.requestedCodes || [])) {
+        theirCodes.add(code);
+        // Sair das minhas repetidas
+        if (myDups[code] > 0) {
+          myDups[code] = Math.max(0, (myDups[code] || 1) - 1);
+          if (myDups[code] === 0) delete myDups[code];
+        }
+      }
+
+      // Salvar tudo
+      tx.set(myColRef, { codes: [...myCodes] }, { merge: true });
+      tx.set(myDupRef, { items: myDups }, { merge: true });
+      tx.set(theirColRef, { codes: [...theirCodes] }, { merge: true });
+      tx.set(theirDupRef, { items: theirDups }, { merge: true });
+      tx.update(proposalRef, { status: 'accepted', confirmedAt: Date.now(), updatedAt: Date.now() });
+
+      // Cancelar automaticamente outras propostas conflitantes
+      // (propostas onde eu pedia as mesmas figurinhas que acabei de receber)
+    });
+
+    // Cancelar propostas conflitantes (fora da transação para simplicidade)
+    await cancelConflictingProposals(proposal.offeredCodes || []);
+
+    showToast('Troca aceita! Coleções atualizadas. 🎉', 'success');
+
+    // Atualizar estado local
+    for (const code of (proposal.offeredCodes || [])) {
+      myCollection.add(code);
+    }
+    for (const code of (proposal.requestedCodes || [])) {
+      if (myDuplicates[code] > 0) {
+        myDuplicates[code]--;
+        if (myDuplicates[code] === 0) delete myDuplicates[code];
+      }
+    }
+    updateProgressBar();
+    await loadTradingPanel();
+
+  } catch (e) {
+    console.error(e);
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Aceitar'; }
+    showToast(e.message || 'Erro ao aceitar proposta.', 'error');
+  }
+}
+
+async function confirmExternalTrade(proposal) {
+  const btn = event?.target;
+  if (btn) { btn.disabled = true; btn.textContent = 'Processando...'; }
+
+  try {
+    const uid = currentUser.uid;
+    const myColRef = doc(db, 'collections', uid);
+    const myDupRef = doc(db, 'duplicates', uid);
+    const proposalRef = doc(db, 'trade_proposals', proposal.id);
+
+    await runTransaction(db, async (tx) => {
+      const [myColSnap, myDupSnap] = await Promise.all([tx.get(myColRef), tx.get(myDupRef)]);
+      const myCodes = new Set(myColSnap.data()?.codes || []);
+      const myDups = { ...(myDupSnap.data()?.items || {}) };
+
+      // Recebo: requestedCodes entram na minha coleção
+      for (const code of (proposal.requestedCodes || [])) {
+        myCodes.add(code);
+      }
+      // Ofereço: offeredCodes saem das minhas repetidas
+      for (const code of (proposal.offeredCodes || [])) {
+        if (myDups[code] > 0) {
+          myDups[code] = Math.max(0, (myDups[code] || 1) - 1);
+          if (myDups[code] === 0) delete myDups[code];
+        }
+      }
+
+      tx.set(myColRef, { codes: [...myCodes] }, { merge: true });
+      tx.set(myDupRef, { items: myDups }, { merge: true });
+      tx.update(proposalRef, { status: 'accepted', confirmedAt: Date.now(), updatedAt: Date.now() });
+    });
+
+    // Cancelar propostas conflitantes
+    await cancelConflictingProposals(proposal.requestedCodes || []);
+
+    showToast('Troca avulsa confirmada! Coleção atualizada. 🎉', 'success');
+
+    // Atualizar estado local
+    for (const code of (proposal.requestedCodes || [])) {
+      myCollection.add(code);
+    }
+    for (const code of (proposal.offeredCodes || [])) {
+      if (myDuplicates[code] > 0) {
+        myDuplicates[code]--;
+        if (myDuplicates[code] === 0) delete myDuplicates[code];
+      }
+    }
+    updateProgressBar();
+    await loadTradingPanel();
+
+  } catch (e) {
+    console.error(e);
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Confirmar troca realizada'; }
+    showToast(e.message || 'Erro ao confirmar troca.', 'error');
+  }
+}
+
+async function cancelConflictingProposals(receivedCodes) {
+  if (!receivedCodes || receivedCodes.length === 0) return;
+  const uid = currentUser.uid;
+  // Buscar propostas pendentes onde eu pedi as mesmas figurinhas
+  const pendingSnaps = await getDocs(query(
+    collection(db, 'trade_proposals'),
+    where('toUid', '==', uid),
+    where('status', '==', 'pending')
+  ));
+  const batch = writeBatch(db);
+  let count = 0;
+  pendingSnaps.forEach(snap => {
+    const d = snap.data();
+    const conflict = (d.offeredCodes || []).some(c => receivedCodes.includes(c));
+    if (conflict) {
+      batch.update(snap.ref, { status: 'cancelled', updatedAt: Date.now() });
+      count++;
+    }
+  });
+  if (count > 0) {
+    await batch.commit();
+    showToast(`${count} proposta(s) cancelada(s) automaticamente por conflito.`, '');
+  }
+}
+
+function updateProgressBar() {
+  const total = allStickers.length;
+  const owned = myCollection.size;
+  const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
+  if (progressFill) progressFill.style.width = pct + '%';
+  if (progressText) progressText.textContent = `${owned} / ${total}`;
+  if (progressPct) progressPct.textContent = pct + '%';
 }
