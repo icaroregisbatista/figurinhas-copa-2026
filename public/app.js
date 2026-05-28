@@ -1685,6 +1685,32 @@ function buildProposalLists() {
       wantList.innerHTML = '<p class="proposal-empty">Você já tem todas as figurinhas! 🎉</p>';
     }
   }
+
+  // Wires de busca nas colunas
+  const offerSearchEl = document.getElementById('offer-search');
+  const wantSearchEl = document.getElementById('want-search');
+  if (offerSearchEl) {
+    offerSearchEl.value = '';
+    offerSearchEl.oninput = function() {
+      const q = this.value.trim().toLowerCase();
+      offerList.querySelectorAll('.proposal-check-item').forEach(item => {
+        const code = item.dataset.code || '';
+        const name = item.querySelector('.proposal-check-name')?.textContent.toLowerCase() || '';
+        item.style.display = (!q || code.toLowerCase().includes(q) || name.includes(q)) ? '' : 'none';
+      });
+    };
+  }
+  if (wantSearchEl) {
+    wantSearchEl.value = '';
+    wantSearchEl.oninput = function() {
+      const q = this.value.trim().toLowerCase();
+      wantList.querySelectorAll('.proposal-check-item').forEach(item => {
+        const code = item.dataset.code || '';
+        const name = item.querySelector('.proposal-check-name')?.textContent.toLowerCase() || '';
+        item.style.display = (!q || code.toLowerCase().includes(q) || name.includes(q)) ? '' : 'none';
+      });
+    };
+  }
 }
 
 function createChecklistItem(code, sticker, qty, side) {

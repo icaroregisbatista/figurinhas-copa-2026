@@ -1374,6 +1374,20 @@ body {
   text-align: left;
 }
 
+@media (min-width: 768px) {
+  .proposal-modal {
+    max-width: 90vw;
+    width: 90vw;
+    max-height: 92vh;
+  }
+  .proposal-columns {
+    grid-template-columns: 1fr 1fr;
+  }
+  .proposal-checklist {
+    max-height: calc(60vh - 160px);
+  }
+}
+
 /* Lista de membros */
 .proposal-member-list {
   display: flex;
@@ -1488,6 +1502,21 @@ body {
   overflow-y: auto;
   margin-bottom: 0.5rem;
 }
+
+.proposal-col-search {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.5rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.proposal-col-search:focus { border-color: var(--gold); }
+.proposal-col-search::placeholder { color: var(--text-muted); }
 
 .proposal-check-item {
   display: flex;
