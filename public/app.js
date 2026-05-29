@@ -22,9 +22,13 @@ import {
   deleteDoc,
   collection,
   getDocs,
+  addDoc,
   query,
   where,
-  writeBatch
+  writeBatch,
+  runTransaction,
+  serverTimestamp,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ── ⚙️ CONFIGURAÇÃO DO FIREBASE ──────────────────────────────
@@ -167,7 +171,17 @@ async function initApp() {
   // Exibir dados do usuário no header
   const initials = (currentUser.displayName || currentUser.email)
     .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  userAvatar.textContent = initials;
+  const initialsEl = document.getElementById('user-avatar-initials');
+  if (currentUser.photoURL) {
+    const img = document.createElement('img');
+    img.src = currentUser.photoURL;
+    img.alt = initials;
+    img.onerror = () => { img.remove(); if (initialsEl) initialsEl.textContent = initials; };
+    userAvatar.innerHTML = '';
+    userAvatar.appendChild(img);
+  } else {
+    if (initialsEl) initialsEl.textContent = initials;
+  }
   userName.textContent = (currentUser.displayName || currentUser.email).split(' ')[0];
 
   // Registrar UID no documento do usuário autorizado (para mapeamento UID→nome nas trocas)
@@ -227,6 +241,7 @@ searchInput.addEventListener('input', () => {
   btnClearSearch.classList.toggle('hidden', !searchQuery);
   renderGrid();
   renderDuplicatesGrid();
+  if (activeTab === 'trocas') renderMatchesList();
 });
 
 btnClearSearch.addEventListener('click', () => {
@@ -235,6 +250,7 @@ btnClearSearch.addEventListener('click', () => {
   btnClearSearch.classList.add('hidden');
   renderGrid();
   renderDuplicatesGrid();
+  if (activeTab === 'trocas') renderMatchesList();
 });
 
 document.querySelectorAll('.filter-chip[data-group]').forEach(btn => {
@@ -244,6 +260,7 @@ document.querySelectorAll('.filter-chip[data-group]').forEach(btn => {
     activeGroup = btn.dataset.group;
     renderGrid();
     renderDuplicatesGrid();
+    if (activeTab === 'trocas') renderMatchesList();
   });
 });
 
@@ -303,27 +320,35 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelector('.filter-status').style.display =
       activeTab === 'colecao' ? 'flex' : 'none';
 
+    // Ocultar barra de filtro inteira apenas na aba Admin
+    const filterBar = document.querySelector('.filter-bar');
+    if (filterBar) {
+      filterBar.style.display = activeTab === 'admin' ? 'none' : '';
+    }
+
     if (activeTab === 'trocas') loadTradingPanel();
-    if (activeTab === 'estatisticas') loadStatsPanel();
     if (activeTab === 'admin') loadAdminPanel();
   });
 });
 
-// Filtro de grupo na aba Trocas
-document.querySelectorAll('.filter-chip[data-trade-group]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-chip[data-trade-group]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeTradeGroup = btn.dataset.tradeGroup;
-    renderMatchesList();
-  });
-});
+// Os chips de grupo do topo (data-group) já controlam activeGroup e chamam renderMatchesList via renderGrid/renderDuplicatesGrid
+// Quando a aba Trocas está ativa, o filtro de grupo usa activeGroup diretamente
 
 function renderMatchesList() {
   const matchesList = document.getElementById('matches-list');
   if (!matchesList) return;
   matchesList.innerHTML = '';
   let matchCount = 0;
+
+  const tradeSearch = (searchQuery || '').toLowerCase();
+
+  // Calcular figurinhas reservadas em propostas pendentes
+  const reservedCodes = {}; // { code: qty reservada }
+  (window._myPendingProposals || []).forEach(p => {
+    (p.offeredCodes || []).forEach(code => {
+      reservedCodes[code] = (reservedCodes[code] || 0) + 1;
+    });
+  });
 
   const sortedDupEntries = Object.entries(window._tradeDuplicates || myDuplicates)
     .filter(([, qty]) => qty > 0)
@@ -332,8 +357,14 @@ function renderMatchesList() {
   sortedDupEntries.forEach(([code, qty]) => {
     const sticker = allStickers.find(s => s.code === code);
     if (!sticker) return;
-    // Aplicar filtro de grupo
-    if (activeTradeGroup !== 'all' && sticker.group !== activeTradeGroup) return;
+    // Aplicar filtro de grupo (usa o mesmo activeGroup dos chips do topo)
+    if (activeGroup !== 'all' && sticker.group !== activeGroup) return;
+    // Aplicar filtro de busca
+    if (tradeSearch) {
+      const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
+      const searchable = `${sticker.code} ${sticker.name} ${groupLabel} ${sticker.page}`.toLowerCase();
+      if (!searchable.includes(tradeSearch)) return;
+    }
 
     const needers = Object.entries(window._tradeOthersCollection || {})
       .filter(([, oSet]) => !oSet.has(code))
@@ -342,6 +373,8 @@ function renderMatchesList() {
     if (needers.length > 0) {
       matchCount++;
       const groupLabel = sticker.group === '-' ? 'FIFA' : sticker.group === 'CC' ? 'Coca-Cola' : `Grupo ${sticker.group}`;
+      const reserved = reservedCodes[code] || 0;
+      const available = qty - reserved;
       const card = document.createElement('div');
       card.className = 'trade-card is-match';
       card.innerHTML = `
@@ -357,6 +390,12 @@ function renderMatchesList() {
             <span>Você tem</span>
             <span class="trade-user-qty" style="color:var(--gold);background:var(--gold-dim)">${qty}x</span>
           </div>
+          ${reserved > 0 ? `
+          <div class="trade-user">
+            <span class="trade-user-dot" style="background:var(--red)"></span>
+            <span style="color:var(--red)">${reserved}x reservada(s)</span>
+            <span class="trade-user-qty" style="color:var(--green);background:var(--green-dim)">${available}x livre</span>
+          </div>` : ''}
           ${needers.map(nUid => `
             <div class="trade-user">
               <span class="trade-user-dot blue"></span>
@@ -371,6 +410,65 @@ function renderMatchesList() {
 
   const countEl = document.getElementById('matches-count');
   if (countEl) countEl.textContent = matchCount;
+
+  // Renderizar seção "O que eu preciso"
+  renderNeedsList();
+}
+
+function renderNeedsList() {
+  const needsList = document.getElementById('needs-list');
+  if (!needsList) return;
+  needsList.innerHTML = '';
+  let needsCount = 0;
+
+  const tradeSearch = (searchQuery || '').toLowerCase();
+  const othersCollection = window._tradeOthersCollection || {};
+  const othersDuplicates = window._tradeOthersDuplicates || {};
+  const userNames = window._tradeUserNames || {};
+
+  // Para cada figurinha que eu não tenho, verificar se alguém tem repetida
+  allStickers.forEach(sticker => {
+    if (myCollection.has(sticker.code)) return; // já tenho
+    if (activeGroup !== 'all' && sticker.group !== activeGroup) return;
+    if (tradeSearch) {
+      const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
+      const searchable = `${sticker.code} ${sticker.name} ${groupLabel} ${sticker.page}`.toLowerCase();
+      if (!searchable.includes(tradeSearch)) return;
+    }
+
+    // Quem tem essa figurinha como repetida?
+    const providers = Object.entries(othersDuplicates)
+      .filter(([, dups]) => (dups[sticker.code] || 0) > 0)
+      .map(([oUid, dups]) => ({ uid: oUid, qty: dups[sticker.code] }));
+
+    if (providers.length > 0) {
+      needsCount++;
+      const groupLabel = sticker.group === '-' ? 'FIFA' : sticker.group === 'CC' ? 'Coca-Cola' : `Grupo ${sticker.group}`;
+      const card = document.createElement('div');
+      card.className = 'trade-card has-match';
+      card.innerHTML = `
+        <div class="trade-code" style="color:var(--blue)">${sticker.code}</div>
+        <div class="trade-name">${sticker.name}</div>
+        <div class="trade-meta">
+          <span class="trade-group">${groupLabel}</span>
+          <span class="trade-page">Pág. ${sticker.page}</span>
+        </div>
+        <div class="trade-users">
+          ${providers.map(p => `
+            <div class="trade-user">
+              <span class="trade-user-dot" style="background:var(--blue)"></span>
+              <span>${userNames[p.uid] || p.uid} tem</span>
+              <span class="trade-user-qty" style="color:var(--blue);background:var(--blue-dim)">${p.qty}x</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      needsList.appendChild(card);
+    }
+  });
+
+  const countEl = document.getElementById('needs-count');
+  if (countEl) countEl.textContent = needsCount;
 }
 
 // ════════════════════════════════════════════
@@ -603,9 +701,9 @@ function openShareModal() {
   groupList.innerHTML = '';
   const groupConfirmBtn = document.getElementById('share-group-confirm');
   groupConfirmBtn.disabled = true;
-  const groups = ['-', ...'ABCDEFGHIJKL'.split('')];
+  const groups = ['-', ...'ABCDEFGHIJKL'.split(''), 'CC'];
   groups.forEach(g => {
-    const label = g === '-' ? 'FIFA' : `Grupo ${g}`;
+    const label = g === '-' ? 'FIFA' : g === 'CC' ? 'Coca-Cola' : `Grupo ${g}`;
     const lbl = document.createElement('label');
     lbl.className = 'share-checkbox-label share-sub-check';
     lbl.innerHTML = `
@@ -806,15 +904,28 @@ function buildSharePreview() {
 
   // Formata lista agrupada por país com bandeiras
   // Formato: 🇦🇷 ARG: 1, 2, 5, 10
+  // Agrupa por prefixo do código (não por país) para evitar duplicatas
+  // Ex: CC6 (COL) e COL6 ficam em grupos separados
   function formatList(stickers) {
-    const { grouped, sortedKeys } = groupStickersByCountry(stickers);
+    // Agrupar por prefixo do código (ex: ARG, BRA, CC, FWC)
+    const byPrefix = {};
+    stickers.forEach(s => {
+      const prefix = s.code.replace(/[0-9]/g, '').trim();
+      if (!byPrefix[prefix]) byPrefix[prefix] = [];
+      byPrefix[prefix].push(s);
+    });
+    const sortedPrefixes = Object.keys(byPrefix).sort();
     let lines = '';
-    sortedKeys.forEach(country => {
-      const flag = getFlag(country);
-      const items = grouped[country];
-      const countryCode = items[0].code.replace(/[0-9]/g, '').trim();
+    sortedPrefixes.forEach(prefix => {
+      const items = byPrefix[prefix].sort((a, b) => {
+        const na = parseInt(a.code.replace(/[^0-9]/g, '')) || 0;
+        const nb = parseInt(b.code.replace(/[^0-9]/g, '')) || 0;
+        return na - nb;
+      });
+      // Usar país do primeiro item para a bandeira
+      const flag = getFlag(items[0].country);
       const nums = items.map(s => s.code.replace(/[^0-9]/g, '') || s.code).join(', ');
-      lines += `${flag} *${countryCode}:* ${nums}\n`;
+      lines += `${flag} *${prefix}:* ${nums}\n`;
     });
     return lines;
   }
@@ -840,17 +951,26 @@ function buildSharePreview() {
       const totalQty = dups.reduce((sum, s) => sum + (myDuplicates[s.code] || 0), 0);
       msg += `*🔄 Repetidas (${totalQty} unidades)*\n`;
       // Para repetidas, mostrar quantidade ao lado do número quando > 1
-      const { grouped, sortedKeys } = groupStickersByCountry(dups);
-      sortedKeys.forEach(country => {
-        const flag = getFlag(country);
-        const items = grouped[country];
-        const countryCode = items[0].code.replace(/[0-9]/g, '').trim();
+      // Agrupar por prefixo do código para evitar duplicatas (ex: CC6 e COL6)
+      const byPrefix = {};
+      dups.forEach(s => {
+        const prefix = s.code.replace(/[0-9]/g, '').trim();
+        if (!byPrefix[prefix]) byPrefix[prefix] = [];
+        byPrefix[prefix].push(s);
+      });
+      Object.keys(byPrefix).sort().forEach(prefix => {
+        const items = byPrefix[prefix].sort((a, b) => {
+          const na = parseInt(a.code.replace(/[^0-9]/g, '')) || 0;
+          const nb = parseInt(b.code.replace(/[^0-9]/g, '')) || 0;
+          return na - nb;
+        });
+        const flag = getFlag(items[0].country);
         const nums = items.map(s => {
           const num = s.code.replace(/[^0-9]/g, '') || s.code;
           const qty = myDuplicates[s.code] || 1;
           return qty > 1 ? `${num}(${qty}x)` : num;
         }).join(', ');
-        msg += `${flag} *${countryCode}:* ${nums}\n`;
+        msg += `${flag} *${prefix}:* ${nums}\n`;
       });
       msg += '\n';
     } else {
@@ -1062,10 +1182,12 @@ async function loadTradingPanel() {
   tradingContent.classList.add('hidden');
 
   try {
-    // Buscar coleções e repetidas de todos os usuários
-    const [colSnaps, dupSnaps] = await Promise.all([
+    // Buscar coleções, repetidas e propostas de todos os usuários
+    const [colSnaps, dupSnaps, proposalSnaps] = await Promise.all([
       getDocs(collection(db, 'collections')),
-      getDocs(collection(db, 'duplicates'))
+      getDocs(collection(db, 'duplicates')),
+      getDocs(query(collection(db, 'trade_proposals'),
+        where('status', 'in', ['pending', 'accepted', 'refused', 'cancelled'])))
     ]);
 
     const uid = currentUser.uid;
@@ -1078,24 +1200,32 @@ async function loadTradingPanel() {
       }
     });
 
+    // Mapear repetidas dos outros usuários
+    const othersDuplicates = {}; // { uid: { code: qty } }
+    dupSnaps.forEach(snap => {
+      if (snap.id !== uid) {
+        othersDuplicates[snap.id] = snap.data().items || {};
+      }
+    });
+
     // Buscar nomes dos usuários (mapeamento UID → nome via campo uid em authorized_users)
     const userSnaps = await getDocs(collection(db, 'authorized_users'));
     const userNames = {}; // { uid: nome }
+    const userList = []; // lista de membros para o modal de proposta
     userSnaps.forEach(snap => {
       const data = snap.data();
-      const nome = data.name || snap.id; // nome cadastrado pelo admin ou email
-      // Mapear pelo campo uid salvo no login
+      const nome = data.name || snap.id;
       if (data.uid) {
         userNames[data.uid] = nome;
+        if (data.uid !== uid) {
+          userList.push({ uid: data.uid, name: nome });
+        }
       }
-      // Mapear pelo email como chave extra (fallback)
       const email = snap.data().email || snap.id;
       userNames[email] = nome;
     });
-    // Fallback: se algum UID ainda não tem nome, usar o próprio UID abreviado
     colSnaps.forEach(snap => {
       if (!userNames[snap.id]) {
-        // Tentar pelo email salvo na coleção
         const colEmail = snap.data().email;
         if (colEmail && userNames[colEmail]) {
           userNames[snap.id] = userNames[colEmail];
@@ -1103,10 +1233,24 @@ async function loadTradingPanel() {
       }
     });
 
-    // Armazenar dados para uso pelo filtro de grupo
+    // Separar propostas enviadas e recebidas
+    const sentProposals = [];
+    const receivedProposals = [];
+    proposalSnaps.forEach(snap => {
+      const d = { id: snap.id, ...snap.data() };
+      if (d.fromUid === uid) sentProposals.push(d);
+      else if (d.toUid === uid) receivedProposals.push(d);
+    });
+
+    // Armazenar dados globais
     window._tradeDuplicates = myDuplicates;
     window._tradeOthersCollection = othersCollection;
+    window._tradeOthersDuplicates = othersDuplicates;
     window._tradeUserNames = userNames;
+    window._tradeUserList = userList;
+    window._mySentProposals = sentProposals;
+    window._myReceivedProposals = receivedProposals;
+    window._myPendingProposals = sentProposals.filter(p => p.status === 'pending');
 
     // Resetar filtro de grupo ao recarregar
     activeTradeGroup = 'all';
@@ -1114,16 +1258,16 @@ async function loadTradingPanel() {
     const allChip = document.querySelector('.filter-chip[data-trade-group="all"]');
     if (allChip) allChip.classList.add('active');
 
-    // Renderizar lista de matches
+    // Renderizar
+    renderProposals();
     renderMatchesList();
-
-    // Renderizar estatísticas do grupo
     renderGroupStats(colSnaps, dupSnaps);
 
     tradingLoading.style.display = 'none';
     tradingContent.classList.remove('hidden');
 
   } catch (e) {
+    console.error(e);
     tradingLoading.style.display = 'none';
     showToast('Erro ao carregar painel de trocas.', 'error');
   }
@@ -1358,175 +1502,1103 @@ function showToast(msg, type = '') {
 
 
 // ══════════════════════════════════════════════
-// PAINEL DE ESTATÍSTICAS
+// MÓDULO DE PROPOSTAS DE TROCA
 // ══════════════════════════════════════════════
-async function loadStatsPanel() {
-  const loadingEl = document.getElementById('stats-loading');
-  const contentEl = document.getElementById('stats-content');
-  loadingEl.style.display = 'flex';
-  contentEl.classList.add('hidden');
 
-  try {
-    // Buscar todas as coleções
-    const colSnaps = await getDocs(collection(db, 'collections'));
-    const dupSnaps = await getDocs(collection(db, 'duplicates'));
-    const userSnaps = await getDocs(collection(db, 'authorized_users'));
+// ── Estado do modal de proposta ──────────────
+let proposalState = {
+  type: null,       // 'member' | 'external'
+  partnerUid: null,
+  partnerName: null,
+  offeredCodes: [],
+  requestedCodes: [],
+};
 
-    // Mapear dados
-    const userNames = {};
-    userSnaps.forEach(d => {
-      userNames[d.data().email] = { name: d.data().name, uid: d.data().uid };
-    });
+// ── Elementos do modal ───────────────────────
+const modalProposal = document.getElementById('modal-proposal');
 
-    const dupMap = {};
-    dupSnaps.forEach(d => {
-      dupMap[d.id] = d.data().items || {};
-    });
-
-    // Calcular estatísticas
-    let totalParticipants = 0;
-    let totalCollected = 0;
-    let totalDuplicates = 0;
-    const ownerCount = {};
-    const userProgress = {};
-    const userEmails = {};
-
-    colSnaps.forEach(d => {
-      const email = d.data().email;
-      const codes = d.data().codes || [];
-      totalParticipants++;
-      totalCollected += codes.length;
-      userProgress[d.id] = codes.length;
-      userEmails[d.id] = email;
-
-      // Contar donos por figurinha
-      codes.forEach(code => {
-        ownerCount[code] = (ownerCount[code] || 0) + 1;
-      });
-    });
-
-    // Contar duplicatas
-    Object.values(dupMap).forEach(dups => {
-      Object.values(dups).forEach(qty => {
-        totalDuplicates += qty;
-      });
-    });
-
-    const totalMissing = (allStickers.length * totalParticipants) - totalCollected;
-
-    // Atualizar resumo
-    document.getElementById('summary-participants').textContent = totalParticipants.toLocaleString('pt-BR');
-    document.getElementById('summary-collected').textContent = totalCollected.toLocaleString('pt-BR');
-    document.getElementById('summary-missing').textContent = totalMissing.toLocaleString('pt-BR');
-    document.getElementById('summary-duplicates').textContent = totalDuplicates.toLocaleString('pt-BR');
-
-    // Renderizar componentes
-    renderGroupStats();
-    renderRanking(userProgress, userEmails, userNames, colSnaps.size);
-    renderRareStickers(ownerCount, totalParticipants);
-
-    contentEl.classList.remove('hidden');
-  } catch (e) {
-    console.error('Erro ao carregar estatísticas:', e);
-    showToast('Erro ao carregar estatísticas.', 'error');
-  } finally {
-    loadingEl.style.display = 'none';
-  }
+function openProposalModal() {
+  proposalState = { type: null, partnerUid: null, partnerName: null, offeredCodes: [], requestedCodes: [] };
+  showProposalStep('type');
+  modalProposal.classList.remove('hidden');
 }
 
-function renderRanking(userProgress, userEmails, userNames, totalUsers) {
-  const rankingList = document.getElementById('ranking-list');
-  rankingList.innerHTML = '';
+function closeProposalModal() {
+  modalProposal.classList.add('hidden');
+}
 
-  if (totalUsers === 0) {
-    rankingList.innerHTML = '<div class="ranking-empty">Nenhum dado disponível ainda.</div>';
+function showProposalStep(step) {
+  ['type','member','external','build','confirm'].forEach(s => {
+    document.getElementById(`proposal-step-${s}`).classList.add('hidden');
+  });
+  document.getElementById(`proposal-step-${step}`).classList.remove('hidden');
+}
+
+document.getElementById('btn-new-proposal').addEventListener('click', () => {
+  if (!currentUser) return;
+  openProposalModal();
+});
+
+document.getElementById('btn-close-proposal').addEventListener('click', closeProposalModal);
+modalProposal.addEventListener('click', e => { if (e.target === modalProposal) closeProposalModal(); });
+
+// Tipo: membro
+document.getElementById('proposal-type-member').addEventListener('click', () => {
+  proposalState.type = 'member';
+  buildMemberList();
+  showProposalStep('member');
+});
+
+// Tipo: avulsa
+document.getElementById('proposal-type-external').addEventListener('click', () => {
+  proposalState.type = 'external';
+  document.getElementById('proposal-external-name').value = '';
+  document.getElementById('proposal-external-next').disabled = true;
+  showProposalStep('external');
+});
+
+// Voltar do membro
+document.getElementById('proposal-back-member').addEventListener('click', () => showProposalStep('type'));
+
+// Voltar do externo
+document.getElementById('proposal-back-external').addEventListener('click', () => showProposalStep('type'));
+
+// Habilitar botão próximo no externo
+document.getElementById('proposal-external-name').addEventListener('input', function() {
+  document.getElementById('proposal-external-next').disabled = this.value.trim().length < 2;
+});
+
+// Próximo no externo → ir para build
+document.getElementById('proposal-external-next').addEventListener('click', () => {
+  proposalState.partnerName = document.getElementById('proposal-external-name').value.trim();
+  proposalState.partnerUid = null;
+  buildProposalLists();
+  showProposalStep('build');
+});
+
+// Voltar do build
+document.getElementById('proposal-back-build').addEventListener('click', () => {
+  if (proposalState.type === 'member') showProposalStep('member');
+  else showProposalStep('external');
+});
+
+// Voltar do confirm
+document.getElementById('proposal-back-confirm').addEventListener('click', () => showProposalStep('build'));
+
+function buildMemberList() {
+  const list = document.getElementById('proposal-member-list');
+  list.innerHTML = '';
+  const members = window._tradeUserList || [];
+  if (members.length === 0) {
+    list.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Nenhum outro membro encontrado.</p>';
     return;
   }
-
-  // Ordenar por quantidade de figurinhas
-  const sorted = Object.entries(userProgress)
-    .sort((a, b) => b[1] - a[1])
-    .map((entry, idx) => ({
-      uid: entry[0],
-      collected: entry[1],
-      position: idx + 1
-    }));
-
-  document.getElementById('ranking-count').textContent = sorted.length;
-
-  sorted.forEach((user, idx) => {
-    const email = userEmails[user.uid];
-    const userData = userNames[email] || {};
-    const percentage = ((user.collected / allStickers.length) * 100).toFixed(1);
-    
-    let medal = '';
-    if (user.position === 1) medal = '🥇';
-    else if (user.position === 2) medal = '🥈';
-    else if (user.position === 3) medal = '🥉';
-
-    const card = document.createElement('div');
-    card.className = 'ranking-item';
-    card.innerHTML = `
-      <div class="ranking-position ${user.position <= 3 ? 'medal' : ''}" data-position="${user.position}">
-        ${medal || user.position}
-      </div>
-      <div class="ranking-info">
-        <div class="ranking-name">${userData.name || email.split('@')[0]}</div>
-        <div class="ranking-progress">
-          <div class="ranking-bar">
-            <div class="ranking-fill" style="width: ${percentage}%"></div>
-          </div>
-          <span class="ranking-pct">${percentage}%</span>
-        </div>
-      </div>
-      <div class="ranking-count">${user.collected}/${allStickers.length}</div>
+  members.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'proposal-member-btn';
+    btn.innerHTML = `
+      <span class="proposal-member-avatar">${m.name.charAt(0).toUpperCase()}</span>
+      <span class="proposal-member-name">${m.name}</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
     `;
-    rankingList.appendChild(card);
+    btn.addEventListener('click', () => {
+      proposalState.partnerUid = m.uid;
+      proposalState.partnerName = m.name;
+      buildProposalLists();
+      showProposalStep('build');
+    });
+    list.appendChild(btn);
   });
 }
 
-function renderRareStickers(ownerCount, totalParticipants) {
-  const rareList = document.getElementById('rare-list');
-  rareList.innerHTML = '';
+function getAvailableQty(code) {
+  const total = myDuplicates[code] || 0;
+  const reserved = (window._myPendingProposals || [])
+    .reduce((sum, p) => sum + (p.offeredCodes || []).filter(c => c === code).length, 0);
+  return total - reserved;
+}
 
-  if (totalParticipants === 0) {
-    rareList.innerHTML = '<div class="rare-empty">Nenhum dado disponível ainda.</div>';
+function buildProposalLists() {
+  // Info do parceiro
+  const partnerInfo = document.getElementById('proposal-partner-info');
+  partnerInfo.innerHTML = `<div class="proposal-partner-badge">
+    <span class="proposal-member-avatar" style="width:28px;height:28px;font-size:0.85rem">${proposalState.partnerName.charAt(0).toUpperCase()}</span>
+    <span>${proposalState.partnerName}</span>
+    ${proposalState.type === 'external' ? '<span class="proposal-external-tag">Externo</span>' : ''}
+  </div>`;
+
+  // Resetar seleções
+  proposalState.offeredCodes = [];
+  proposalState.requestedCodes = [];
+  updateBuildCounts();
+
+  // Listas de oferta (minhas repetidas que o parceiro não tem)
+  const offerList = document.getElementById('proposal-offer-list');
+  offerList.innerHTML = '';
+
+  const partnerCollection = proposalState.partnerUid
+    ? (window._tradeOthersCollection || {})[proposalState.partnerUid] || new Set()
+    : new Set();
+
+  const myDupCodes = Object.entries(myDuplicates)
+    .filter(([, qty]) => qty > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  let offerCount = 0;
+  myDupCodes.forEach(([code, qty]) => {
+    // Para membro: só mostrar se o parceiro não tem
+    if (proposalState.type === 'member' && partnerCollection.has(code)) return;
+    const available = getAvailableQty(code);
+    if (available <= 0) return; // tudo reservado
+    const sticker = allStickers.find(s => s.code === code);
+    if (!sticker) return;
+    offerCount++;
+    const item = createChecklistItem(code, sticker, available, 'offer');
+    offerList.appendChild(item);
+  });
+
+  if (offerCount === 0) {
+    offerList.innerHTML = '<p class="proposal-empty">Nenhuma figurinha disponível para oferecer.</p>';
+  }
+
+  // Lista do que quero (repetidas do parceiro que eu não tenho)
+  const wantList = document.getElementById('proposal-want-list');
+  wantList.innerHTML = '';
+
+  if (proposalState.type === 'member' && proposalState.partnerUid) {
+    const partnerDups = (window._tradeOthersDuplicates || {})[proposalState.partnerUid] || {};
+    const wantEntries = Object.entries(partnerDups)
+      .filter(([code, qty]) => qty > 0 && !myCollection.has(code))
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    let wantCount = 0;
+    wantEntries.forEach(([code, qty]) => {
+      const sticker = allStickers.find(s => s.code === code);
+      if (!sticker) return;
+      wantCount++;
+      const item = createChecklistItem(code, sticker, qty, 'want');
+      wantList.appendChild(item);
+    });
+
+    if (wantCount === 0) {
+      wantList.innerHTML = '<p class="proposal-empty">Parceiro não tem repetidas que você precisa.</p>';
+    }
+  } else {
+    // Troca avulsa: mostrar todas as minhas faltantes para o usuário selecionar
+    const missing = allStickers.filter(s => !myCollection.has(s.code))
+      .sort((a, b) => a.code.localeCompare(b.code));
+    missing.forEach(sticker => {
+      const item = createChecklistItem(sticker.code, sticker, 1, 'want');
+      wantList.appendChild(item);
+    });
+    if (missing.length === 0) {
+      wantList.innerHTML = '<p class="proposal-empty">Você já tem todas as figurinhas! 🎉</p>';
+    }
+  }
+
+  // Wires de busca nas colunas
+  const offerSearchEl = document.getElementById('offer-search');
+  const wantSearchEl = document.getElementById('want-search');
+  if (offerSearchEl) {
+    offerSearchEl.value = '';
+    offerSearchEl.oninput = function() {
+      const q = this.value.trim().toLowerCase();
+      offerList.querySelectorAll('.proposal-check-item').forEach(item => {
+        const code = item.dataset.code || '';
+        const name = item.querySelector('.proposal-check-name')?.textContent.toLowerCase() || '';
+        item.style.display = (!q || code.toLowerCase().includes(q) || name.includes(q)) ? '' : 'none';
+      });
+    };
+  }
+  if (wantSearchEl) {
+    wantSearchEl.value = '';
+    wantSearchEl.oninput = function() {
+      const q = this.value.trim().toLowerCase();
+      wantList.querySelectorAll('.proposal-check-item').forEach(item => {
+        const code = item.dataset.code || '';
+        const name = item.querySelector('.proposal-check-name')?.textContent.toLowerCase() || '';
+        item.style.display = (!q || code.toLowerCase().includes(q) || name.includes(q)) ? '' : 'none';
+      });
+    };
+  }
+}
+
+function createChecklistItem(code, sticker, qty, side) {
+  const groupLabel = sticker.group === '-' ? 'FIFA' : sticker.group === 'CC' ? 'CC' : sticker.group;
+  const div = document.createElement('label');
+  div.className = 'proposal-check-item';
+  div.dataset.code = code;
+  div.dataset.side = side;
+  div.innerHTML = `
+    <input type="checkbox" value="${code}" />
+    <span class="proposal-check-box"></span>
+    <span class="proposal-check-info">
+      <span class="proposal-check-code">${code}</span>
+      <span class="proposal-check-name">${sticker.name}</span>
+    </span>
+    <span class="proposal-check-qty">${qty}x</span>
+  `;
+  div.querySelector('input').addEventListener('change', e => {
+    if (side === 'offer') {
+      if (e.target.checked) proposalState.offeredCodes.push(code);
+      else proposalState.offeredCodes = proposalState.offeredCodes.filter(c => c !== code);
+    } else {
+      if (e.target.checked) proposalState.requestedCodes.push(code);
+      else proposalState.requestedCodes = proposalState.requestedCodes.filter(c => c !== code);
+    }
+    updateBuildCounts();
+  });
+  return div;
+}
+
+function updateBuildCounts() {
+  document.getElementById('offer-count').textContent = proposalState.offeredCodes.length;
+  document.getElementById('want-count').textContent = proposalState.requestedCodes.length;
+  const hasAny = proposalState.offeredCodes.length > 0 || proposalState.requestedCodes.length > 0;
+  document.getElementById('proposal-build-next').disabled = !hasAny;
+}
+
+// Próximo no build → confirmar
+document.getElementById('proposal-build-next').addEventListener('click', () => {
+  buildProposalSummary();
+  showProposalStep('confirm');
+});
+
+function buildProposalSummary() {
+  const summary = document.getElementById('proposal-summary');
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  const formatList = codes => codes.map(code => {
+    const s = allStickers.find(x => x.code === code);
+    return `<li><strong>${code}</strong>${s ? ' · ' + s.name : ''}</li>`;
+  }).join('');
+
+  summary.innerHTML = `
+    <div class="proposal-summary-header">
+      <span>Parceiro: <strong>${proposalState.partnerName}</strong></span>
+      <span class="proposal-summary-date">${dateStr}</span>
+    </div>
+    ${proposalState.offeredCodes.length > 0 ? `
+    <div class="proposal-summary-section offer">
+      <div class="proposal-summary-label">Você oferece (${proposalState.offeredCodes.length})</div>
+      <ul class="proposal-summary-list">${formatList(proposalState.offeredCodes)}</ul>
+    </div>` : ''}
+    ${proposalState.requestedCodes.length > 0 ? `
+    <div class="proposal-summary-section want">
+      <div class="proposal-summary-label">Você quer receber (${proposalState.requestedCodes.length})</div>
+      <ul class="proposal-summary-list">${formatList(proposalState.requestedCodes)}</ul>
+    </div>` : ''}
+  `;
+}
+
+// WhatsApp da proposta
+document.getElementById('proposal-btn-whatsapp').addEventListener('click', () => {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const myName = (currentUser.displayName || currentUser.email).split(' ')[0];
+
+  let msg = `🏆 *Proposta de Troca — Copa 2026*\n`;
+  msg += `📅 ${dateStr}\n\n`;
+  msg += `Olá ${proposalState.partnerName}! Fiz uma oferta de troca no nosso app 👇\n\n`;
+
+  if (proposalState.offeredCodes.length > 0) {
+    msg += `*Eu ofereço para você:*\n`;
+    proposalState.offeredCodes.forEach(code => {
+      const s = allStickers.find(x => x.code === code);
+      msg += `• ${code}${s ? ' · ' + s.name : ''}\n`;
+    });
+    msg += '\n';
+  }
+
+  if (proposalState.requestedCodes.length > 0) {
+    msg += `*Eu quero de você:*\n`;
+    proposalState.requestedCodes.forEach(code => {
+      const s = allStickers.find(x => x.code === code);
+      msg += `• ${code}${s ? ' · ' + s.name : ''}\n`;
+    });
+    msg += '\n';
+  }
+
+  msg += `_App Figurinhas Copa 2026_`;
+
+  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  const newWin = window.open(url, '_blank');
+  if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+    window.location.href = url;
+  }
+});
+
+// Enviar proposta
+document.getElementById('proposal-btn-send').addEventListener('click', async () => {
+  const btn = document.getElementById('proposal-btn-send');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try {
+    const uid = currentUser.uid;
+    const myName = currentUser.displayName || currentUser.email;
+    const now = new Date();
+
+    const proposalData = {
+      createdAt: now.getTime(),
+      updatedAt: now.getTime(),
+      status: 'pending',
+      fromUid: uid,
+      fromName: myName,
+      toUid: proposalState.partnerUid || null,
+      toName: proposalState.partnerName,
+      type: proposalState.type,
+      offeredCodes: proposalState.offeredCodes,
+      requestedCodes: proposalState.requestedCodes,
+      confirmedAt: null,
+    };
+
+    await addDoc(collection(db, 'trade_proposals'), proposalData);
+
+    closeProposalModal();
+    showToast('Proposta enviada com sucesso!', 'success');
+
+    // Recarregar painel
+    await loadTradingPanel();
+
+  } catch (e) {
+    console.error(e);
+    showToast('Erro ao enviar proposta.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Enviar Proposta';
+  }
+});
+
+// ── Renderizar propostas enviadas e recebidas ──────────────
+function renderProposals() {
+  renderSentProposals();
+  renderReceivedProposals();
+}
+
+function renderSentProposals() {
+  const list = document.getElementById('sent-proposals-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const proposals = (window._mySentProposals || [])
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  const countEl = document.getElementById('sent-proposals-count');
+  if (countEl) countEl.textContent = proposals.length;
+
+  const sectionEl = document.getElementById('section-sent-proposals');
+  if (sectionEl) sectionEl.style.display = proposals.length === 0 ? 'none' : '';
+
+  proposals.forEach(p => {
+    const card = createProposalCard(p, 'sent');
+    list.appendChild(card);
+  });
+}
+
+function renderReceivedProposals() {
+  const list = document.getElementById('received-proposals-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const proposals = (window._myReceivedProposals || [])
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  const pending = proposals.filter(p => p.status === 'pending');
+  const countEl = document.getElementById('received-proposals-count');
+  if (countEl) countEl.textContent = pending.length || '';
+
+  const sectionEl = document.getElementById('section-received-proposals');
+  if (sectionEl) sectionEl.style.display = proposals.length === 0 ? 'none' : '';
+
+  proposals.forEach(p => {
+    const card = createProposalCard(p, 'received');
+    list.appendChild(card);
+  });
+}
+
+const STATUS_LABELS = {
+  pending: { label: 'Pendente', cls: 'status-pending' },
+  accepted: { label: 'Aceita', cls: 'status-accepted' },
+  refused: { label: 'Recusada', cls: 'status-refused' },
+  cancelled: { label: 'Cancelada', cls: 'status-cancelled' },
+};
+
+function createProposalCard(p, side) {
+  const card = document.createElement('div');
+  card.className = 'proposal-card';
+  const st = STATUS_LABELS[p.status] || STATUS_LABELS.pending;
+  const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '';
+  const partner = side === 'sent' ? p.toName : p.fromName;
+  const typeTag = p.type === 'external' ? '<span class="proposal-external-tag">Externo</span>' : '';
+
+  const offerSummary = (p.offeredCodes || []).slice(0, 4).join(', ') +
+    ((p.offeredCodes || []).length > 4 ? ` +${p.offeredCodes.length - 4}` : '');
+  const wantSummary = (p.requestedCodes || []).slice(0, 4).join(', ') +
+    ((p.requestedCodes || []).length > 4 ? ` +${p.requestedCodes.length - 4}` : '');
+
+  card.innerHTML = `
+    <div class="proposal-card-header">
+      <div class="proposal-card-partner">
+        <span class="proposal-member-avatar" style="width:24px;height:24px;font-size:0.75rem">${(partner || '?').charAt(0).toUpperCase()}</span>
+        <span>${partner || 'Desconhecido'}</span>
+        ${typeTag}
+      </div>
+      <div class="proposal-card-meta">
+        <span class="proposal-status ${st.cls}">${st.label}</span>
+        <span class="proposal-card-date">${dateStr}</span>
+      </div>
+    </div>
+    <div class="proposal-card-body">
+      ${offerSummary ? `<div class="proposal-card-row"><span class="proposal-card-label offer">Oferece</span><span class="proposal-card-codes">${offerSummary}</span></div>` : ''}
+      ${wantSummary ? `<div class="proposal-card-row"><span class="proposal-card-label want">Quer</span><span class="proposal-card-codes">${wantSummary}</span></div>` : ''}
+    </div>
+    <div class="proposal-card-actions" id="actions-${p.id}"></div>
+  `;
+
+  const actionsEl = card.querySelector(`#actions-${p.id}`);
+
+  if (side === 'sent' && p.status === 'pending') {
+    // Cancelar proposta enviada
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-proposal-cancel';
+    cancelBtn.textContent = 'Cancelar proposta';
+    cancelBtn.addEventListener('click', () => cancelProposal(p.id));
+    actionsEl.appendChild(cancelBtn);
+  }
+
+  if (side === 'sent' && p.type === 'external' && p.status === 'pending') {
+    // Confirmar troca avulsa
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn-proposal-accept';
+    confirmBtn.textContent = '✓ Confirmar troca realizada';
+    confirmBtn.addEventListener('click', () => confirmExternalTrade(p));
+    actionsEl.appendChild(confirmBtn);
+  }
+
+  if (side === 'received' && p.status === 'pending') {
+    const acceptBtn = document.createElement('button');
+    acceptBtn.className = 'btn-proposal-accept';
+    acceptBtn.textContent = '✓ Aceitar';
+    acceptBtn.addEventListener('click', () => acceptProposal(p));
+
+    const refuseBtn = document.createElement('button');
+    refuseBtn.className = 'btn-proposal-cancel';
+    refuseBtn.textContent = '✗ Recusar';
+    refuseBtn.addEventListener('click', () => refuseProposal(p.id));
+
+    actionsEl.appendChild(acceptBtn);
+    actionsEl.appendChild(refuseBtn);
+  }
+
+  return card;
+}
+
+async function cancelProposal(proposalId) {
+  try {
+    await updateDoc(doc(db, 'trade_proposals', proposalId), {
+      status: 'cancelled',
+      updatedAt: Date.now(),
+    });
+    showToast('Proposta cancelada.', '');
+    await loadTradingPanel();
+  } catch (e) {
+    showToast('Erro ao cancelar proposta.', 'error');
+  }
+}
+
+async function refuseProposal(proposalId) {
+  try {
+    await updateDoc(doc(db, 'trade_proposals', proposalId), {
+      status: 'refused',
+      updatedAt: Date.now(),
+    });
+    showToast('Proposta recusada.', '');
+    await loadTradingPanel();
+  } catch (e) {
+    showToast('Erro ao recusar proposta.', 'error');
+  }
+}
+
+async function acceptProposal(proposal) {
+  const btn = event?.target;
+  if (btn) { btn.disabled = true; btn.textContent = 'Processando...'; }
+
+  try {
+    const uid = currentUser.uid;
+
+    await runTransaction(db, async (tx) => {
+      // Ler documentos de coleção e repetidas dos dois usuários
+      const myColRef = doc(db, 'collections', uid);
+      const myDupRef = doc(db, 'duplicates', uid);
+      const theirColRef = doc(db, 'collections', proposal.fromUid);
+      const theirDupRef = doc(db, 'duplicates', proposal.fromUid);
+      const proposalRef = doc(db, 'trade_proposals', proposal.id);
+
+      const [myColSnap, myDupSnap, theirColSnap, theirDupSnap] = await Promise.all([
+        tx.get(myColRef), tx.get(myDupRef), tx.get(theirColRef), tx.get(theirDupRef)
+      ]);
+
+      const myCodes = new Set(myColSnap.data()?.codes || []);
+      const myDups = myDupSnap.data()?.items || {};
+      const theirCodes = new Set(theirColSnap.data()?.codes || []);
+      const theirDups = theirDupSnap.data()?.items || {};
+
+      // Verificar conflito: alguma figurinha que eu quero receber já foi recebida?
+      for (const code of (proposal.requestedCodes || [])) {
+        if (myCodes.has(code)) {
+          throw new Error(`Conflito: você já tem a figurinha ${code}.`);
+        }
+      }
+
+      // Aplicar: eu recebo o que pedi (requestedCodes = repetidas de quem enviou)
+      // requestedCodes: o que EU (receptor) quero = o que o fromUid ofereceu como repetidas
+      // offeredCodes: o que o fromUid me oferece → entram na minha coleção e saem das repetidas dele
+      // requestedCodes: o que eu ofereço ao fromUid → entram na coleção dele e saem das minhas repetidas
+
+      // Eu recebo: offeredCodes do fromUid → entram na minha coleção
+      for (const code of (proposal.offeredCodes || [])) {
+        myCodes.add(code);
+        // Sair das repetidas do fromUid
+        if (theirDups[code] > 0) {
+          theirDups[code] = Math.max(0, (theirDups[code] || 1) - 1);
+          if (theirDups[code] === 0) delete theirDups[code];
+        }
+      }
+
+      // fromUid recebe: requestedCodes → entram na coleção dele
+      for (const code of (proposal.requestedCodes || [])) {
+        theirCodes.add(code);
+        // Sair das minhas repetidas
+        if (myDups[code] > 0) {
+          myDups[code] = Math.max(0, (myDups[code] || 1) - 1);
+          if (myDups[code] === 0) delete myDups[code];
+        }
+      }
+
+      // Salvar tudo
+      tx.set(myColRef, { codes: [...myCodes] }, { merge: true });
+      tx.set(myDupRef, { items: myDups }, { merge: true });
+      tx.set(theirColRef, { codes: [...theirCodes] }, { merge: true });
+      tx.set(theirDupRef, { items: theirDups }, { merge: true });
+      tx.update(proposalRef, { status: 'accepted', confirmedAt: Date.now(), updatedAt: Date.now() });
+
+      // Cancelar automaticamente outras propostas conflitantes
+      // (propostas onde eu pedia as mesmas figurinhas que acabei de receber)
+    });
+
+    // Cancelar propostas conflitantes (fora da transação para simplicidade)
+    await cancelConflictingProposals(proposal.offeredCodes || []);
+
+    showToast('Troca aceita! Coleções atualizadas. 🎉', 'success');
+
+    // Atualizar estado local
+    for (const code of (proposal.offeredCodes || [])) {
+      myCollection.add(code);
+    }
+    for (const code of (proposal.requestedCodes || [])) {
+      if (myDuplicates[code] > 0) {
+        myDuplicates[code]--;
+        if (myDuplicates[code] === 0) delete myDuplicates[code];
+      }
+    }
+    updateProgressBar();
+    await loadTradingPanel();
+
+  } catch (e) {
+    console.error(e);
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Aceitar'; }
+    showToast(e.message || 'Erro ao aceitar proposta.', 'error');
+  }
+}
+
+async function confirmExternalTrade(proposal) {
+  const btn = event?.target;
+  if (btn) { btn.disabled = true; btn.textContent = 'Processando...'; }
+
+  try {
+    const uid = currentUser.uid;
+    const myColRef = doc(db, 'collections', uid);
+    const myDupRef = doc(db, 'duplicates', uid);
+    const proposalRef = doc(db, 'trade_proposals', proposal.id);
+
+    await runTransaction(db, async (tx) => {
+      const [myColSnap, myDupSnap] = await Promise.all([tx.get(myColRef), tx.get(myDupRef)]);
+      const myCodes = new Set(myColSnap.data()?.codes || []);
+      const myDups = { ...(myDupSnap.data()?.items || {}) };
+
+      // Recebo: requestedCodes entram na minha coleção
+      for (const code of (proposal.requestedCodes || [])) {
+        myCodes.add(code);
+      }
+      // Ofereço: offeredCodes saem das minhas repetidas
+      for (const code of (proposal.offeredCodes || [])) {
+        if (myDups[code] > 0) {
+          myDups[code] = Math.max(0, (myDups[code] || 1) - 1);
+          if (myDups[code] === 0) delete myDups[code];
+        }
+      }
+
+      tx.set(myColRef, { codes: [...myCodes] }, { merge: true });
+      tx.set(myDupRef, { items: myDups }, { merge: true });
+      tx.update(proposalRef, { status: 'accepted', confirmedAt: Date.now(), updatedAt: Date.now() });
+    });
+
+    // Cancelar propostas conflitantes
+    await cancelConflictingProposals(proposal.requestedCodes || []);
+
+    showToast('Troca avulsa confirmada! Coleção atualizada. 🎉', 'success');
+
+    // Atualizar estado local
+    for (const code of (proposal.requestedCodes || [])) {
+      myCollection.add(code);
+    }
+    for (const code of (proposal.offeredCodes || [])) {
+      if (myDuplicates[code] > 0) {
+        myDuplicates[code]--;
+        if (myDuplicates[code] === 0) delete myDuplicates[code];
+      }
+    }
+    updateProgressBar();
+    await loadTradingPanel();
+
+  } catch (e) {
+    console.error(e);
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Confirmar troca realizada'; }
+    showToast(e.message || 'Erro ao confirmar troca.', 'error');
+  }
+}
+
+async function cancelConflictingProposals(receivedCodes) {
+  if (!receivedCodes || receivedCodes.length === 0) return;
+  const uid = currentUser.uid;
+  // Buscar propostas pendentes onde eu pedi as mesmas figurinhas
+  const pendingSnaps = await getDocs(query(
+    collection(db, 'trade_proposals'),
+    where('toUid', '==', uid),
+    where('status', '==', 'pending')
+  ));
+  const batch = writeBatch(db);
+  let count = 0;
+  pendingSnaps.forEach(snap => {
+    const d = snap.data();
+    const conflict = (d.offeredCodes || []).some(c => receivedCodes.includes(c));
+    if (conflict) {
+      batch.update(snap.ref, { status: 'cancelled', updatedAt: Date.now() });
+      count++;
+    }
+  });
+  if (count > 0) {
+    await batch.commit();
+    showToast(`${count} proposta(s) cancelada(s) automaticamente por conflito.`, '');
+  }
+}
+
+function updateProgressBar() {
+  const total = allStickers.length;
+  const owned = myCollection.size;
+  const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
+  if (progressFill) progressFill.style.width = pct + '%';
+  if (progressText) progressText.textContent = `${owned} / ${total}`;
+  if (progressPct) progressPct.textContent = pct + '%';
+}
+
+
+
+// ══════════════════════════════════════════════
+// EXPORTAÇÃO PDF — CONTROLE DO ÁLBUM v2
+// ══════════════════════════════════════════════
+
+// Mapa completo: código ISO → nome em português
+const TEAM_NAMES_PT = {
+  ALG: 'Argélia', ARG: 'Argentina', AUS: 'Austrália', AUT: 'Áustria',
+  BEL: 'Bélgica', BIH: 'Bósnia e Herz.', BRA: 'Brasil', CAN: 'Canadá',
+  CC: 'Figurinhas Coca-Cola', CIV: 'Costa do Marfim', COD: 'Congo',
+  COL: 'Colômbia', CPV: 'Cabo Verde', CRO: 'Croácia', CUW: 'Curaçao',
+  CZE: 'Rep. Tcheca', ECU: 'Equador', EGY: 'Egito', ENG: 'Inglaterra',
+  ESP: 'Espanha', FRA: 'França', FWC: 'FIFA World Cup History',
+  GER: 'Alemanha', GHA: 'Gana', HAI: 'Haiti', IRN: 'Irã',
+  IRQ: 'Iraque', JOR: 'Jordânia', JPN: 'Japão', KOR: 'Coreia do Sul',
+  KSA: 'Arábia Saudita', MAR: 'Marrocos', MEX: 'México', NED: 'Holanda',
+  NOR: 'Noruega', NZL: 'Nova Zelândia', PAN: 'Panamá', PAR: 'Paraguai',
+  POR: 'Portugal', QAT: 'Catar', RSA: 'África do Sul', SCO: 'Escócia',
+  SEN: 'Senegal', SUI: 'Suíça', SWE: 'Suécia', SWI: 'Suíça',
+  TUN: 'Tunísia', TUR: 'Turquia', URU: 'Uruguai', USA: 'Estados Unidos',
+  UZB: 'Uzbequistão',
+};
+
+// Mapa código → código ISO 2 letras para flagcdn.com
+const TEAM_FLAG_ISO = {
+  ALG: 'dz', ARG: 'ar', AUS: 'au', AUT: 'at',
+  BEL: 'be', BIH: 'ba', BRA: 'br', CAN: 'ca',
+  CIV: 'ci', COD: 'cd', COL: 'co', CPV: 'cv',
+  CRO: 'hr', CUW: 'cw', CZE: 'cz', ECU: 'ec',
+  EGY: 'eg', ENG: 'gb-eng', ESP: 'es', FRA: 'fr',
+  GER: 'de', GHA: 'gh', HAI: 'ht', IRN: 'ir',
+  IRQ: 'iq', JOR: 'jo', JPN: 'jp', KOR: 'kr',
+  KSA: 'sa', MAR: 'ma', MEX: 'mx', NED: 'nl',
+  NOR: 'no', NZL: 'nz', PAN: 'pa', PAR: 'py',
+  POR: 'pt', QAT: 'qa', RSA: 'za', SCO: 'gb-sct',
+  SEN: 'sn', SUI: 'ch', SWE: 'se', SWI: 'ch',
+  TUN: 'tn', TUR: 'tr', URU: 'uy', USA: 'us',
+  UZB: 'uz',
+};
+
+document.getElementById('btn-export-pdf').addEventListener('click', exportAlbumPDF);
+
+async function exportAlbumPDF() {
+  if (!allStickers || allStickers.length === 0) {
+    showToast('Aguarde o carregamento das figurinhas.', 'error');
     return;
   }
 
-  // Encontrar figurinhas mais raras
-  const rareStickers = allStickers
-    .map(s => ({
-      ...s,
-      owners: ownerCount[s.code] || 0,
-      rarity: totalParticipants - (ownerCount[s.code] || 0)
-    }))
-    .filter(s => s.owners > 0 && s.owners < totalParticipants)
-    .sort((a, b) => b.rarity - a.rarity)
-    .slice(0, 10);
+  // Mostrar mensagem de progresso
+  showToast('Gerando PDF, aguarde… (carregando bandeiras)', 'info');
 
-  document.getElementById('rare-count').textContent = rareStickers.length;
+  try {
+    const { jsPDF } = window.jspdf;
 
-  if (rareStickers.length === 0) {
-    rareList.innerHTML = '<div class="rare-empty">Nenhuma figurinha rara encontrada.</div>';
-    return;
+    const userName = currentUser.displayName || currentUser.email.split('@')[0];
+    const today = new Date().toLocaleDateString('pt-BR');
+    const totalOwned = myCollection ? myCollection.size : 0;
+    const totalStickers = allStickers.length;
+    const pct = Math.round((totalOwned / totalStickers) * 100);
+
+    // Carregar foto do usuário
+    let userPhotoDataUrl = null;
+    if (currentUser.photoURL) {
+      try { userPhotoDataUrl = await loadImageAsDataUrl(currentUser.photoURL); } catch (_) {}
+    }
+
+    // ── Construir lista de times ordenada ──
+    const teamMap = {};
+    allStickers.forEach(s => {
+      const m = s.code.match(/^([A-Z]+)/);
+      if (!m) return;
+      const tc = m[1];
+      if (!teamMap[tc]) {
+        teamMap[tc] = { code: tc, country: s.country, group: s.group, stickers: [] };
+      }
+      teamMap[tc].stickers.push(s);
+    });
+
+    // Mesclar SUI e SWI (mesmo time, códigos diferentes)
+    if (teamMap['SUI'] && teamMap['SWI']) {
+      teamMap['SUI'].stickers = [...teamMap['SUI'].stickers, ...teamMap['SWI'].stickers]
+        .sort((a, b) => {
+          const na = parseInt(a.code.replace(/^[A-Z]+/, ''));
+          const nb = parseInt(b.code.replace(/^[A-Z]+/, ''));
+          return na - nb;
+        });
+      delete teamMap['SWI'];
+    }
+
+    const teams = Object.values(teamMap);
+    const regular = teams.filter(t => t.group !== '-' && t.group !== 'CC')
+      .sort((a, b) => (TEAM_NAMES_PT[a.code] || a.code).localeCompare(TEAM_NAMES_PT[b.code] || b.code, 'pt'));
+    const fwc = teams.filter(t => t.group === '-');
+    const cc = teams.filter(t => t.group === 'CC');
+    const orderedTeams = [...regular, ...fwc, ...cc];
+
+    // Pré-carregar bandeiras
+    showToast('Gerando PDF, aguarde… (carregando bandeiras)', 'info');
+    const flagCache = {};
+    const flagPromises = orderedTeams.map(async team => {
+      const iso = TEAM_FLAG_ISO[team.code];
+      if (!iso) return;
+      try {
+        const url = `https://flagcdn.com/w20/${iso}.png`;
+        flagCache[team.code] = await loadImageAsDataUrl(url);
+      } catch (_) {}
+    });
+    await Promise.all(flagPromises);
+
+    showToast('Gerando PDF, aguarde… (montando páginas)', 'info');
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    // ── PÁGINA 1: Controle do Álbum ──
+    await drawPDFPageV2(doc, {
+      teams: orderedTeams, collection: myCollection, duplicates: null,
+      pageTitle: 'Controle do Álbum', userName, today, totalOwned, totalStickers, pct,
+      userPhotoDataUrl, flagCache, mode: 'collection', isFirstPage: true
+    });
+
+    // ── PÁGINA 2: Controle de Repetidas ──
+    doc.addPage();
+    await drawPDFPageV2(doc, {
+      teams: orderedTeams, collection: myCollection, duplicates: myDuplicates || {},
+      pageTitle: 'Repetidas para Troca', userName, today, totalOwned, totalStickers, pct,
+      userPhotoDataUrl, flagCache, mode: 'duplicates', isFirstPage: false
+    });
+
+    doc.save(`album-copa-2026-${userName.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+    showToast('PDF gerado com sucesso!', 'success');
+  } catch (e) {
+    console.error('Erro ao gerar PDF:', e);
+    showToast('Erro ao gerar PDF. Tente novamente.', 'error');
+  }
+}
+
+async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, userName, today, totalOwned, totalStickers, pct, userPhotoDataUrl, flagCache, mode }) {
+  const pageW = 210;
+  const pageH = 297;
+  const margin = 5;
+  const contentW = pageW - margin * 2;
+
+  // ── Fundo branco ──
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, pageW, pageH, 'F');
+
+  // ── Cabeçalho branco ──
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(margin, 26, margin + contentW, 26);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(20, 20, 20);
+  doc.text('Planilha de Controle de Figurinhas — Copa do Mundo 2026', pageW / 2, 8, { align: 'center' });
+
+  doc.setFontSize(8);
+  doc.setTextColor(60, 60, 60);
+  doc.text(pageTitle, pageW / 2, 13.5, { align: 'center' });
+
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`${userName}  ·  Gerado em ${today}  ·  ${totalOwned}/${totalStickers} figurinhas (${pct}%)`, pageW / 2, 19, { align: 'center' });
+
+  // Foto do usuário (canto superior direito, sem moldura)
+  const photoSize = 16;
+  const photoX = pageW - margin - photoSize;
+  const photoY = 4;
+  if (userPhotoDataUrl) {
+    try {
+      doc.addImage(userPhotoDataUrl, 'JPEG', photoX, photoY, photoSize, photoSize);
+    } catch (_) {
+      drawPhotoPlaceholderV2(doc, photoX, photoY, photoSize, userName);
+    }
+  } else {
+    drawPhotoPlaceholderV2(doc, photoX, photoY, photoSize, userName);
   }
 
-  rareStickers.forEach(sticker => {
-    const card = document.createElement('div');
-    card.className = 'rare-card';
-    card.innerHTML = `
-      <div class="rare-code">${sticker.code}</div>
-      <div class="rare-name">${sticker.name}</div>
-      <div class="rare-meta">
-        ${sticker.group && sticker.group !== '-' ? `<span class="rare-group">Grupo ${sticker.group}</span>` : sticker.group === '-' ? '<span class="rare-group">FIFA</span>' : ''}
-        <span class="rare-page">Pág. ${sticker.page}</span>
-      </div>
-      <div class="rare-owners">
-        <span>Possuída por:</span>
-        <span class="rare-owners-count">${sticker.owners}/${totalParticipants}</span>
-      </div>
-    `;
-    rareList.appendChild(card);
+  // Legenda
+  const legX = margin;
+  const legY = 20;
+  doc.setFillColor(0, 0, 0);
+  doc.rect(legX, legY, 7, 3, 'F');
+  doc.setFontSize(6);
+  doc.setTextColor(60, 60, 60);
+  doc.text('Tenho', legX + 8, legY + 2.3);
+
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(150, 150, 150);
+  doc.setLineWidth(0.2);
+  doc.rect(legX + 20, legY, 7, 3, 'FD');
+  doc.setFontSize(6);
+  doc.setTextColor(60, 60, 60);
+  doc.text('Falta', legX + 28, legY + 2.3);
+
+  // ── Tabela ──
+  let y = 28;
+  const rowH = 4.0;
+  const flagW = 5;
+  const flagH = 3.3;
+  const labelW = 30;   // nome da seleção
+  const codeW = 8;     // código (sigla)
+  const halfNums = 10;
+  const maxNums = 20;
+  // Largura disponível para células numéricas (2 grupos de 10 + 1 coluna de código no meio)
+  const numAreaW = contentW - labelW - flagW - codeW * 2;
+  const cellW = numAreaW / maxNums;
+
+  // Cabeçalho da tabela
+  doc.setFillColor(230, 235, 240);
+  doc.rect(margin, y, contentW, rowH, 'F');
+  doc.setFontSize(5.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(60, 70, 80);
+  doc.text('Seleção', margin + flagW + 1, y + rowH - 1.2);
+  doc.text('Cód', margin + flagW + labelW + 1, y + rowH - 1.2);
+  for (let n = 1; n <= halfNums; n++) {
+    const cx = margin + flagW + labelW + codeW + (n - 1) * cellW + cellW / 2;
+    doc.text(String(n), cx, y + rowH - 1.2, { align: 'center' });
+  }
+  doc.text('Cód', margin + flagW + labelW + codeW + halfNums * cellW + 1, y + rowH - 1.2);
+  for (let n = halfNums + 1; n <= maxNums; n++) {
+    const cx = margin + flagW + labelW + codeW * 2 + (n - 1) * cellW + cellW / 2;
+    doc.text(String(n), cx, y + rowH - 1.2, { align: 'center' });
+  }
+  y += rowH;
+
+  // Linhas dos times
+  let rowIndex = 0;
+  for (const team of teams) {
+    if (y + rowH > pageH - 12) {
+      doc.addPage();
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pageW, pageH, 'F');
+      y = 8;
+    }
+
+    // Fundo alternado: branco e cinza muito leve
+    const isEven = rowIndex % 2 === 0;
+    doc.setFillColor(isEven ? 255 : 245, isEven ? 255 : 246, isEven ? 255 : 248);
+    doc.rect(margin, y, contentW, rowH, 'F');
+
+    // Bandeira
+    const flagDataUrl = flagCache[team.code];
+    if (flagDataUrl) {
+      try {
+        doc.addImage(flagDataUrl, 'PNG', margin + 0.5, y + (rowH - flagH) / 2, flagW - 1, flagH);
+      } catch (_) {}
+    }
+
+    // Nome da seleção
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.8);
+    doc.setTextColor(30, 30, 30);
+    const displayName = TEAM_NAMES_PT[team.code] || team.country || team.code;
+    doc.text(displayName.substring(0, 24), margin + flagW + 0.5, y + rowH - 1.2);
+
+    // Código (1ª metade)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.5);
+    doc.setTextColor(100, 100, 100);
+    doc.text(team.code, margin + flagW + labelW + 0.5, y + rowH - 1.2);
+
+    // Células 1-10
+    for (let n = 1; n <= halfNums; n++) {
+      const cx = margin + flagW + labelW + codeW + (n - 1) * cellW;
+      const sticker = team.stickers.find(s => {
+        const num = parseInt(s.code.replace(/^[A-Z]+/, ''));
+        return num === n;
+      });
+      if (sticker) {
+        drawStickerCellV2(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode, n, rowIndex);
+      } else {
+        // Posição não existe — célula vazia escura
+        doc.setFillColor(200, 200, 200);
+        doc.rect(cx + 0.3, y + 0.3, cellW - 0.6, rowH - 0.6, 'F');
+      }
+    }
+
+    // Código (2ª metade)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.5);
+    doc.setTextColor(100, 100, 100);
+    doc.text(team.code, margin + flagW + labelW + codeW + halfNums * cellW + 0.5, y + rowH - 1.2);
+
+    // Células 11-20
+    for (let n = halfNums + 1; n <= maxNums; n++) {
+      const cx = margin + flagW + labelW + codeW * 2 + (n - 1) * cellW;
+      const sticker = team.stickers.find(s => {
+        const num = parseInt(s.code.replace(/^[A-Z]+/, ''));
+        return num === n;
+      });
+      if (sticker) {
+        drawStickerCellV2(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode, n, rowIndex);
+      } else {
+        doc.setFillColor(200, 200, 200);
+        doc.rect(cx + 0.3, y + 0.3, cellW - 0.6, rowH - 0.6, 'F');
+      }
+    }
+
+    // Linha divisória leve
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.1);
+    doc.line(margin, y + rowH, margin + contentW, y + rowH);
+
+    y += rowH;
+    rowIndex++;
+  }
+
+  // ── Rodapé de patrocínio ──
+  const footerY = pageH - 11;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.3);
+  doc.rect(margin, footerY, contentW, 8, 'FD');
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7);
+  doc.setTextColor(150, 150, 150);
+  doc.text('Deixe seu patrocínio aqui', pageW / 2, footerY + 4.5, { align: 'center' });
+}
+
+function drawStickerCellV2(doc, x, y, w, h, code, collection, duplicates, mode, num, rowIndex) {
+  const pad = 0.3;
+  const cx = x + w / 2;
+  const cy = y + h / 2 + 1.2;
+  // Cor do número da posição: mais escuro na linha cinza, mais claro na linha branca
+  const numColor = (rowIndex % 2 === 0) ? 130 : 100;
+
+  if (mode === 'collection') {
+    const owned = collection && collection.has(code);
+    if (owned) {
+      // Preenchido preto = coletada
+      doc.setFillColor(0, 0, 0);
+      doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'F');
+    } else {
+      // Vazio com número da posição
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(170, 170, 170);
+      doc.setLineWidth(0.2);
+      doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'FD');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(4);
+      doc.setTextColor(numColor, numColor, numColor);
+      doc.text(String(num), cx, cy, { align: 'center' });
+    }
+  } else {
+    // Modo repetidas
+    const qty = duplicates ? (duplicates[code] || 0) : 0;
+    if (qty > 0) {
+      // Fundo cinza escuro com número da quantidade
+      doc.setFillColor(60, 60, 60);
+      doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(qty > 9 ? 3.5 : 4.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text(String(qty), cx, cy, { align: 'center' });
+    } else {
+      // Vazio com número da posição
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(170, 170, 170);
+      doc.setLineWidth(0.2);
+      doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'FD');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(4);
+      doc.setTextColor(numColor, numColor, numColor);
+      doc.text(String(num), cx, cy, { align: 'center' });
+    }
+  }
+}
+
+function drawPhotoPlaceholderV2(doc, x, y, size, name) {
+  doc.setFillColor(33, 38, 45);
+  doc.rect(x, y, size, size, 'F');
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(240, 192, 64);
+  doc.text(initials, x + size / 2, y + size / 2 + 2, { align: 'center' });
+}
+
+async function loadImageAsDataUrl(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = reject;
+    // Timeout para não travar se a bandeira não carregar
+    setTimeout(() => reject(new Error('timeout')), 5000);
+    img.src = url;
   });
 }
