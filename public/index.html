@@ -113,6 +113,10 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>
       Trocas
     </button>
+    <button class="tab-btn hidden" id="tab-btn-stats" data-tab="stats">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Estatísticas
+    </button>
     <button class="tab-btn hidden" id="tab-btn-admin" data-tab="admin">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Admin
@@ -186,19 +190,7 @@
       </div>
       <div id="trading-content" class="trading-content hidden">
 
-        <!-- Estatísticas do grupo -->
-        <div class="trading-section stats-section">
-          <div class="section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-            Estatísticas do Grupo
-          </div>
-          <div class="stats-grid" id="stats-grid">
-            <div class="stats-loading">
-              <div class="spinner"></div>
-              <span>Calculando estatísticas…</span>
-            </div>
-          </div>
-        </div>
+
 
         <!-- Botão iniciar proposta de troca -->
         <div class="trade-proposal-bar">
@@ -257,15 +249,52 @@
       </div>
     </div>
 
+    <!-- Aba: Estatísticas -->
+    <div id="tab-stats" class="tab-panel">
+      <div class="stats-panel">
+        <div class="stats-panel-header">
+          <h2 class="stats-panel-title">Estatísticas do Grupo</h2>
+          <p class="stats-panel-desc">Visão geral das figurinhas mais repetidas e mais necessárias entre os membros.</p>
+        </div>
+        <div class="stats-grid" id="stats-grid">
+          <div class="stats-loading">
+            <div class="spinner"></div>
+            <span>Calculando estatísticas…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Aba: Admin -->
     <div id="tab-admin" class="tab-panel">
-      <div class="admin-panel">
+
+      <!-- Banner: operando como outro usuário -->
+      <div id="admin-impersonate-banner" class="admin-impersonate-banner hidden">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Operando como: <strong id="admin-impersonate-name"></strong></span>
+        <button id="btn-stop-impersonate" class="btn-stop-impersonate">Voltar à seleção</button>
+      </div>
+
+      <!-- Seleção de usuário para operar -->
+      <div id="admin-user-select-section" class="admin-panel">
+        <div class="admin-header">
+          <h2 class="admin-title">Operar como usuário</h2>
+          <p class="admin-desc">Selecione um usuário para gerenciar a coleção dele.</p>
+        </div>
+        <div id="admin-user-select-list" class="admin-user-select-list">
+          <div class="admin-loading" id="admin-select-loading">
+            <div class="spinner"></div>
+            <span>Carregando usuários…</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel de gerenciamento de usuários (cadastro/remoção) -->
+      <div id="admin-manage-section" class="admin-panel" style="margin-top:1.5rem;">
         <div class="admin-header">
           <h2 class="admin-title">Gerenciar Usuários</h2>
           <p class="admin-desc">Adicione ou remova usuários autorizados a acessar o app.</p>
         </div>
-
-        <!-- Formulário de adição -->
         <div class="admin-add-form">
           <div class="admin-form-row">
             <input type="email" id="admin-email-input" class="admin-input" placeholder="email@exemplo.com" autocomplete="off" />
@@ -273,8 +302,6 @@
             <button id="btn-add-user" class="btn-add-user">Adicionar</button>
           </div>
         </div>
-
-        <!-- Lista de usuários -->
         <div class="admin-users-list" id="admin-users-list">
           <div class="admin-loading" id="admin-loading">
             <div class="spinner"></div>
@@ -282,6 +309,7 @@
           </div>
         </div>
       </div>
+
     </div>
 
   </div><!-- /tab-content -->
