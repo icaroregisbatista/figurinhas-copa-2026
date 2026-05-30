@@ -1226,32 +1226,54 @@ async function loadTradingPanel() {
 
     const uid = getActiveUid();
 
-    // Mapear coleções dos outros usuários
+    // Constante: mínimo de figurinhas para ser considerado participante ativo
+    const MIN_STICKERS_ACTIVE = 7;
+
+    // Determinar quais UIDs são participantes ativos (coleção + repetidas >= 7)
+    const activeUids = new Set();
+    const colByUid = {}; // { uid: Set<code> }
+    const dupByUid = {}; // { uid: { code: qty } }
+    colSnaps.forEach(snap => { colByUid[snap.id] = new Set(snap.data().codes || []); });
+    dupSnaps.forEach(snap => { dupByUid[snap.id] = snap.data().items || {}; });
+
+    // Verificar o próprio usuário também (sempre ativo para si mesmo)
+    activeUids.add(uid);
+
+    // Para os outros: contar coleção + total de repetidas
+    const allUids = new Set([...Object.keys(colByUid), ...Object.keys(dupByUid)]);
+    allUids.forEach(u => {
+      if (u === uid) return; // já adicionado
+      const colCount = (colByUid[u] || new Set()).size;
+      const dupCount = Object.values(dupByUid[u] || {}).reduce((s, q) => s + q, 0);
+      if (colCount + dupCount >= MIN_STICKERS_ACTIVE) activeUids.add(u);
+    });
+
+    // Mapear coleções dos outros usuários ATIVOS
     const othersCollection = {}; // { uid: Set<code> }
     colSnaps.forEach(snap => {
-      if (snap.id !== uid) {
-        othersCollection[snap.id] = new Set(snap.data().codes || []);
+      if (snap.id !== uid && activeUids.has(snap.id)) {
+        othersCollection[snap.id] = colByUid[snap.id];
       }
     });
 
-    // Mapear repetidas dos outros usuários
+    // Mapear repetidas dos outros usuários ATIVOS
     const othersDuplicates = {}; // { uid: { code: qty } }
     dupSnaps.forEach(snap => {
-      if (snap.id !== uid) {
-        othersDuplicates[snap.id] = snap.data().items || {};
+      if (snap.id !== uid && activeUids.has(snap.id)) {
+        othersDuplicates[snap.id] = dupByUid[snap.id];
       }
     });
 
     // Buscar nomes dos usuários (mapeamento UID → nome via campo uid em authorized_users)
     const userSnaps = await getDocs(collection(db, 'authorized_users'));
     const userNames = {}; // { uid: nome }
-    const userList = []; // lista de membros para o modal de proposta
+    const userList = []; // lista de membros para o modal de proposta (apenas ativos)
     userSnaps.forEach(snap => {
       const data = snap.data();
       const nome = data.name || snap.id;
       if (data.uid) {
         userNames[data.uid] = nome;
-        if (data.uid !== uid) {
+        if (data.uid !== uid && activeUids.has(data.uid)) {
           userList.push({ uid: data.uid, name: nome });
         }
       }
@@ -1329,8 +1351,26 @@ function renderGroupStats(colSnaps, dupSnaps) {
   const statsGrid = document.getElementById('stats-grid');
   if (!statsGrid) return;
 
+  // Constante: mínimo de figurinhas (coleção + repetidas) para ser participante ativo
+  const MIN_STICKERS_ACTIVE = 7;
+
+  // Determinar UIDs ativos
+  const colByUid = {};
+  const dupByUid = {};
+  colSnaps.forEach(snap => { colByUid[snap.id] = snap.data().codes || []; });
+  dupSnaps.forEach(snap => { dupByUid[snap.id] = snap.data().items || {}; });
+
+  const allUids = new Set([...Object.keys(colByUid), ...Object.keys(dupByUid)]);
+  const activeUids = new Set();
+  allUids.forEach(u => {
+    const colCount = (colByUid[u] || []).length;
+    const dupCount = Object.values(dupByUid[u] || {}).reduce((s, q) => s + q, 0);
+    if (colCount + dupCount >= MIN_STICKERS_ACTIVE) activeUids.add(u);
+  });
+
   const ownerCount = {};
   colSnaps.forEach(snap => {
+    if (!activeUids.has(snap.id)) return; // ignorar inativos
     (snap.data().codes || []).forEach(code => {
       ownerCount[code] = (ownerCount[code] || 0) + 1;
     });
@@ -1338,12 +1378,13 @@ function renderGroupStats(colSnaps, dupSnaps) {
 
   const dupCount = {};
   dupSnaps.forEach(snap => {
+    if (!activeUids.has(snap.id)) return; // ignorar inativos
     Object.entries(snap.data().items || {}).forEach(([code, qty]) => {
       if (qty > 0) dupCount[code] = (dupCount[code] || 0) + qty;
     });
   });
 
-  const totalParticipants = colSnaps.size;
+  const totalParticipants = activeUids.size;
 
   const topDups = Object.entries(dupCount)
     .sort((a, b) => b[1] - a[1])
@@ -2207,10 +2248,10 @@ async function acceptProposal(proposal) {
   if (btn) { btn.disabled = true; btn.textContent = 'Processando...'; }
 
   try {
+    // uid do receptor (pode ser usuário impersonado pelo admin)
     const uid = getActiveUid();
 
     await runTransaction(db, async (tx) => {
-      // Ler documentos de coleção e repetidas dos dois usuários
       const myColRef = doc(db, 'collections', uid);
       const myDupRef = doc(db, 'duplicates', uid);
       const theirColRef = doc(db, 'collections', proposal.fromUid);
@@ -2226,24 +2267,19 @@ async function acceptProposal(proposal) {
       const theirCodes = new Set(theirColSnap.data()?.codes || []);
       const theirDups = theirDupSnap.data()?.items || {};
 
-      // Verificar conflito: alguma figurinha que eu quero receber já foi recebida?
-      for (const code of (proposal.requestedCodes || [])) {
+      // Verificar conflito: alguma figurinha que vou receber já existe na coleção?
+      for (const code of (proposal.offeredCodes || [])) {
         if (myCodes.has(code)) {
-          throw new Error(`Conflito: você já tem a figurinha ${code}.`);
+          throw new Error(`Conflito: o usuário já tem a figurinha ${code}.`);
         }
       }
 
-      // Aplicar: eu recebo o que pedi (requestedCodes = repetidas de quem enviou)
-      // requestedCodes: o que EU (receptor) quero = o que o fromUid ofereceu como repetidas
-      // offeredCodes: o que o fromUid me oferece → entram na minha coleção e saem das repetidas dele
-      // requestedCodes: o que eu ofereço ao fromUid → entram na coleção dele e saem das minhas repetidas
-
-      // Eu recebo: offeredCodes do fromUid → entram na minha coleção
+      // Receptor recebe: offeredCodes do fromUid → entram na coleção
       for (const code of (proposal.offeredCodes || [])) {
         myCodes.add(code);
         // Sair das repetidas do fromUid
-        if (theirDups[code] > 0) {
-          theirDups[code] = Math.max(0, (theirDups[code] || 1) - 1);
+        if ((theirDups[code] || 0) > 0) {
+          theirDups[code] = Math.max(0, theirDups[code] - 1);
           if (theirDups[code] === 0) delete theirDups[code];
         }
       }
@@ -2251,35 +2287,31 @@ async function acceptProposal(proposal) {
       // fromUid recebe: requestedCodes → entram na coleção dele
       for (const code of (proposal.requestedCodes || [])) {
         theirCodes.add(code);
-        // Sair das minhas repetidas
-        if (myDups[code] > 0) {
-          myDups[code] = Math.max(0, (myDups[code] || 1) - 1);
+        // Sair das repetidas do receptor
+        if ((myDups[code] || 0) > 0) {
+          myDups[code] = Math.max(0, myDups[code] - 1);
           if (myDups[code] === 0) delete myDups[code];
         }
       }
 
-      // Salvar tudo
       tx.set(myColRef, { codes: [...myCodes] }, { merge: true });
       tx.set(myDupRef, { items: myDups }, { merge: true });
       tx.set(theirColRef, { codes: [...theirCodes] }, { merge: true });
       tx.set(theirDupRef, { items: theirDups }, { merge: true });
       tx.update(proposalRef, { status: 'accepted', confirmedAt: Date.now(), updatedAt: Date.now() });
-
-      // Cancelar automaticamente outras propostas conflitantes
-      // (propostas onde eu pedia as mesmas figurinhas que acabei de receber)
     });
 
-    // Cancelar propostas conflitantes (fora da transação para simplicidade)
+    // Cancelar propostas conflitantes (fora da transação)
     await cancelConflictingProposals(proposal.offeredCodes || []);
 
     showToast('Troca aceita! Coleções atualizadas. 🎉', 'success');
 
-    // Atualizar estado local
+    // Atualizar estado local (reflete no grid imediatamente)
     for (const code of (proposal.offeredCodes || [])) {
       myCollection.add(code);
     }
     for (const code of (proposal.requestedCodes || [])) {
-      if (myDuplicates[code] > 0) {
+      if ((myDuplicates[code] || 0) > 0) {
         myDuplicates[code]--;
         if (myDuplicates[code] === 0) delete myDuplicates[code];
       }
@@ -2288,7 +2320,7 @@ async function acceptProposal(proposal) {
     await loadTradingPanel();
 
   } catch (e) {
-    console.error(e);
+    console.error('acceptProposal error:', e);
     if (btn) { btn.disabled = false; btn.textContent = '✓ Aceitar'; }
     showToast(e.message || 'Erro ao aceitar proposta.', 'error');
   }
