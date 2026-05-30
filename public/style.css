@@ -1782,3 +1782,166 @@ body {
   transition: border-color 0.15s, color 0.15s;
 }
 .btn-proposal-cancel:hover { border-color: var(--red); color: var(--red); }
+
+/* ══════════════════════════════════════════════
+   ADMIN — BANNER DE IMPERSONAÇÃO
+   ══════════════════════════════════════════════ */
+.admin-impersonate-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #f59e0b22, #f59e0b11);
+  border: 1px solid #f59e0b55;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 600;
+}
+.admin-impersonate-banner .banner-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.admin-impersonate-banner .banner-text {
+  flex: 1;
+}
+.admin-impersonate-banner .banner-text strong {
+  display: block;
+  font-size: 14px;
+}
+.admin-impersonate-banner .banner-text span {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.8;
+}
+.btn-stop-impersonate {
+  padding: 5px 12px;
+  background: #f59e0b22;
+  border: 1px solid #f59e0b55;
+  border-radius: var(--radius-sm);
+  color: #f59e0b;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.btn-stop-impersonate:hover {
+  background: #f59e0b33;
+}
+
+/* ══════════════════════════════════════════════
+   ADMIN — LISTA DE SELEÇÃO DE USUÁRIO
+   ══════════════════════════════════════════════ */
+.admin-user-select-section {
+  margin-bottom: 24px;
+}
+.admin-user-select-section h3 {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.admin-user-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.admin-user-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  text-align: left;
+  color: var(--text);
+}
+.admin-user-select-btn:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: var(--accent);
+}
+.admin-user-select-btn.active {
+  background: rgba(99,102,241,0.12);
+  border-color: var(--accent);
+}
+.admin-user-select-btn svg {
+  margin-left: auto;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.admin-user-select-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.admin-user-select-info {
+  flex: 1;
+  min-width: 0;
+}
+.admin-user-select-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-user-select-email {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ══════════════════════════════════════════════
+   ABA ESTATÍSTICAS — PAINEL
+   ══════════════════════════════════════════════ */
+.stats-panel {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.stats-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stats-panel-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.stats-panel-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.stats-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 32px 0;
+}
