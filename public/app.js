@@ -60,6 +60,16 @@ let activeGroup = 'all';
 let activeStatus = null;        // 'missing' | 'owned' | null
 let activeTradeGroup = 'all';   // filtro de grupo na aba trocas
 let searchQuery = '';
+let impersonatedUser = null; // { uid, name, email } - usuário que o admin está operando como
+let realUser = null;         // backup do currentUser original durante impersonação
+
+// ── Helper: UID ativo (impersonação) ────────────────────────
+function getActiveUid() {
+  return (impersonatedUser && impersonatedUser.uid) ? impersonatedUser.uid : currentUser.uid;
+}
+function getActiveUser() {
+  return impersonatedUser ? { uid: impersonatedUser.uid, email: impersonatedUser.email, displayName: impersonatedUser.name } : currentUser;
+}
 
 // ── Elementos do DOM ──────────────────────────────────────────
 const loginScreen    = document.getElementById('login-screen');
@@ -137,7 +147,10 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   showScreen('app');
 
-  // Mostrar aba Admin se for administrador
+  // Mostrar aba Estatísticas para todos os usuários
+  document.getElementById('tab-btn-stats').classList.remove('hidden');
+
+  // Mostrar aba Admin apenas para administradores
   if (ADMIN_EMAILS.includes(user.email.toLowerCase())) {
     document.getElementById('tab-btn-admin').classList.remove('hidden');
   }
@@ -320,14 +333,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelector('.filter-status').style.display =
       activeTab === 'colecao' ? 'flex' : 'none';
 
-    // Ocultar barra de filtro inteira apenas na aba Admin
+    // Ocultar barra de filtro inteira nas abas Admin e Estatísticas
     const filterBar = document.querySelector('.filter-bar');
     if (filterBar) {
-      filterBar.style.display = activeTab === 'admin' ? 'none' : '';
+      filterBar.style.display = (activeTab === 'admin' || activeTab === 'stats') ? 'none' : '';
     }
 
     if (activeTab === 'trocas') loadTradingPanel();
     if (activeTab === 'admin') loadAdminPanel();
+    if (activeTab === 'stats') loadStatsPanel();
   });
 });
 
@@ -602,7 +616,7 @@ async function markStickerFromCamera(sticker) {
         const newQty = (myDuplicates[sticker.code] || 0) + 1;
         myDuplicates[sticker.code] = newQty;
         try {
-          await setDoc(doc(db, 'duplicates', currentUser.uid), {
+          await setDoc(doc(db, 'duplicates', getActiveUid()), {
             items: myDuplicates,
             updatedAt: new Date().toISOString()
           });
@@ -626,7 +640,7 @@ async function markStickerFromCamera(sticker) {
         updateProgress();
         renderGrid();
         try {
-          await setDoc(doc(db, 'collections', currentUser.uid), {
+          await setDoc(doc(db, 'collections', getActiveUid()), {
             codes: Array.from(myCollection),
             updatedAt: new Date().toISOString()
           });
@@ -1068,10 +1082,11 @@ async function toggleSticker(code, card) {
 
   // Persistir no Firestore
   try {
-    const uid = currentUser.uid;
+    const uid = getActiveUid();
+    const activeUser = getActiveUser();
     await setDoc(doc(db, 'collections', uid), {
       codes: Array.from(myCollection),
-      email: currentUser.email.toLowerCase(),
+      email: activeUser.email.toLowerCase(),
       updatedAt: new Date().toISOString()
     });
   } catch (e) {
@@ -1153,7 +1168,7 @@ async function updateDuplicate(code, newQty, card) {
 
   // Persistir
   try {
-    const uid = currentUser.uid;
+    const uid = getActiveUid();
     await setDoc(doc(db, 'duplicates', uid), {
       items: myDuplicates,
       updatedAt: new Date().toISOString()
@@ -1190,7 +1205,7 @@ async function loadTradingPanel() {
         where('status', 'in', ['pending', 'accepted', 'refused', 'cancelled'])))
     ]);
 
-    const uid = currentUser.uid;
+    const uid = getActiveUid();
 
     // Mapear coleções dos outros usuários
     const othersCollection = {}; // { uid: Set<code> }
@@ -1261,7 +1276,6 @@ async function loadTradingPanel() {
     // Renderizar
     renderProposals();
     renderMatchesList();
-    renderGroupStats(colSnaps, dupSnaps);
 
     tradingLoading.style.display = 'none';
     tradingContent.classList.remove('hidden');
@@ -1275,8 +1289,23 @@ async function loadTradingPanel() {
 
 
 // ════════════════════════════════════════════
-// ESTATÍSTICAS DO GRUPO
+// ESTATÍSTICAS DO GRUPO (aba própria)
 // ════════════════════════════════════════════
+async function loadStatsPanel() {
+  const statsGrid = document.getElementById('stats-grid');
+  if (!statsGrid) return;
+  statsGrid.innerHTML = '<div class="stats-loading"><div class="spinner"></div><span>Calculando estatísticas…</span></div>';
+  try {
+    const [colSnaps, dupSnaps] = await Promise.all([
+      getDocs(collection(db, 'collections')),
+      getDocs(collection(db, 'duplicates'))
+    ]);
+    renderGroupStats(colSnaps, dupSnaps);
+  } catch (e) {
+    statsGrid.innerHTML = '<div class="stats-empty">Erro ao carregar estatísticas.</div>';
+  }
+}
+
 function renderGroupStats(colSnaps, dupSnaps) {
   const statsGrid = document.getElementById('stats-grid');
   if (!statsGrid) return;
@@ -1357,6 +1386,11 @@ function renderGroupStats(colSnaps, dupSnaps) {
 async function loadAdminPanel() {
   if (!ADMIN_EMAILS.includes(currentUser.email.toLowerCase())) return;
 
+  // Carregar lista de usuários para seleção de impersonação
+  const selectLoadingEl = document.getElementById('admin-select-loading');
+  if (selectLoadingEl) selectLoadingEl.style.display = 'flex';
+
+  // Carregar lista de gerenciamento
   const listEl = document.getElementById('admin-users-list');
   const loadingEl = document.getElementById('admin-loading');
   loadingEl.style.display = 'flex';
@@ -1367,10 +1401,12 @@ async function loadAdminPanel() {
     snap.forEach(d => users.push({ id: d.id, ...d.data() }));
     users.sort((a, b) => a.id.localeCompare(b.id));
     renderAdminUsers(users);
+    renderAdminUserSelectList(users);
   } catch (e) {
     showToast('Erro ao carregar usuários.', 'error');
   } finally {
     loadingEl.style.display = 'none';
+    if (selectLoadingEl) selectLoadingEl.style.display = 'none';
   }
 
   // Configurar botão de adicionar — usar flag para evitar múltiplos listeners
@@ -1381,6 +1417,114 @@ async function loadAdminPanel() {
   }
   document.getElementById('admin-email-input').onkeydown = (e) => { if (e.key === 'Enter') addUser(); };
   document.getElementById('admin-name-input').onkeydown = (e) => { if (e.key === 'Enter') addUser(); };
+
+  // Configurar botão de parar impersonação
+  const btnStop = document.getElementById('btn-stop-impersonate');
+  if (btnStop && !btnStop._listenerAttached) {
+    btnStop.addEventListener('click', stopImpersonation);
+    btnStop._listenerAttached = true;
+  }
+}
+
+function renderAdminUserSelectList(users) {
+  const listEl = document.getElementById('admin-user-select-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  // Filtrar: não mostrar o próprio admin na lista de impersonação
+  const otherUsers = users.filter(u => !ADMIN_EMAILS.includes(u.id.toLowerCase()));
+
+  if (otherUsers.length === 0) {
+    listEl.innerHTML = '<div class="admin-empty">Nenhum usuário cadastrado ainda.</div>';
+    return;
+  }
+
+  otherUsers.forEach(user => {
+    const btn = document.createElement('button');
+    btn.className = 'admin-user-select-btn' + (impersonatedUser && impersonatedUser.email === user.id ? ' active' : '');
+    const initials = (user.name || user.id).split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    btn.innerHTML = `
+      <div class="admin-user-select-avatar">${initials}</div>
+      <div class="admin-user-select-info">
+        <div class="admin-user-select-name">${user.name || '(sem nome)'}</div>
+        <div class="admin-user-select-email">${user.id}</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    `;
+    btn.addEventListener('click', () => startImpersonation(user));
+    listEl.appendChild(btn);
+  });
+}
+
+async function startImpersonation(user) {
+  if (!user.uid) {
+    showToast('Este usuário ainda não fez login no app. O UID não está disponível.', 'error');
+    return;
+  }
+
+  // Salvar usuário real se ainda não foi salvo
+  if (!realUser) realUser = currentUser;
+
+  impersonatedUser = { uid: user.uid, name: user.name || user.id, email: user.id };
+
+  // Atualizar banner
+  const banner = document.getElementById('admin-impersonate-banner');
+  const bannerName = document.getElementById('admin-impersonate-name');
+  if (banner) banner.classList.remove('hidden');
+  if (bannerName) bannerName.textContent = impersonatedUser.name;
+
+  // Carregar dados do usuário impersonado
+  loadingOverlay.style.display = 'flex';
+  try {
+    const uid = impersonatedUser.uid;
+    const [colSnap, dupSnap] = await Promise.all([
+      getDoc(doc(db, 'collections', uid)),
+      getDoc(doc(db, 'duplicates', uid))
+    ]);
+    myCollection = new Set(colSnap.exists() ? (colSnap.data().codes || []) : []);
+    myDuplicates = dupSnap.exists() ? (dupSnap.data().items || {}) : {};
+    updateProgress();
+    renderGrid();
+    renderDuplicatesGrid();
+    showToast(`✅ Operando como ${impersonatedUser.name}`, 'success');
+    // Navegar para aba coleção para ver os dados do usuário
+    document.querySelector('.tab-btn[data-tab="colecao"]').click();
+  } catch (e) {
+    showToast('Erro ao carregar dados do usuário.', 'error');
+  } finally {
+    loadingOverlay.style.display = 'none';
+  }
+}
+
+async function stopImpersonation() {
+  if (!realUser) return;
+
+  impersonatedUser = null;
+
+  // Restaurar banner
+  const banner = document.getElementById('admin-impersonate-banner');
+  if (banner) banner.classList.add('hidden');
+
+  // Recarregar dados do admin
+  loadingOverlay.style.display = 'flex';
+  try {
+    const uid = realUser.uid;
+    const [colSnap, dupSnap] = await Promise.all([
+      getDoc(doc(db, 'collections', uid)),
+      getDoc(doc(db, 'duplicates', uid))
+    ]);
+    myCollection = new Set(colSnap.exists() ? (colSnap.data().codes || []) : []);
+    myDuplicates = dupSnap.exists() ? (dupSnap.data().items || {}) : {};
+    updateProgress();
+    renderGrid();
+    renderDuplicatesGrid();
+    showToast('Voltou para sua própria conta.', 'success');
+    document.querySelector('.tab-btn[data-tab="admin"]').click();
+  } catch (e) {
+    showToast('Erro ao restaurar dados.', 'error');
+  } finally {
+    loadingOverlay.style.display = 'none';
+  }
 }
 
 function renderAdminUsers(users) {
@@ -1836,8 +1980,9 @@ document.getElementById('proposal-btn-send').addEventListener('click', async () 
   btn.textContent = 'Enviando...';
 
   try {
-    const uid = currentUser.uid;
-    const myName = currentUser.displayName || currentUser.email;
+    const uid = getActiveUid();
+    const activeUser = getActiveUser();
+    const myName = activeUser.displayName || activeUser.email;
     const now = new Date();
 
     const proposalData = {
@@ -2025,7 +2170,7 @@ async function acceptProposal(proposal) {
   if (btn) { btn.disabled = true; btn.textContent = 'Processando...'; }
 
   try {
-    const uid = currentUser.uid;
+    const uid = getActiveUid();
 
     await runTransaction(db, async (tx) => {
       // Ler documentos de coleção e repetidas dos dois usuários
@@ -2117,7 +2262,7 @@ async function confirmExternalTrade(proposal) {
   if (btn) { btn.disabled = true; btn.textContent = 'Processando...'; }
 
   try {
-    const uid = currentUser.uid;
+    const uid = getActiveUid();
     const myColRef = doc(db, 'collections', uid);
     const myDupRef = doc(db, 'duplicates', uid);
     const proposalRef = doc(db, 'trade_proposals', proposal.id);
@@ -2171,7 +2316,7 @@ async function confirmExternalTrade(proposal) {
 
 async function cancelConflictingProposals(receivedCodes) {
   if (!receivedCodes || receivedCodes.length === 0) return;
-  const uid = currentUser.uid;
+  const uid = getActiveUid();
   // Buscar propostas pendentes onde eu pedi as mesmas figurinhas
   const pendingSnaps = await getDocs(query(
     collection(db, 'trade_proposals'),
