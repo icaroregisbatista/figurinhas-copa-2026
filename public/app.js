@@ -180,27 +180,46 @@ function showScreen(name) {
 // ══════════════════════════════════════════════
 // INICIALIZAÇÃO DO APP
 // ══════════════════════════════════════════════
-async function initApp() {
-  // Exibir dados do usuário no header
-  const initials = (currentUser.displayName || currentUser.email)
-    .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+
+// Atualiza o header (avatar + nome) para qualquer usuário
+// { displayName, email, photoURL } — aceita tanto currentUser quanto impersonatedUser
+function updateHeader({ displayName, email, photoURL }) {
+  const name = displayName || email || '';
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   const initialsEl = document.getElementById('user-avatar-initials');
-  if (currentUser.photoURL) {
+
+  userAvatar.innerHTML = '';
+  if (photoURL) {
     const img = document.createElement('img');
-    img.src = currentUser.photoURL;
+    img.src = photoURL;
     img.alt = initials;
-    img.onerror = () => { img.remove(); if (initialsEl) initialsEl.textContent = initials; };
-    userAvatar.innerHTML = '';
+    img.onerror = () => {
+      img.remove();
+      const span = document.createElement('span');
+      span.id = 'user-avatar-initials';
+      span.textContent = initials;
+      userAvatar.appendChild(span);
+    };
     userAvatar.appendChild(img);
   } else {
-    if (initialsEl) initialsEl.textContent = initials;
+    const span = document.createElement('span');
+    span.id = 'user-avatar-initials';
+    span.textContent = initials;
+    userAvatar.appendChild(span);
   }
-  userName.textContent = (currentUser.displayName || currentUser.email).split(' ')[0];
+  userName.textContent = name.split(' ')[0];
+}
 
-  // Registrar UID no documento do usuário autorizado (para mapeamento UID→nome nas trocas)
+async function initApp() {
+  // Exibir dados do usuário no header
+  updateHeader(currentUser);
+
+  // Registrar UID e photoURL no documento do usuário autorizado
   try {
     const userDocRef = doc(db, 'authorized_users', currentUser.email.toLowerCase());
-    await updateDoc(userDocRef, { uid: currentUser.uid }).catch(() => {});
+    const updates = { uid: currentUser.uid };
+    if (currentUser.photoURL) updates.photoURL = currentUser.photoURL;
+    await updateDoc(userDocRef, updates).catch(() => {});
   } catch (_) {}
 
   // Carregar figurinhas do JSON estático (instantâneo, sem Firestore)
@@ -1443,8 +1462,11 @@ function renderAdminUserSelectList(users) {
     const btn = document.createElement('button');
     btn.className = 'admin-user-select-btn' + (impersonatedUser && impersonatedUser.email === user.id ? ' active' : '');
     const initials = (user.name || user.id).split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const avatarHtml = user.photoURL
+      ? `<div class="admin-user-select-avatar" style="padding:0;overflow:hidden"><img src="${user.photoURL}" alt="${initials}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.textContent='${initials}'"></div>`
+      : `<div class="admin-user-select-avatar">${initials}</div>`;
     btn.innerHTML = `
-      <div class="admin-user-select-avatar">${initials}</div>
+      ${avatarHtml}
       <div class="admin-user-select-info">
         <div class="admin-user-select-name">${user.name || '(sem nome)'}</div>
         <div class="admin-user-select-email">${user.id}</div>
@@ -1465,13 +1487,25 @@ async function startImpersonation(user) {
   // Salvar usuário real se ainda não foi salvo
   if (!realUser) realUser = currentUser;
 
-  impersonatedUser = { uid: user.uid, name: user.name || user.id, email: user.id };
+  impersonatedUser = {
+    uid: user.uid,
+    name: user.name || user.id,
+    email: user.id,
+    photoURL: user.photoURL || null
+  };
 
   // Atualizar banner
   const banner = document.getElementById('admin-impersonate-banner');
   const bannerName = document.getElementById('admin-impersonate-name');
   if (banner) banner.classList.remove('hidden');
   if (bannerName) bannerName.textContent = impersonatedUser.name;
+
+  // Atualizar header com foto/nome do usuário impersonado
+  updateHeader({
+    displayName: impersonatedUser.name,
+    email: impersonatedUser.email,
+    photoURL: impersonatedUser.photoURL
+  });
 
   // Carregar dados do usuário impersonado
   loadingOverlay.style.display = 'flex';
@@ -1504,6 +1538,9 @@ async function stopImpersonation() {
   // Restaurar banner
   const banner = document.getElementById('admin-impersonate-banner');
   if (banner) banner.classList.add('hidden');
+
+  // Restaurar header com dados do admin
+  updateHeader(realUser);
 
   // Recarregar dados do admin
   loadingOverlay.style.display = 'flex';
