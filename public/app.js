@@ -59,6 +59,7 @@ let activeTab = 'colecao';
 let activeGroup = 'all';
 let activeStatus = null;        // 'missing' | 'owned' | null
 let activeTradeGroup = 'all';   // filtro de grupo na aba trocas
+let activeProposalStatus = 'all'; // filtro de status das propostas
 let searchQuery = '';
 let impersonatedUser = null; // { uid, name, email } - usuário que o admin está operando como
 let realUser = null;         // backup do currentUser original durante impersonação
@@ -2093,10 +2094,41 @@ document.getElementById('proposal-btn-send').addEventListener('click', async () 
   }
 });
 
+// ── Filtro de status das propostas ──────────────────────────
+document.querySelectorAll('.prop-filter-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.prop-filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeProposalStatus = btn.dataset.status || 'all';
+    renderProposals();
+  });
+});
+
+// ── Colapso das seções de propostas ──────────────────────────
+document.querySelectorAll('.collapsible-header').forEach(header => {
+  header.addEventListener('click', () => {
+    const section = header.closest('.collapsible-section');
+    section.classList.toggle('collapsed');
+  });
+});
+
 // ── Renderizar propostas enviadas e recebidas ──────────────
 function renderProposals() {
   renderSentProposals();
   renderReceivedProposals();
+}
+
+function filterByStatus(proposals) {
+  if (activeProposalStatus === 'all') return proposals;
+  return proposals.filter(p => p.status === activeProposalStatus);
+}
+
+function formatProposalDateTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const date = d.toLocaleDateString('pt-BR');
+  const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return `${date} ${time}`;
 }
 
 function renderSentProposals() {
@@ -2104,19 +2136,21 @@ function renderSentProposals() {
   if (!list) return;
   list.innerHTML = '';
 
-  const proposals = (window._mySentProposals || [])
+  const all = (window._mySentProposals || [])
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const proposals = filterByStatus(all);
 
   const countEl = document.getElementById('sent-proposals-count');
-  if (countEl) countEl.textContent = proposals.length;
+  if (countEl) countEl.textContent = all.length;
 
   const sectionEl = document.getElementById('section-sent-proposals');
-  if (sectionEl) sectionEl.style.display = proposals.length === 0 ? 'none' : '';
+  if (sectionEl) sectionEl.style.display = all.length === 0 ? 'none' : '';
 
-  proposals.forEach(p => {
-    const card = createProposalCard(p, 'sent');
-    list.appendChild(card);
-  });
+  if (proposals.length === 0) {
+    list.innerHTML = '<div class="proposals-empty">Nenhuma proposta encontrada para este filtro.</div>';
+  } else {
+    proposals.forEach(p => list.appendChild(createProposalCard(p, 'sent')));
+  }
 }
 
 function renderReceivedProposals() {
@@ -2124,20 +2158,22 @@ function renderReceivedProposals() {
   if (!list) return;
   list.innerHTML = '';
 
-  const proposals = (window._myReceivedProposals || [])
+  const all = (window._myReceivedProposals || [])
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const proposals = filterByStatus(all);
 
-  const pending = proposals.filter(p => p.status === 'pending');
+  const pending = all.filter(p => p.status === 'pending');
   const countEl = document.getElementById('received-proposals-count');
   if (countEl) countEl.textContent = pending.length || '';
 
   const sectionEl = document.getElementById('section-received-proposals');
-  if (sectionEl) sectionEl.style.display = proposals.length === 0 ? 'none' : '';
+  if (sectionEl) sectionEl.style.display = all.length === 0 ? 'none' : '';
 
-  proposals.forEach(p => {
-    const card = createProposalCard(p, 'received');
-    list.appendChild(card);
-  });
+  if (proposals.length === 0) {
+    list.innerHTML = '<div class="proposals-empty">Nenhuma proposta encontrada para este filtro.</div>';
+  } else {
+    proposals.forEach(p => list.appendChild(createProposalCard(p, 'received')));
+  }
 }
 
 const STATUS_LABELS = {
@@ -2151,17 +2187,18 @@ function createProposalCard(p, side) {
   const card = document.createElement('div');
   card.className = 'proposal-card';
   const st = STATUS_LABELS[p.status] || STATUS_LABELS.pending;
-  const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '';
+  const dateTimeStr = formatProposalDateTime(p.createdAt);
   const partner = side === 'sent' ? p.toName : p.fromName;
-  const typeTag = p.type === 'external' ? '<span class="proposal-external-tag">Externo</span>' : '';
+  const typeTag = p.type === 'external' ? '<span class="proposal-external-tag">Avulsa</span>' : '';
 
-  const offerSummary = (p.offeredCodes || []).slice(0, 4).join(', ') +
-    ((p.offeredCodes || []).length > 4 ? ` +${p.offeredCodes.length - 4}` : '');
-  const wantSummary = (p.requestedCodes || []).slice(0, 4).join(', ') +
-    ((p.requestedCodes || []).length > 4 ? ` +${p.requestedCodes.length - 4}` : '');
+  // Exibir TODAS as figurinhas (sem truncar)
+  const offerCodes = (p.offeredCodes || []);
+  const wantCodes = (p.requestedCodes || []);
+  const offerSummary = offerCodes.join(', ') || '—';
+  const wantSummary = wantCodes.join(', ') || '—';
 
   card.innerHTML = `
-    <div class="proposal-card-header">
+    <div class="proposal-card-header" style="cursor:pointer">
       <div class="proposal-card-partner">
         <span class="proposal-member-avatar" style="width:24px;height:24px;font-size:0.75rem">${(partner || '?').charAt(0).toUpperCase()}</span>
         <span>${partner || 'Desconhecido'}</span>
@@ -2169,33 +2206,34 @@ function createProposalCard(p, side) {
       </div>
       <div class="proposal-card-meta">
         <span class="proposal-status ${st.cls}">${st.label}</span>
-        <span class="proposal-card-date">${dateStr}</span>
+        <span class="proposal-card-date">${dateTimeStr}</span>
       </div>
     </div>
     <div class="proposal-card-body">
-      ${offerSummary ? `<div class="proposal-card-row"><span class="proposal-card-label offer">Oferece</span><span class="proposal-card-codes">${offerSummary}</span></div>` : ''}
-      ${wantSummary ? `<div class="proposal-card-row"><span class="proposal-card-label want">Quer</span><span class="proposal-card-codes">${wantSummary}</span></div>` : ''}
+      ${offerCodes.length > 0 ? `<div class="proposal-card-row"><span class="proposal-card-label offer">Oferece (${offerCodes.length})</span><span class="proposal-card-codes">${offerSummary}</span></div>` : ''}
+      ${wantCodes.length > 0 ? `<div class="proposal-card-row"><span class="proposal-card-label want">Quer (${wantCodes.length})</span><span class="proposal-card-codes">${wantSummary}</span></div>` : ''}
     </div>
     <div class="proposal-card-actions" id="actions-${p.id}"></div>
   `;
 
+  // Clicar no header abre o modal de detalhes
+  card.querySelector('.proposal-card-header').addEventListener('click', () => openProposalDetailModal(p, side));
+
   const actionsEl = card.querySelector(`#actions-${p.id}`);
 
   if (side === 'sent' && p.status === 'pending') {
-    // Cancelar proposta enviada
     const cancelBtn = document.createElement('button');
     cancelBtn.className = 'btn-proposal-cancel';
     cancelBtn.textContent = 'Cancelar proposta';
-    cancelBtn.addEventListener('click', () => cancelProposal(p.id));
+    cancelBtn.addEventListener('click', (e) => { e.stopPropagation(); cancelProposal(p.id); });
     actionsEl.appendChild(cancelBtn);
   }
 
   if (side === 'sent' && p.type === 'external' && p.status === 'pending') {
-    // Confirmar troca avulsa
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'btn-proposal-accept';
     confirmBtn.textContent = '✓ Confirmar troca realizada';
-    confirmBtn.addEventListener('click', () => confirmExternalTrade(p));
+    confirmBtn.addEventListener('click', (e) => { e.stopPropagation(); confirmExternalTrade(p); });
     actionsEl.appendChild(confirmBtn);
   }
 
@@ -2203,12 +2241,12 @@ function createProposalCard(p, side) {
     const acceptBtn = document.createElement('button');
     acceptBtn.className = 'btn-proposal-accept';
     acceptBtn.textContent = '✓ Aceitar';
-    acceptBtn.addEventListener('click', () => acceptProposal(p));
+    acceptBtn.addEventListener('click', (e) => { e.stopPropagation(); acceptProposal(p); });
 
     const refuseBtn = document.createElement('button');
     refuseBtn.className = 'btn-proposal-cancel';
     refuseBtn.textContent = '✗ Recusar';
-    refuseBtn.addEventListener('click', () => refuseProposal(p.id));
+    refuseBtn.addEventListener('click', (e) => { e.stopPropagation(); refuseProposal(p.id); });
 
     actionsEl.appendChild(acceptBtn);
     actionsEl.appendChild(refuseBtn);
@@ -2216,6 +2254,111 @@ function createProposalCard(p, side) {
 
   return card;
 }
+
+// ── Modal de detalhes da proposta ──────────────────────────
+function openProposalDetailModal(p, side) {
+  const modal = document.getElementById('modal-proposal-detail');
+  const titleEl = document.getElementById('proposal-detail-title');
+  const contentEl = document.getElementById('proposal-detail-content');
+  const actionsEl = document.getElementById('proposal-detail-actions');
+  if (!modal) return;
+
+  const st = STATUS_LABELS[p.status] || STATUS_LABELS.pending;
+  const partner = side === 'sent' ? p.toName : p.fromName;
+  const dateTimeStr = formatProposalDateTime(p.createdAt);
+  const confirmedStr = p.confirmedAt ? formatProposalDateTime(p.confirmedAt) : null;
+  const typeLabel = p.type === 'external' ? 'Avulsa' : 'Entre membros';
+  const uid = getActiveUid();
+
+  // Verificar se o usuário pode cancelar esta proposta
+  const canCancel = p.status === 'pending' && (
+    p.fromUid === uid || p.toUid === uid || (p.type === 'external' && p.fromUid === uid)
+  );
+  const canAccept = side === 'received' && p.status === 'pending';
+  const canConfirmExternal = side === 'sent' && p.type === 'external' && p.status === 'pending';
+
+  titleEl.textContent = side === 'sent' ? 'Proposta Enviada' : 'Proposta Recebida';
+
+  // Renderizar figurinhas com nome
+  function stickerList(codes) {
+    if (!codes || codes.length === 0) return '<span class="detail-empty">—</span>';
+    return codes.map(code => {
+      const s = allStickers.find(x => x.code === code);
+      return `<span class="detail-sticker-tag"><strong>${code}</strong>${s ? ' — ' + s.name : ''}</span>`;
+    }).join('');
+  }
+
+  contentEl.innerHTML = `
+    <div class="detail-meta-row">
+      <span class="proposal-status ${st.cls}">${st.label}</span>
+      <span class="detail-type-tag">${typeLabel}</span>
+    </div>
+    <div class="detail-info-row">
+      <span class="detail-label">Parceiro</span>
+      <span class="detail-value">${partner || 'Desconhecido'}</span>
+    </div>
+    <div class="detail-info-row">
+      <span class="detail-label">Criada em</span>
+      <span class="detail-value">${dateTimeStr}</span>
+    </div>
+    ${confirmedStr ? `<div class="detail-info-row"><span class="detail-label">Confirmada em</span><span class="detail-value">${confirmedStr}</span></div>` : ''}
+    <div class="detail-stickers-section">
+      <div class="detail-stickers-group">
+        <div class="detail-stickers-title offer">Oferece (${(p.offeredCodes || []).length})</div>
+        <div class="detail-stickers-list">${stickerList(p.offeredCodes)}</div>
+      </div>
+      <div class="detail-stickers-group">
+        <div class="detail-stickers-title want">Quer (${(p.requestedCodes || []).length})</div>
+        <div class="detail-stickers-list">${stickerList(p.requestedCodes)}</div>
+      </div>
+    </div>
+  `;
+
+  actionsEl.innerHTML = '';
+
+  if (canAccept) {
+    const acceptBtn = document.createElement('button');
+    acceptBtn.className = 'btn-proposal-accept';
+    acceptBtn.textContent = '✓ Aceitar troca';
+    acceptBtn.addEventListener('click', () => { closeProposalDetailModal(); acceptProposal(p); });
+    actionsEl.appendChild(acceptBtn);
+
+    const refuseBtn = document.createElement('button');
+    refuseBtn.className = 'btn-proposal-cancel';
+    refuseBtn.textContent = '✗ Recusar';
+    refuseBtn.addEventListener('click', () => { closeProposalDetailModal(); refuseProposal(p.id); });
+    actionsEl.appendChild(refuseBtn);
+  }
+
+  if (canConfirmExternal) {
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn-proposal-accept';
+    confirmBtn.textContent = '✓ Confirmar troca realizada';
+    confirmBtn.addEventListener('click', () => { closeProposalDetailModal(); confirmExternalTrade(p); });
+    actionsEl.appendChild(confirmBtn);
+  }
+
+  if (canCancel) {
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-proposal-cancel';
+    cancelBtn.textContent = 'Cancelar proposta';
+    cancelBtn.addEventListener('click', () => { closeProposalDetailModal(); cancelProposal(p.id); });
+    actionsEl.appendChild(cancelBtn);
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeProposalDetailModal() {
+  const modal = document.getElementById('modal-proposal-detail');
+  if (modal) modal.classList.add('hidden');
+}
+
+// Fechar modal ao clicar no X ou fora
+document.getElementById('proposal-detail-close')?.addEventListener('click', closeProposalDetailModal);
+document.getElementById('modal-proposal-detail')?.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeProposalDetailModal();
+});
 
 async function cancelProposal(proposalId) {
   try {

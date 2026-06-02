@@ -200,24 +200,39 @@
           </button>
         </div>
 
-        <!-- Propostas pendentes (enviadas) -->
-        <div class="trading-section" id="section-sent-proposals">
-          <div class="section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Propostas Enviadas
-            <span class="badge" id="sent-proposals-count">0</span>
-          </div>
-          <div id="sent-proposals-list"></div>
+        <!-- Filtro de status das propostas -->
+        <div class="proposals-filter-bar">
+          <button class="prop-filter-chip active" data-status="all">Todas</button>
+          <button class="prop-filter-chip" data-status="pending">Pendentes</button>
+          <button class="prop-filter-chip" data-status="accepted">Aceitas</button>
+          <button class="prop-filter-chip" data-status="refused">Recusadas</button>
+          <button class="prop-filter-chip" data-status="cancelled">Canceladas</button>
         </div>
 
-        <!-- Propostas recebidas -->
-        <div class="trading-section" id="section-received-proposals">
-          <div class="section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            Propostas Recebidas
-            <span class="badge badge-red" id="received-proposals-count">0</span>
+        <!-- Propostas enviadas (colapsável) -->
+        <div class="trading-section collapsible-section" id="section-sent-proposals">
+          <div class="section-title collapsible-header" id="header-sent-proposals" data-target="sent-proposals-list">
+            <div class="section-title-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Propostas Enviadas
+              <span class="badge" id="sent-proposals-count">0</span>
+            </div>
+            <svg class="collapse-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <div id="received-proposals-list"></div>
+          <div id="sent-proposals-list" class="collapsible-body"></div>
+        </div>
+
+        <!-- Propostas recebidas (colapsável) -->
+        <div class="trading-section collapsible-section" id="section-received-proposals">
+          <div class="section-title collapsible-header" id="header-received-proposals" data-target="received-proposals-list">
+            <div class="section-title-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Propostas Recebidas
+              <span class="badge badge-red" id="received-proposals-count"></span>
+            </div>
+            <svg class="collapse-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="received-proposals-list" class="collapsible-body"></div>
         </div>
 
         <!-- Minhas repetidas que outros precisam -->
@@ -521,6 +536,18 @@
 </div>
 
 <!-- ══ MODAL LOGOUT ═══════════════════════════════════════ -->
+<!-- Modal de detalhes da proposta -->
+<div id="modal-proposal-detail" class="modal-overlay hidden">
+  <div class="modal-box proposal-detail-box">
+    <div class="modal-header">
+      <h3 class="modal-title" id="proposal-detail-title">Detalhes da Proposta</h3>
+      <button class="modal-close" id="proposal-detail-close">×</button>
+    </div>
+    <div id="proposal-detail-content" class="proposal-detail-content"></div>
+    <div class="proposal-detail-actions" id="proposal-detail-actions"></div>
+  </div>
+</div>
+
 <div id="modal-logout" class="modal-overlay hidden">
   <div class="modal-box">
     <h3>Sair da conta</h3>
