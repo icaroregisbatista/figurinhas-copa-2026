@@ -152,8 +152,19 @@ onAuthStateChanged(auth, async (user) => {
   document.getElementById('tab-btn-stats').classList.remove('hidden');
 
   // Mostrar aba Admin apenas para administradores
-  if (ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+  const isAdminUser = ADMIN_EMAILS.includes(user.email.toLowerCase());
+  if (isAdminUser) {
     document.getElementById('tab-btn-admin').classList.remove('hidden');
+    // Admin não tem coleção própria: ocultar abas Coleção e Repetidas
+    document.getElementById('tab-btn-colecao').classList.add('hidden');
+    document.getElementById('tab-btn-repetidas').classList.add('hidden');
+    // Ocultar progresso no header (não tem sentido para o admin)
+    document.getElementById('dup-count-header').classList.add('hidden');
+    document.getElementById('missing-count-header').classList.add('hidden');
+    // Ocultar botão PDF (só faz sentido ao impersonar)
+    document.getElementById('btn-export-pdf').classList.add('hidden');
+    // Ir direto para a aba Admin
+    document.querySelector('[data-tab="admin"]')?.click();
   }
 
   await initApp();
@@ -256,6 +267,7 @@ async function initApp() {
 function updateProgress() {
   const owned = myCollection.size;
   const total = allStickers.length;
+  const missing = total - owned;
   const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
   progressFill.style.width = pct + '%';
   progressText.textContent = `${owned} / ${total}`;
@@ -264,6 +276,10 @@ function updateProgress() {
   // Contar total de repetidas
   const totalDups = Object.values(myDuplicates).reduce((sum, q) => sum + (q > 0 ? q : 0), 0);
   dupTotal.textContent = totalDups;
+
+  // Contar faltantes
+  const missingEl = document.getElementById('missing-total');
+  if (missingEl) missingEl.textContent = missing;
 }
 
 // ══════════════════════════════════════════════
@@ -1549,6 +1565,13 @@ async function startImpersonation(user) {
     photoURL: impersonatedUser.photoURL
   });
 
+  // Mostrar abas e elementos de coleção (admin está operando como outro usuário)
+  document.getElementById('tab-btn-colecao').classList.remove('hidden');
+  document.getElementById('tab-btn-repetidas').classList.remove('hidden');
+  document.getElementById('dup-count-header').classList.remove('hidden');
+  document.getElementById('missing-count-header').classList.remove('hidden');
+  document.getElementById('btn-export-pdf').classList.remove('hidden');
+
   // Carregar dados do usuário impersonado
   loadingOverlay.style.display = 'flex';
   try {
@@ -1583,6 +1606,13 @@ async function stopImpersonation() {
 
   // Restaurar header com dados do admin
   updateHeader(realUser);
+
+  // Ocultar abas e elementos de coleção (admin voltou para a própria conta)
+  document.getElementById('tab-btn-colecao').classList.add('hidden');
+  document.getElementById('tab-btn-repetidas').classList.add('hidden');
+  document.getElementById('dup-count-header').classList.add('hidden');
+  document.getElementById('missing-count-header').classList.add('hidden');
+  document.getElementById('btn-export-pdf').classList.add('hidden');
 
   // Recarregar dados do admin
   loadingOverlay.style.display = 'flex';
@@ -2615,16 +2645,20 @@ async function exportAlbumPDF() {
   try {
     const { jsPDF } = window.jspdf;
 
-    const userName = currentUser.displayName || currentUser.email.split('@')[0];
-    const today = new Date().toLocaleDateString('pt-BR');
+    const activeUser = getActiveUser();
+    const userName = activeUser.displayName || activeUser.email?.split('@')[0] || 'Usuário';
+    const now = new Date();
+    const today = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const totalOwned = myCollection ? myCollection.size : 0;
     const totalStickers = allStickers.length;
+    const totalMissing = totalStickers - totalOwned;
     const pct = Math.round((totalOwned / totalStickers) * 100);
 
-    // Carregar foto do usuário
+    // Carregar foto do usuário (impersonado ou real)
     let userPhotoDataUrl = null;
-    if (currentUser.photoURL) {
-      try { userPhotoDataUrl = await loadImageAsDataUrl(currentUser.photoURL); } catch (_) {}
+    const photoURL = impersonatedUser?.photoURL || activeUser.photoURL;
+    if (photoURL) {
+      try { userPhotoDataUrl = await loadImageAsDataUrl(photoURL); } catch (_) {}
     }
 
     // ── Construir lista de times ordenada ──
@@ -2668,6 +2702,13 @@ async function exportAlbumPDF() {
         flagCache[team.code] = await loadImageAsDataUrl(url);
       } catch (_) {}
     });
+    // Carregar logos especiais: FIFA e Coca-Cola
+    try {
+      flagCache['FWC'] = await loadImageAsDataUrl('https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/FIFA_logo_without_slogan.svg/240px-FIFA_logo_without_slogan.svg.png');
+    } catch (_) {}
+    try {
+      flagCache['CC'] = await loadImageAsDataUrl('https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Coca-Cola_logo.svg/240px-Coca-Cola_logo.svg.png');
+    } catch (_) {}
     await Promise.all(flagPromises);
 
     showToast('Gerando PDF, aguarde… (montando páginas)', 'info');
@@ -2677,7 +2718,7 @@ async function exportAlbumPDF() {
     // ── PÁGINA 1: Controle do Álbum ──
     await drawPDFPageV2(doc, {
       teams: orderedTeams, collection: myCollection, duplicates: null,
-      pageTitle: 'Controle do Álbum', userName, today, totalOwned, totalStickers, pct,
+      pageTitle: 'Controle do Álbum', userName, today, totalOwned, totalStickers, totalMissing, pct,
       userPhotoDataUrl, flagCache, mode: 'collection', isFirstPage: true
     });
 
@@ -2685,7 +2726,7 @@ async function exportAlbumPDF() {
     doc.addPage();
     await drawPDFPageV2(doc, {
       teams: orderedTeams, collection: myCollection, duplicates: myDuplicates || {},
-      pageTitle: 'Repetidas para Troca', userName, today, totalOwned, totalStickers, pct,
+      pageTitle: 'Repetidas para Troca', userName, today, totalOwned, totalStickers, totalMissing, pct,
       userPhotoDataUrl, flagCache, mode: 'duplicates', isFirstPage: false
     });
 
@@ -2697,7 +2738,7 @@ async function exportAlbumPDF() {
   }
 }
 
-async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, userName, today, totalOwned, totalStickers, pct, userPhotoDataUrl, flagCache, mode }) {
+async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, userName, today, totalOwned, totalStickers, totalMissing, pct, userPhotoDataUrl, flagCache, mode }) {
   const pageW = 210;
   const pageH = 297;
   const margin = 5;
@@ -2723,7 +2764,7 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
 
   doc.setFontSize(7);
   doc.setTextColor(100, 100, 100);
-  doc.text(`${userName}  ·  Gerado em ${today}  ·  ${totalOwned}/${totalStickers} figurinhas (${pct}%)`, pageW / 2, 19, { align: 'center' });
+  doc.text(`${userName}  ·  Gerado em ${today}  ·  ${totalOwned}/${totalStickers} (${pct}%)  ·  Faltam: ${totalMissing}`, pageW / 2, 19, { align: 'center' });
 
   // Foto do usuário (canto superior direito, sem moldura)
   const photoSize = 16;
@@ -2742,19 +2783,20 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
   // Legenda
   const legX = margin;
   const legY = 20;
+  // Legenda: ■ Tenho (N)   □ Falta (N)
   doc.setFillColor(0, 0, 0);
   doc.rect(legX, legY, 7, 3, 'F');
   doc.setFontSize(6);
   doc.setTextColor(60, 60, 60);
-  doc.text('Tenho', legX + 8, legY + 2.3);
+  doc.text(`Tenho (${totalOwned})`, legX + 8, legY + 2.3);
 
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(150, 150, 150);
   doc.setLineWidth(0.2);
-  doc.rect(legX + 20, legY, 7, 3, 'FD');
+  doc.rect(legX + 38, legY, 7, 3, 'FD');
   doc.setFontSize(6);
   doc.setTextColor(60, 60, 60);
-  doc.text('Falta', legX + 28, legY + 2.3);
+  doc.text(`Falta (${totalMissing})`, legX + 46, legY + 2.3);
 
   // ── Tabela ──
   let y = 28;
@@ -2818,23 +2860,35 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
     const displayName = TEAM_NAMES_PT[team.code] || team.country || team.code;
     doc.text(displayName.substring(0, 24), margin + flagW + 0.5, y + rowH - 1.2);
 
+    // Determinar range de slots para este time
+    // FWC: slots 00..19 (20 figurinhas, posicoes 0..19)
+    // CC: slots 1..14 (14 figurinhas)
+    // Outros: slots 1..20
+    const isFWC = team.code === 'FWC';
+    const isCC = team.code === 'CC';
+    const startSlot = isFWC ? 0 : 1;
+    const endSlot = isCC ? 14 : 20;
+    const firstHalfEnd = isFWC ? 9 : 10; // 0-9 ou 1-10
+    const secondHalfStart = firstHalfEnd + 1;
+
     // Código (1ª metade)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(5.5);
     doc.setTextColor(100, 100, 100);
     doc.text(team.code, margin + flagW + labelW + 0.5, y + rowH - 1.2);
 
-    // Células 1-10
-    for (let n = 1; n <= halfNums; n++) {
-      const cx = margin + flagW + labelW + codeW + (n - 1) * cellW;
+    // Células 1ª metade
+    for (let n = startSlot; n <= firstHalfEnd; n++) {
+      const slotIndex = n - startSlot; // 0-based index
+      const cx = margin + flagW + labelW + codeW + slotIndex * cellW;
       const sticker = team.stickers.find(s => {
         const num = parseInt(s.code.replace(/^[A-Z]+/, ''));
         return num === n;
       });
+      const displayNum = isFWC && n === 0 ? '00' : String(n);
       if (sticker) {
-        drawStickerCellV2(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode, n, rowIndex);
+        drawStickerCellV2(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode, displayNum, rowIndex);
       } else {
-        // Posição não existe — célula vazia escura
         doc.setFillColor(200, 200, 200);
         doc.rect(cx + 0.3, y + 0.3, cellW - 0.6, rowH - 0.6, 'F');
       }
@@ -2844,18 +2898,20 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(5.5);
     doc.setTextColor(100, 100, 100);
-    doc.text(team.code, margin + flagW + labelW + codeW + halfNums * cellW + 0.5, y + rowH - 1.2);
+    doc.text(team.code, margin + flagW + labelW + codeW + (firstHalfEnd - startSlot + 1) * cellW + 0.5, y + rowH - 1.2);
 
-    // Células 11-20
-    for (let n = halfNums + 1; n <= maxNums; n++) {
-      const cx = margin + flagW + labelW + codeW * 2 + (n - 1) * cellW;
+    // Células 2ª metade
+    for (let n = secondHalfStart; n <= endSlot; n++) {
+      const slotIndex = n - startSlot; // 0-based index
+      const cx = margin + flagW + labelW + codeW * 2 + slotIndex * cellW;
       const sticker = team.stickers.find(s => {
         const num = parseInt(s.code.replace(/^[A-Z]+/, ''));
         return num === n;
       });
+      const displayNum = String(n);
       if (sticker) {
-        drawStickerCellV2(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode, n, rowIndex);
-      } else {
+        drawStickerCellV2(doc, cx, y, cellW, rowH, sticker.code, collection, duplicates, mode, displayNum, rowIndex);
+      } else if (n <= endSlot) {
         doc.setFillColor(200, 200, 200);
         doc.rect(cx + 0.3, y + 0.3, cellW - 0.6, rowH - 0.6, 'F');
       }
@@ -2885,7 +2941,9 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
 function drawStickerCellV2(doc, x, y, w, h, code, collection, duplicates, mode, num, rowIndex) {
   const pad = 0.3;
   const cx = x + w / 2;
-  const cy = y + h / 2 + 1.2;
+  // Centralização vertical: jsPDF usa baseline, então ajustamos com metade da altura + offset de baseline
+  // Para fonte 4pt em mm: ~1.4mm de altura, baseline offset ~0.35mm por pt
+  const centerText = (fontSize) => y + h / 2 + (fontSize * 0.176); // 0.176 ≈ 0.5 * (pt para mm)
   // Cor do número da posição: mais escuro na linha cinza, mais claro na linha branca
   const numColor = (rowIndex % 2 === 0) ? 130 : 100;
 
@@ -2904,19 +2962,20 @@ function drawStickerCellV2(doc, x, y, w, h, code, collection, duplicates, mode, 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(4);
       doc.setTextColor(numColor, numColor, numColor);
-      doc.text(String(num), cx, cy, { align: 'center' });
+      doc.text(String(num), cx, centerText(4), { align: 'center' });
     }
   } else {
     // Modo repetidas
     const qty = duplicates ? (duplicates[code] || 0) : 0;
     if (qty > 0) {
       // Fundo cinza escuro com número da quantidade
+      const fontSize = qty > 9 ? 3.5 : 4.5;
       doc.setFillColor(60, 60, 60);
       doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(qty > 9 ? 3.5 : 4.5);
+      doc.setFontSize(fontSize);
       doc.setTextColor(255, 255, 255);
-      doc.text(String(qty), cx, cy, { align: 'center' });
+      doc.text(String(qty), cx, centerText(fontSize), { align: 'center' });
     } else {
       // Vazio com número da posição
       doc.setFillColor(255, 255, 255);
@@ -2926,7 +2985,7 @@ function drawStickerCellV2(doc, x, y, w, h, code, collection, duplicates, mode, 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(4);
       doc.setTextColor(numColor, numColor, numColor);
-      doc.text(String(num), cx, cy, { align: 'center' });
+      doc.text(String(num), cx, centerText(4), { align: 'center' });
     }
   }
 }

@@ -1993,3 +1993,19 @@ body {
 .detail-sticker-tag strong { color: var(--gold); }
 .detail-empty { color: var(--text-muted); font-size: 13px; }
 .proposal-detail-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+/* ── Contador de faltantes no header ── */
+.missing-count-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #e05252;
+  font-weight: 600;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+.missing-count-header svg {
+  color: #e05252;
+  flex-shrink: 0;
+}
