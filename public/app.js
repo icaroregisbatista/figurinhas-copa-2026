@@ -3199,8 +3199,8 @@ document.getElementById('finance-btn-save').addEventListener('click', async () =
     await loadFinancePanel();
 
   } catch (e) {
-    console.error(e);
-    showToast('Erro ao salvar movimento.', 'error');
+    console.error('Erro ao salvar movimento financeiro:', e);
+    showToast('Erro ao salvar: ' + (e?.message || 'tente novamente.'), 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Salvar Movimento';
@@ -3217,18 +3217,22 @@ async function loadFinancePanel() {
 
   try {
     const uid = getActiveUid();
+    // Query simples por uid apenas (sem orderBy composto para evitar exigir índice)
     const q = query(
       collection(db, 'financial_movements'),
-      where('uid', '==', uid),
-      orderBy('date', 'desc'),
-      orderBy('createdAt', 'desc')
+      where('uid', '==', uid)
     );
     const snap = await getDocs(q);
     financeMovements = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Ordenar client-side: data desc, depois createdAt desc
+    financeMovements.sort((a, b) => {
+      if (b.date !== a.date) return b.date.localeCompare(a.date);
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
     renderFinanceList();
     updateFinanceSummary();
   } catch (e) {
-    console.error(e);
+    console.error('Erro ao carregar movimentos financeiros:', e);
     listEl.innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center">Erro ao carregar movimentos.</p>';
   } finally {
     loadingEl.style.display = 'none';
