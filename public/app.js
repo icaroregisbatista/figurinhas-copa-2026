@@ -49,6 +49,10 @@ const db = getFirestore(app);
 
 // ── Admins autorizados ───────────────────────────────────────
 const ADMIN_EMAILS = ['icaroregis@gmail.com'];
+// ── Logos embutidos (base64) para PDF ────────────────────────
+const FIFA_LOGO_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAUCAYAAAD/Rn+7AAABI0lEQVR4nGNk0Ej5zzCIAdNAO4AQGHUgpWDUgZSCUQdSCliIVfjt/DSGU5fvw/mb9l1g6Fuwm+HDqUkMAmZ5eNUwMDAwpITYMkyti2KQcyxnePn2E/Ud+Ov3HwaHuG6y1fg66jNMWryXwctel2H+uqNEO5AuUczFwcbAzcXGMGfNEQYfBz2S9NLFge422gw7Dl9luHn/BYOCtAgDGyvREUd8FLOxsjAcWFQK56fXL2a4ef8FUWr8nQ0YDDRkGULcjRmkxPgZ7E3VGHYfu0ZdB5KbBpmZmRjUFMQZDAKbGBgYIKHp46BHtANpHsXWhioMF288gfMPn7nN4GatTbR+mjvQ39mAYd/JG3D+tx+/GF69+8SgqSxJlH7G0fYghWDUgZQCAI6sYv5cTBUqAAAAAElFTkSuQmCC';
+const CC_LOGO_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAAUCAYAAADRA14pAAACXUlEQVR4nO2WT0iaYRzHP2+WfzPKmZW2jYigQyFEt0KKTv3B0EMQ1D2LOnQIii4RdekkdegQ0i0xCq08RV6sa4egQzBZGywoUpiZE8erHTY2R+4VaywwP6eX93n4fn5fHh54hA96fZpXRMlLD/C/KRYudIqFC51i4UInZ+GK0VHqAwGMe3vUbW1RajL98yHydTSEQk92lUotqrq6KLfb+dLXRzqRQN3Tg2F1lSu7/cnCl3BkInnClePjRJaWSCcSAMSPjvh+eYlQVobMYKDO7ca0v0+d243MYECm01G7uYnR58O4vY1Mr0fe3IzJ7+dtMEjl2NizHZnkys6GIPW0fH92xuf2dtLJ5KO1mvV14oEAdx4P2qEh1N3dpEWReCBAbHcX7fAwyrY2AO52dkheXPAuGOSypeVZjmuHg4ZQiI+NjVSvrEhmZ0PyhAWZ7K9ryo4OYl4vADGvF2VnJyqLhfuDgx8lPR7Ci4uEFxaQNzVRNTmJoNUCoJubw+jzoenvz9uRSbbsXEgWToZCKFpbf/8QBAxraz8/hUf7/xheFElFo9S4XAB83diAVAqAyPIyV4OD3Pv9eTsyyZadC8nCUZcL3ewsglwOQLnNhqBQAPDt+BiN1QqAxmolcXJC4vQUTW8vABUjI7yZn0dhNhPz+RAUil85z3Fkkis7G5J3GKBqeppymw0xHEa8veV2ZgYxEqG0tpZqp5MStZpUPM7N1BQlKhXVTicIAqlolJuJCSodDjQDAyTPz1FZLHwymx/d13wc4vU19YeH3Pv9CEplzuy8CxcaxZdWofPqCj8AgJ8oiE4J3DsAAAAASUVORK5CYII=';
+
 
 // ── Estado global ─────────────────────────────────────────────
 let currentUser = null;
@@ -369,15 +373,16 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelector('.filter-status').style.display =
       activeTab === 'colecao' ? 'flex' : 'none';
 
-    // Ocultar barra de filtro inteira nas abas Admin e Estatísticas
+    // Ocultar barra de filtro inteira nas abas Admin, Estatísticas e Financeiro
     const filterBar = document.querySelector('.filter-bar');
     if (filterBar) {
-      filterBar.style.display = (activeTab === 'admin' || activeTab === 'stats') ? 'none' : '';
+      filterBar.style.display = (activeTab === 'admin' || activeTab === 'stats' || activeTab === 'financeiro') ? 'none' : '';
     }
 
     if (activeTab === 'trocas') loadTradingPanel();
     if (activeTab === 'admin') loadAdminPanel();
     if (activeTab === 'stats') loadStatsPanel();
+    if (activeTab === 'financeiro') loadFinancePanel();
   });
 });
 
@@ -1805,10 +1810,59 @@ document.getElementById('proposal-type-member').addEventListener('click', () => 
 // Tipo: avulsa
 document.getElementById('proposal-type-external').addEventListener('click', () => {
   proposalState.type = 'external';
+  proposalState.subtype = 'trade'; // padrão: troca
+  proposalState.saleRole = null;
+  proposalState.saleValue = 0;
   document.getElementById('proposal-external-name').value = '';
   document.getElementById('proposal-external-next').disabled = true;
+  // Resetar seleção de subtipo
+  document.querySelectorAll('.external-subtype-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('external-subtype-trade').classList.add('active');
+  document.getElementById('external-sale-fields').classList.add('hidden');
+  document.getElementById('external-sale-value').value = '';
+  document.querySelectorAll('[data-role]').forEach(b => b.classList.remove('active'));
   showProposalStep('external');
 });
+
+// Selecionar subtipo (troca / venda)
+document.querySelectorAll('.external-subtype-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.external-subtype-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    proposalState.subtype = btn.dataset.subtype;
+    const saleFields = document.getElementById('external-sale-fields');
+    if (proposalState.subtype === 'sale') {
+      saleFields.classList.remove('hidden');
+    } else {
+      saleFields.classList.add('hidden');
+      proposalState.saleRole = null;
+      proposalState.saleValue = 0;
+    }
+    checkExternalNextBtn();
+  });
+});
+
+// Selecionar papel (vendedor/comprador)
+document.querySelectorAll('[data-role]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-role]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    proposalState.saleRole = btn.dataset.role;
+    checkExternalNextBtn();
+  });
+});
+
+document.getElementById('external-sale-value').addEventListener('input', function() {
+  proposalState.saleValue = parseFloat(this.value) || 0;
+  checkExternalNextBtn();
+});
+
+function checkExternalNextBtn() {
+  const nameOk = document.getElementById('proposal-external-name').value.trim().length >= 2;
+  const saleOk = proposalState.subtype === 'trade' ||
+    (proposalState.saleRole && proposalState.saleValue > 0);
+  document.getElementById('proposal-external-next').disabled = !(nameOk && saleOk);
+}
 
 // Voltar do membro
 document.getElementById('proposal-back-member').addEventListener('click', () => showProposalStep('type'));
@@ -1818,7 +1872,7 @@ document.getElementById('proposal-back-external').addEventListener('click', () =
 
 // Habilitar botão próximo no externo
 document.getElementById('proposal-external-name').addEventListener('input', function() {
-  document.getElementById('proposal-external-next').disabled = this.value.trim().length < 2;
+  checkExternalNextBtn();
 });
 
 // Próximo no externo → ir para build
@@ -2103,6 +2157,9 @@ document.getElementById('proposal-btn-send').addEventListener('click', async () 
       toUid: proposalState.partnerUid || null,
       toName: proposalState.partnerName,
       type: proposalState.type,
+      subtype: proposalState.subtype || 'trade', // 'trade' | 'sale'
+      saleRole: proposalState.saleRole || null,  // 'seller' | 'buyer'
+      saleValue: proposalState.saleValue || 0,
       offeredCodes: proposalState.offeredCodes,
       requestedCodes: proposalState.requestedCodes,
       confirmedAt: null,
@@ -2536,6 +2593,20 @@ async function confirmExternalTrade(proposal) {
 
     showToast('Troca avulsa confirmada! Coleção atualizada. 🎉', 'success');
 
+    // Registrar movimento financeiro se for venda/compra
+    if (proposal.subtype === 'sale' && proposal.saleValue > 0) {
+      const isIncome = proposal.saleRole === 'seller'; // vendedor recebe
+      const partnerLabel = proposal.toName || proposal.fromName || 'Parceiro';
+      const codesLabel = (proposal.offeredCodes || []).join(', ') || (proposal.requestedCodes || []).join(', ');
+      const desc = `${isIncome ? 'Venda' : 'Compra'} avulsa para ${partnerLabel}${codesLabel ? ': ' + codesLabel : ''}`;
+      await addFinanceMovementFromTrade({
+        type: isIncome ? 'income' : 'expense',
+        value: proposal.saleValue,
+        description: desc,
+      });
+      showToast(`Movimento financeiro registrado: ${isIncome ? '+' : '-'} R$ ${proposal.saleValue.toFixed(2).replace('.', ',')}`, 'success');
+    }
+
     // Atualizar estado local
     for (const code of (proposal.requestedCodes || [])) {
       myCollection.add(code);
@@ -2702,13 +2773,9 @@ async function exportAlbumPDF() {
         flagCache[team.code] = await loadImageAsDataUrl(url);
       } catch (_) {}
     });
-    // Carregar logos especiais: FIFA e Coca-Cola
-    try {
-      flagCache['FWC'] = await loadImageAsDataUrl('https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/FIFA_logo_without_slogan.svg/240px-FIFA_logo_without_slogan.svg.png');
-    } catch (_) {}
-    try {
-      flagCache['CC'] = await loadImageAsDataUrl('https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Coca-Cola_logo.svg/240px-Coca-Cola_logo.svg.png');
-    } catch (_) {}
+    // Logos especiais embutidos como base64 (sem dependência de URL externa)
+    flagCache['FWC'] = FIFA_LOGO_B64;
+    flagCache['CC'] = CC_LOGO_B64;
     await Promise.all(flagPromises);
 
     showToast('Gerando PDF, aguarde… (montando páginas)', 'info');
@@ -3017,4 +3084,283 @@ async function loadImageAsDataUrl(url) {
     setTimeout(() => reject(new Error('timeout')), 5000);
     img.src = url;
   });
+}
+
+// ══════════════════════════════════════════════
+// MÓDULO FINANCEIRO
+// ══════════════════════════════════════════════
+
+let financeMovements = []; // cache local dos movimentos
+let financeEditingId = null; // ID do movimento sendo editado (null = novo)
+let financeSelectedType = null; // 'income' | 'expense'
+
+// ── Abrir modal de novo movimento ─────────────────────────────
+document.getElementById('btn-new-finance').addEventListener('click', () => {
+  financeEditingId = null;
+  financeSelectedType = null;
+  document.getElementById('modal-finance-title').textContent = 'Novo Movimento';
+  document.getElementById('finance-step-type').classList.remove('hidden');
+  document.getElementById('finance-step-form').classList.add('hidden');
+  document.getElementById('finance-value').value = '';
+  document.getElementById('finance-description').value = '';
+  // Data padrão: hoje
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('finance-date').value = today;
+  document.getElementById('modal-finance').classList.remove('hidden');
+});
+
+document.getElementById('btn-close-finance').addEventListener('click', () => {
+  document.getElementById('modal-finance').classList.add('hidden');
+});
+document.getElementById('modal-finance').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-finance')) {
+    document.getElementById('modal-finance').classList.add('hidden');
+  }
+});
+
+// Escolher tipo
+document.getElementById('finance-type-income').addEventListener('click', () => {
+  financeSelectedType = 'income';
+  showFinanceForm();
+});
+document.getElementById('finance-type-expense').addEventListener('click', () => {
+  financeSelectedType = 'expense';
+  showFinanceForm();
+});
+
+document.getElementById('finance-back-type').addEventListener('click', () => {
+  document.getElementById('finance-step-type').classList.remove('hidden');
+  document.getElementById('finance-step-form').classList.add('hidden');
+});
+
+function showFinanceForm() {
+  document.getElementById('finance-step-type').classList.add('hidden');
+  document.getElementById('finance-step-form').classList.remove('hidden');
+  const indicator = document.getElementById('finance-type-indicator');
+  if (financeSelectedType === 'income') {
+    indicator.innerHTML = '<span class="finance-type-badge income">💰 Entrada (Receita)</span>';
+  } else {
+    indicator.innerHTML = '<span class="finance-type-badge expense">🛒 Saída (Despesa)</span>';
+  }
+}
+
+// Salvar movimento
+document.getElementById('finance-btn-save').addEventListener('click', async () => {
+  const valueRaw = parseFloat(document.getElementById('finance-value').value);
+  const dateVal = document.getElementById('finance-date').value;
+  const desc = document.getElementById('finance-description').value.trim();
+
+  if (!financeSelectedType) {
+    showToast('Selecione o tipo do movimento.', 'error');
+    return;
+  }
+  if (isNaN(valueRaw) || valueRaw <= 0) {
+    showToast('Informe um valor válido.', 'error');
+    return;
+  }
+  if (!dateVal) {
+    showToast('Informe a data.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('finance-btn-save');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  try {
+    const uid = getActiveUid();
+    const movData = {
+      uid,
+      type: financeSelectedType,
+      value: valueRaw,
+      date: dateVal,
+      description: desc,
+      createdAt: Date.now(),
+      source: 'manual', // 'manual' | 'trade' (para movimentos gerados por trocas)
+    };
+
+    if (financeEditingId) {
+      // Editar existente
+      await updateDoc(doc(db, 'financial_movements', financeEditingId), {
+        type: movData.type,
+        value: movData.value,
+        date: movData.date,
+        description: movData.description,
+        updatedAt: Date.now(),
+      });
+      showToast('Movimento atualizado!', 'success');
+    } else {
+      // Novo
+      await addDoc(collection(db, 'financial_movements'), movData);
+      showToast('Movimento registrado!', 'success');
+    }
+
+    document.getElementById('modal-finance').classList.add('hidden');
+    await loadFinancePanel();
+
+  } catch (e) {
+    console.error(e);
+    showToast('Erro ao salvar movimento.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar Movimento';
+  }
+});
+
+// ── Carregar painel financeiro ────────────────────────────────
+async function loadFinancePanel() {
+  const listEl = document.getElementById('finance-list');
+  const loadingEl = document.getElementById('finance-loading');
+  if (!listEl) return;
+
+  loadingEl.style.display = 'flex';
+
+  try {
+    const uid = getActiveUid();
+    const q = query(
+      collection(db, 'financial_movements'),
+      where('uid', '==', uid),
+      orderBy('date', 'desc'),
+      orderBy('createdAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    financeMovements = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderFinanceList();
+    updateFinanceSummary();
+  } catch (e) {
+    console.error(e);
+    listEl.innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center">Erro ao carregar movimentos.</p>';
+  } finally {
+    loadingEl.style.display = 'none';
+  }
+}
+
+// ── Renderizar lista de movimentos ────────────────────────────
+function renderFinanceList() {
+  const listEl = document.getElementById('finance-list');
+  const loadingEl = document.getElementById('finance-loading');
+  // Remover itens antigos (mas manter o loading)
+  Array.from(listEl.children).forEach(c => {
+    if (c !== loadingEl) c.remove();
+  });
+
+  if (financeMovements.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.innerHTML = '<span>💸</span><p>Nenhum movimento registrado ainda.</p>';
+    listEl.appendChild(empty);
+    return;
+  }
+
+  financeMovements.forEach(mov => {
+    const card = document.createElement('div');
+    card.className = `finance-movement-card ${mov.type}`;
+    const dateFormatted = mov.date ? mov.date.split('-').reverse().join('/') : '—';
+    const valueFormatted = (mov.value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const sign = mov.type === 'income' ? '+' : '-';
+    const signClass = mov.type === 'income' ? 'income' : 'expense';
+    const sourceTag = mov.source === 'trade' ? '<span class="finance-source-tag">Troca</span>' : '';
+
+    card.innerHTML = `
+      <div class="finance-mov-left">
+        <div class="finance-mov-icon ${mov.type}">${mov.type === 'income' ? '💰' : '🛒'}</div>
+        <div class="finance-mov-info">
+          <div class="finance-mov-desc">${mov.description || (mov.type === 'income' ? 'Receita' : 'Despesa')} ${sourceTag}</div>
+          <div class="finance-mov-date">${dateFormatted}</div>
+        </div>
+      </div>
+      <div class="finance-mov-right">
+        <div class="finance-mov-value ${signClass}">${sign} ${valueFormatted}</div>
+        <div class="finance-mov-actions">
+          <button class="finance-btn-edit" data-id="${mov.id}" title="Editar">✏️</button>
+          <button class="finance-btn-delete" data-id="${mov.id}" title="Excluir">🗑️</button>
+        </div>
+      </div>
+    `;
+
+    // Editar
+    card.querySelector('.finance-btn-edit').addEventListener('click', () => {
+      openEditFinanceModal(mov);
+    });
+
+    // Excluir
+    card.querySelector('.finance-btn-delete').addEventListener('click', async () => {
+      if (!confirm(`Excluir este movimento?\n${mov.description || ''} — ${(mov.value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`)) return;
+      try {
+        await deleteDoc(doc(db, 'financial_movements', mov.id));
+        showToast('Movimento excluído.', 'success');
+        await loadFinancePanel();
+      } catch (e) {
+        console.error(e);
+        showToast('Erro ao excluir.', 'error');
+      }
+    });
+
+    listEl.appendChild(card);
+  });
+}
+
+// ── Abrir modal de edição ─────────────────────────────────────
+function openEditFinanceModal(mov) {
+  financeEditingId = mov.id;
+  financeSelectedType = mov.type;
+  document.getElementById('modal-finance-title').textContent = 'Editar Movimento';
+  document.getElementById('finance-step-type').classList.add('hidden');
+  document.getElementById('finance-step-form').classList.remove('hidden');
+  document.getElementById('finance-value').value = mov.value || '';
+  document.getElementById('finance-date').value = mov.date || '';
+  document.getElementById('finance-description').value = mov.description || '';
+  const indicator = document.getElementById('finance-type-indicator');
+  if (financeSelectedType === 'income') {
+    indicator.innerHTML = '<span class="finance-type-badge income">💰 Entrada (Receita)</span>';
+  } else {
+    indicator.innerHTML = '<span class="finance-type-badge expense">🛒 Saída (Despesa)</span>';
+  }
+  document.getElementById('modal-finance').classList.remove('hidden');
+}
+
+// ── Atualizar cards de resumo ─────────────────────────────────
+function updateFinanceSummary() {
+  const totalIncome = financeMovements
+    .filter(m => m.type === 'income')
+    .reduce((sum, m) => sum + (m.value || 0), 0);
+  const totalExpense = financeMovements
+    .filter(m => m.type === 'expense')
+    .reduce((sum, m) => sum + (m.value || 0), 0);
+  const result = totalIncome - totalExpense;
+  const ownedCount = myCollection ? myCollection.size : 0;
+  const costPerSticker = ownedCount > 0 ? result / ownedCount : 0;
+
+  const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  document.getElementById('finance-total-income').textContent = fmt(totalIncome);
+  document.getElementById('finance-total-expense').textContent = fmt(totalExpense);
+
+  const resultEl = document.getElementById('finance-total-result');
+  resultEl.textContent = fmt(result);
+  resultEl.className = 'finance-card-value ' + (result >= 0 ? 'positive' : 'negative');
+
+  const costEl = document.getElementById('finance-cost-per-sticker');
+  costEl.textContent = fmt(costPerSticker);
+  costEl.className = 'finance-card-value ' + (costPerSticker <= 0 ? 'positive' : 'negative');
+  document.getElementById('finance-cost-per-sticker-sub').textContent =
+    `${ownedCount} figurinha${ownedCount !== 1 ? 's' : ''} na coleção`;
+}
+
+// ── Adicionar movimento a partir de troca/venda ───────────────
+async function addFinanceMovementFromTrade({ type, value, description }) {
+  try {
+    const uid = getActiveUid();
+    await addDoc(collection(db, 'financial_movements'), {
+      uid,
+      type,
+      value: parseFloat(value),
+      date: new Date().toISOString().split('T')[0],
+      description,
+      createdAt: Date.now(),
+      source: 'trade',
+    });
+  } catch (e) {
+    console.error('Erro ao registrar movimento financeiro da troca:', e);
+  }
 }

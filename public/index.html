@@ -125,6 +125,10 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Admin
     </button>
+    <button class="tab-btn" data-tab="financeiro" id="tab-btn-financeiro">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Financeiro
+    </button>
     <button class="tab-btn tab-btn-pdf" id="btn-export-pdf" title="Exportar PDF do álbum">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
       PDF
@@ -331,6 +335,46 @@
 
     </div>
 
+    <!-- Aba: Financeiro -->
+    <div id="tab-financeiro" class="tab-panel">
+      <!-- Cards de consolidado -->
+      <div class="finance-summary-cards" id="finance-summary-cards">
+        <div class="finance-card finance-card-income">
+          <div class="finance-card-label">Receitas</div>
+          <div class="finance-card-value" id="finance-total-income">R$ 0,00</div>
+        </div>
+        <div class="finance-card finance-card-expense">
+          <div class="finance-card-label">Despesas</div>
+          <div class="finance-card-value" id="finance-total-expense">R$ 0,00</div>
+        </div>
+        <div class="finance-card finance-card-result">
+          <div class="finance-card-label">Resultado</div>
+          <div class="finance-card-value" id="finance-total-result">R$ 0,00</div>
+        </div>
+        <div class="finance-card finance-card-indicator">
+          <div class="finance-card-label">Custo por figurinha</div>
+          <div class="finance-card-value" id="finance-cost-per-sticker">R$ 0,00</div>
+          <div class="finance-card-sub" id="finance-cost-per-sticker-sub">0 figurinhas na coleção</div>
+        </div>
+      </div>
+
+      <!-- Botão novo movimento -->
+      <div class="finance-action-bar">
+        <button class="btn-new-proposal" id="btn-new-finance">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo Movimento
+        </button>
+      </div>
+
+      <!-- Lista de movimentos -->
+      <div id="finance-list" class="finance-list">
+        <div class="loading-overlay" id="finance-loading">
+          <div class="spinner"></div>
+          <span>Carregando movimentos…</span>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /tab-content -->
 
 </div><!-- /app-screen -->
@@ -374,8 +418,34 @@
     <!-- Passo 2b: Nome externo -->
     <div id="proposal-step-external" class="hidden">
       <button class="share-back-btn" id="proposal-back-external">← Voltar</button>
+      <p class="share-label">Tipo de operação:</p>
+      <div class="share-options" style="margin-bottom:0.75rem">
+        <button class="share-option-btn external-subtype-btn" id="external-subtype-trade" data-subtype="trade">
+          <span class="share-option-icon">🤝</span>
+          <span class="share-option-text">
+            <strong>Troca</strong>
+            <small>Troca de figurinhas sem valor monetário</small>
+          </span>
+        </button>
+        <button class="share-option-btn external-subtype-btn" id="external-subtype-sale" data-subtype="sale">
+          <span class="share-option-icon">💵</span>
+          <span class="share-option-text">
+            <strong>Venda / Compra</strong>
+            <small>Operação com valor monetário</small>
+          </span>
+        </button>
+      </div>
       <p class="share-label">Nome do parceiro externo:</p>
       <input type="text" id="proposal-external-name" class="admin-input" placeholder="Ex: João da feira" autocomplete="off" />
+      <div id="external-sale-fields" class="hidden" style="margin-top:0.75rem">
+        <p class="share-label">Eu sou o:</p>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+          <button class="filter-chip" id="external-sale-seller" data-role="seller">Vendedor (Recebo)</button>
+          <button class="filter-chip" id="external-sale-buyer" data-role="buyer">Comprador (Pago)</button>
+        </div>
+        <p class="share-label">Valor (R$):</p>
+        <input type="number" id="external-sale-value" class="admin-input" placeholder="0,00" min="0" step="0.01" style="margin-bottom:0.5rem" />
+      </div>
       <button class="btn-share-next" id="proposal-external-next" disabled style="margin-top:0.75rem">Próximo →</button>
     </div>
 
@@ -422,6 +492,60 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ══ MODAL MOVIMENTO FINANCEIRO ═══════════════════════════ -->
+<div id="modal-finance" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px">
+    <div class="share-modal-header">
+      <h3 id="modal-finance-title">Novo Movimento</h3>
+      <button class="btn-icon" id="btn-close-finance"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+
+    <!-- Passo 1: Escolher tipo -->
+    <div id="finance-step-type">
+      <p class="share-label">Tipo do movimento:</p>
+      <div class="share-options">
+        <button class="share-option-btn" id="finance-type-income">
+          <span class="share-option-icon">💰</span>
+          <span class="share-option-text">
+            <strong>Entrada (Receita)</strong>
+            <small>Venda de figurinhas, recebimento</small>
+          </span>
+        </button>
+        <button class="share-option-btn" id="finance-type-expense">
+          <span class="share-option-icon">🛒</span>
+          <span class="share-option-text">
+            <strong>Saída (Despesa)</strong>
+            <small>Compra de pacotes, pagamento</small>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Passo 2: Preencher dados -->
+    <div id="finance-step-form" class="hidden">
+      <button class="share-back-btn" id="finance-back-type">← Voltar</button>
+      <div class="finance-form">
+        <div class="finance-form-group">
+          <label class="finance-form-label">Valor (R$)</label>
+          <input type="number" id="finance-value" class="admin-input" placeholder="0,00" min="0" step="0.01" />
+        </div>
+        <div class="finance-form-group">
+          <label class="finance-form-label">Data</label>
+          <input type="date" id="finance-date" class="admin-input" />
+        </div>
+        <div class="finance-form-group">
+          <label class="finance-form-label">Descrição</label>
+          <input type="text" id="finance-description" class="admin-input" placeholder="Ex: Compra de 5 pacotes" autocomplete="off" />
+        </div>
+        <div class="finance-type-indicator" id="finance-type-indicator"></div>
+      </div>
+      <div class="proposal-actions">
+        <button class="btn-share-next" id="finance-btn-save">Salvar Movimento</button>
+      </div>
+    </div>
   </div>
 </div>
 
