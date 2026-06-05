@@ -125,7 +125,7 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
       Negoc.
     </button>
-    <button class="tab-btn-share" id="btn-share-link" title="Meu link de negociação" onclick="openShareLinkModal()">
+    <button class="tab-btn-share" id="btn-share-link" title="Meu link de negociação">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
     </button>
     <button class="tab-btn hidden" id="tab-btn-stats" data-tab="stats">
@@ -787,7 +787,7 @@
 
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
       <input type="text" id="share-link-url" readonly style="flex:1;padding:8px 10px;background:#12121e;border:1px solid #3a3a5e;border-radius:8px;color:#f0f0f0;font-size:12px" />
-      <button onclick="copyShareLink()" style="padding:8px 14px;background:#c0a020;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Copiar</button>
+      <button id="btn-copy-share-link" style="padding:8px 14px;background:#c0a020;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Copiar</button>
     </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;background:#1a1a2e;border-radius:10px;padding:12px 14px;margin-bottom:14px">
@@ -796,7 +796,7 @@
         <div style="font-size:11px;color:#aaa">Quando desativado, ninguém consegue acessar seu link</div>
       </div>
       <label class="toggle-switch">
-        <input type="checkbox" id="share-link-toggle" onchange="toggleShareLink(this.checked)" />
+        <input type="checkbox" id="share-link-toggle" />
         <span class="toggle-slider"></span>
       </label>
     </div>
@@ -807,7 +807,7 @@
     </div>
 
     <div style="display:flex;justify-content:flex-end;margin-top:14px">
-      <button onclick="closeShareLinkModal()" style="padding:8px 20px;background:#2a2a3e;color:#ccc;border:none;border-radius:8px;cursor:pointer">Fechar</button>
+      <button id="btn-close-share-link" style="padding:8px 20px;background:#2a2a3e;color:#ccc;border:none;border-radius:8px;cursor:pointer">Fechar</button>
     </div>
   </div>
 </div>

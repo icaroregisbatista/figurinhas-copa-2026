@@ -3875,3 +3875,18 @@ function updateShareLinkVisibility() {
   const isAdminNoImpersonation = currentUser && ADMIN_EMAILS.includes(currentUser.email) && !impersonatedUser;
   btn.classList.toggle('hidden', isAdminNoImpersonation);
 }
+
+// ── Event listeners para o modal de link de negociação ──
+document.addEventListener('DOMContentLoaded', () => {
+  const btnOpen = document.getElementById('btn-share-link');
+  if (btnOpen) btnOpen.addEventListener('click', () => openShareLinkModal());
+
+  const btnCopy = document.getElementById('btn-copy-share-link');
+  if (btnCopy) btnCopy.addEventListener('click', () => copyShareLink());
+
+  const btnClose = document.getElementById('btn-close-share-link');
+  if (btnClose) btnClose.addEventListener('click', () => closeShareLinkModal());
+
+  const toggle = document.getElementById('share-link-toggle');
+  if (toggle) toggle.addEventListener('change', (e) => toggleShareLink(e.target.checked));
+});
