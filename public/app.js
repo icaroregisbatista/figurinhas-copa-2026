@@ -3847,16 +3847,8 @@ function updateShareLinkVisibility() {
 }
 
 // ── Event listeners para o modal de link de negociação ──
-document.addEventListener('DOMContentLoaded', () => {
-  const btnOpen = document.getElementById('btn-share-link');
-  if (btnOpen) btnOpen.addEventListener('click', () => openShareLinkModal());
-
-  const btnCopy = document.getElementById('btn-copy-share-link');
-  if (btnCopy) btnCopy.addEventListener('click', () => copyShareLink());
-
-  const btnClose = document.getElementById('btn-close-share-link');
-  if (btnClose) btnClose.addEventListener('click', () => closeShareLinkModal());
-
-  const toggle = document.getElementById('share-link-toggle');
-  if (toggle) toggle.addEventListener('change', (e) => toggleShareLink(e.target.checked));
-});
+// Em ES Modules o script já executa após o DOM estar pronto, sem precisar de DOMContentLoaded
+document.getElementById('btn-share-link')?.addEventListener('click', () => openShareLinkModal());
+document.getElementById('btn-copy-share-link')?.addEventListener('click', () => copyShareLink());
+document.getElementById('btn-close-share-link')?.addEventListener('click', () => closeShareLinkModal());
+document.getElementById('share-link-toggle')?.addEventListener('change', (e) => toggleShareLink(e.target.checked));
