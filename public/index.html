@@ -18,8 +18,16 @@
 </head>
 <body>
 
+<!-- ══ TELA DE CARREGAMENTO AUTH ══════════════════════════════════════ -->
+<div id="auth-loading-screen" class="screen">
+  <div class="auth-loading-card">
+    <div class="auth-loading-spinner"></div>
+    <p class="auth-loading-text">Verificando acesso…</p>
+  </div>
+</div>
+
 <!-- ══ TELA DE LOGIN ══════════════════════════════════════ -->
-<div id="login-screen" class="screen">
+<div id="login-screen" class="screen hidden">
   <div class="login-card">
     <div class="trophy-icon">🏆</div>
     <h1 class="login-title">Copa <span>2026</span></h1>
@@ -114,8 +122,8 @@
       Repetidas
     </button>
     <button class="tab-btn" data-tab="trocas">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>
-      Trocas
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      Negoc.
     </button>
     <button class="tab-btn hidden" id="tab-btn-stats" data-tab="stats">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -204,7 +212,7 @@
         <div class="trade-proposal-bar">
           <button class="btn-new-proposal" id="btn-new-proposal">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Nova Proposta de Troca
+            Nova Negociação
           </button>
         </div>
 
@@ -241,6 +249,14 @@
             <svg class="collapse-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           <div id="received-proposals-list" class="collapsible-body"></div>
+        </div>
+
+        <!-- Filtro Tenho/Faltando nas Negociações -->
+        <div class="trade-sticker-filter-bar">
+          <span class="trade-filter-label">Filtrar figurinhas:</span>
+          <button class="trade-filter-chip active" data-trade-filter="all">Todas</button>
+          <button class="trade-filter-chip" data-trade-filter="owned">Tenho</button>
+          <button class="trade-filter-chip" data-trade-filter="missing">Faltando</button>
         </div>
 
         <!-- Minhas repetidas que outros precisam -->
@@ -383,13 +399,13 @@
 <div id="modal-proposal" class="modal-overlay hidden">
   <div class="modal-box proposal-modal">
     <div class="share-modal-header">
-      <h3>Nova Proposta de Troca</h3>
+      <h3>Nova Negociação</h3>
       <button class="btn-icon" id="btn-close-proposal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
     <!-- Passo 1: Tipo de proposta -->
     <div id="proposal-step-type">
-      <p class="share-label">Tipo de troca:</p>
+      <p class="share-label">Tipo de negociação:</p>
       <div class="share-options">
         <button class="share-option-btn" id="proposal-type-member">
           <span class="share-option-icon">👥</span>
@@ -401,7 +417,7 @@
         <button class="share-option-btn" id="proposal-type-external">
           <span class="share-option-icon">🤝</span>
           <span class="share-option-text">
-            <strong>Troca avulsa</strong>
+            <strong>Avulsa / Externa</strong>
             <small>Parceiro externo — você confirma</small>
           </span>
         </button>
@@ -411,6 +427,32 @@
     <!-- Passo 2a: Escolher membro -->
     <div id="proposal-step-member" class="hidden">
       <button class="share-back-btn" id="proposal-back-member">← Voltar</button>
+      <p class="share-label">Tipo de operação:</p>
+      <div class="share-options" style="margin-bottom:0.75rem">
+        <button class="share-option-btn member-subtype-btn active" id="member-subtype-trade" data-subtype="trade">
+          <span class="share-option-icon">🤝</span>
+          <span class="share-option-text">
+            <strong>Troca</strong>
+            <small>Sem valor monetário</small>
+          </span>
+        </button>
+        <button class="share-option-btn member-subtype-btn" id="member-subtype-sale" data-subtype="sale">
+          <span class="share-option-icon">💵</span>
+          <span class="share-option-text">
+            <strong>Venda / Compra</strong>
+            <small>Operação com valor</small>
+          </span>
+        </button>
+      </div>
+      <div id="member-sale-fields" class="hidden" style="margin-bottom:0.75rem">
+        <p class="share-label">Eu sou o:</p>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+          <button class="filter-chip" id="member-sale-seller" data-member-role="seller">Vendedor (Recebo)</button>
+          <button class="filter-chip" id="member-sale-buyer" data-member-role="buyer">Comprador (Pago)</button>
+        </div>
+        <p class="share-label">Valor (R$):</p>
+        <input type="number" id="member-sale-value" class="admin-input" placeholder="0,00" min="0" step="0.01" style="margin-bottom:0.5rem" />
+      </div>
       <p class="share-label">Escolha o parceiro:</p>
       <div id="proposal-member-list" class="proposal-member-list"></div>
     </div>
@@ -691,5 +733,46 @@
 <div id="toast" class="toast"></div>
 
 <script type="module" src="app.js"></script>
+<!-- ══ MODAL SELETOR DE MODO PDF ════════════════════════════════════════════════════════════════ -->
+<div id="modal-pdf-mode" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px">
+    <div class="share-modal-header">
+      <h3>Exportar PDF</h3>
+      <button class="btn-icon" id="btn-close-pdf-mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <p class="share-label" style="margin-bottom:0.75rem">Escolha o tipo de PDF:</p>
+    <div class="share-options" style="gap:0.5rem">
+      <button class="share-option-btn pdf-mode-btn" data-mode="full">
+        <span class="share-option-icon">📖</span>
+        <span class="share-option-text">
+          <strong>Completo</strong>
+          <small>Todas as seções com status de cada figurinha</small>
+        </span>
+      </button>
+      <button class="share-option-btn pdf-mode-btn" data-mode="missing">
+        <span class="share-option-icon">🔍</span>
+        <span class="share-option-text">
+          <strong>Intermediário — Faltantes</strong>
+          <small>Só seções incompletas + resumo das completas</small>
+        </span>
+      </button>
+      <button class="share-option-btn pdf-mode-btn" data-mode="duplicates">
+        <span class="share-option-icon">🔄</span>
+        <span class="share-option-text">
+          <strong>Repetidas</strong>
+          <small>Apenas seções com figurinhas repetidas</small>
+        </span>
+      </button>
+      <button class="share-option-btn pdf-mode-btn" data-mode="simple">
+        <span class="share-option-icon">📝</span>
+        <span class="share-option-text">
+          <strong>Simples — Faltantes</strong>
+          <small>Layout limpo: apenas números das que faltam + repetidas com qtd</small>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

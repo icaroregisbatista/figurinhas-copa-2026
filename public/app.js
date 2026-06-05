@@ -64,6 +64,7 @@ let activeGroup = 'all';
 let activeStatus = null;        // 'missing' | 'owned' | null
 let activeTradeGroup = 'all';   // filtro de grupo na aba trocas
 let activeProposalStatus = 'all'; // filtro de status das propostas
+let activeTradeFilter = 'all';   // filtro tenho/faltando nas negociações
 let searchQuery = '';
 let impersonatedUser = null; // { uid, name, email } - usuário que o admin está operando como
 let realUser = null;         // backup do currentUser original durante impersonação
@@ -140,6 +141,8 @@ onAuthStateChanged(auth, async (user) => {
     showScreen('login');
     return;
   }
+  // Mostrar tela de carregamento enquanto verifica autorização
+  showScreen('auth-loading');
 
   // Verificar se está autorizado
   const authorized = await checkAuthorized(user.email);
@@ -188,9 +191,12 @@ function showScreen(name) {
   loginScreen.classList.add('hidden');
   deniedScreen.classList.add('hidden');
   appScreen.classList.add('hidden');
+  const authLoadingScreen = document.getElementById('auth-loading-screen');
+  if (authLoadingScreen) authLoadingScreen.classList.add('hidden');
   if (name === 'login') loginScreen.classList.remove('hidden');
   else if (name === 'denied') deniedScreen.classList.remove('hidden');
   else if (name === 'app') appScreen.classList.remove('hidden');
+  else if (name === 'auth-loading') { if (authLoadingScreen) authLoadingScreen.classList.remove('hidden'); }
 }
 
 // ══════════════════════════════════════════════
@@ -389,6 +395,16 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // Os chips de grupo do topo (data-group) já controlam activeGroup e chamam renderMatchesList via renderGrid/renderDuplicatesGrid
 // Quando a aba Trocas está ativa, o filtro de grupo usa activeGroup diretamente
 
+// Filtro Tenho/Faltando nas Negociações
+document.querySelectorAll('.trade-filter-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.trade-filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTradeFilter = btn.dataset.tradeFilter;
+    renderMatchesList();
+  });
+});
+
 function renderMatchesList() {
   const matchesList = document.getElementById('matches-list');
   if (!matchesList) return;
@@ -414,6 +430,8 @@ function renderMatchesList() {
     if (!sticker) return;
     // Aplicar filtro de grupo (usa o mesmo activeGroup dos chips do topo)
     if (activeGroup !== 'all' && sticker.group !== activeGroup) return;
+    // Aplicar filtro Tenho/Faltando: "Tenho" = tenho repetida (já filtrado), "Faltando" = não mostrar aqui
+    if (activeTradeFilter === 'missing') return; // seção de repetidas não aparece no filtro "Faltando"
     // Aplicar filtro de busca
     if (tradeSearch) {
       const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
@@ -485,6 +503,8 @@ function renderNeedsList() {
   allStickers.forEach(sticker => {
     if (myCollection.has(sticker.code)) return; // já tenho
     if (activeGroup !== 'all' && sticker.group !== activeGroup) return;
+    // Aplicar filtro Tenho/Faltando: "Tenho" = não mostrar aqui (são faltantes)
+    if (activeTradeFilter === 'owned') return;
     if (tradeSearch) {
       const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
       const searchable = `${sticker.code} ${sticker.name} ${groupLabel} ${sticker.page}`.toLowerCase();
@@ -1207,6 +1227,9 @@ async function updateDuplicate(code, newQty, card) {
   qtyEl.className = 'dup-qty' + (newQty > 0 ? ' has-dup' : '');
   card.classList.toggle('owned', newQty > 0);
 
+  // Atualizar contador do header imediatamente (otimista)
+  updateProgress();
+
   // Persistir
   try {
     const uid = getActiveUid();
@@ -1221,6 +1244,7 @@ async function updateDuplicate(code, newQty, card) {
     qtyEl.textContent = oldQty;
     qtyEl.className = 'dup-qty' + (oldQty > 0 ? ' has-dup' : '');
     card.classList.toggle('owned', oldQty > 0);
+    updateProgress(); // reverter contador
     showToast('Erro ao salvar. Tente novamente.', 'error');
   }
 }
@@ -1803,8 +1827,47 @@ modalProposal.addEventListener('click', e => { if (e.target === modalProposal) c
 // Tipo: membro
 document.getElementById('proposal-type-member').addEventListener('click', () => {
   proposalState.type = 'member';
+  proposalState.subtype = 'trade'; // padrão: troca
+  proposalState.saleRole = null;
+  proposalState.saleValue = 0;
+  // Resetar seleção de subtipo
+  document.querySelectorAll('.member-subtype-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('member-subtype-trade').classList.add('active');
+  document.getElementById('member-sale-fields').classList.add('hidden');
+  document.getElementById('member-sale-value').value = '';
+  document.querySelectorAll('[data-member-role]').forEach(b => b.classList.remove('active'));
   buildMemberList();
   showProposalStep('member');
+});
+
+// Subtipo para membro (troca / venda)
+document.querySelectorAll('.member-subtype-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.member-subtype-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    proposalState.subtype = btn.dataset.subtype;
+    const saleFields = document.getElementById('member-sale-fields');
+    if (proposalState.subtype === 'sale') {
+      saleFields.classList.remove('hidden');
+    } else {
+      saleFields.classList.add('hidden');
+      proposalState.saleRole = null;
+      proposalState.saleValue = 0;
+    }
+  });
+});
+
+// Papel (vendedor/comprador) para membro
+document.querySelectorAll('[data-member-role]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-member-role]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    proposalState.saleRole = btn.dataset.memberRole;
+  });
+});
+
+document.getElementById('member-sale-value').addEventListener('input', function() {
+  proposalState.saleValue = parseFloat(this.value) || 0;
 });
 
 // Tipo: avulsa
@@ -2534,7 +2597,35 @@ async function acceptProposal(proposal) {
     // Cancelar propostas conflitantes (fora da transação)
     await cancelConflictingProposals(proposal.offeredCodes || []);
 
-    showToast('Troca aceita! Coleções atualizadas. 🎉', 'success');
+    showToast('Negociação aceita! Coleções atualizadas. 🎉', 'success');
+
+    // Registrar movimento financeiro se for venda/compra entre membros
+    if (proposal.subtype === 'sale' && proposal.saleValue > 0) {
+      const uid = getActiveUid(); // receptor (quem aceitou)
+      const isRecipientSeller = proposal.saleRole === 'buyer'; // se quem enviou era comprador, quem aceita é vendedor
+      const partnerName = proposal.fromName || 'Parceiro';
+      const codesLabel = (proposal.offeredCodes || []).join(', ') || '';
+
+      // Movimento para o receptor (quem aceitou)
+      await addFinanceMovementFromTrade({
+        type: isRecipientSeller ? 'income' : 'expense',
+        value: proposal.saleValue,
+        description: `${isRecipientSeller ? 'Venda' : 'Compra'} para ${partnerName}${codesLabel ? ': ' + codesLabel : ''}`,
+        uid,
+      });
+
+      // Movimento para o remetente (quem criou a proposta) — salvo com o uid do fromUid
+      if (proposal.fromUid) {
+        const fromIsIncome = proposal.saleRole === 'seller';
+        await addFinanceMovementFromTrade({
+          type: fromIsIncome ? 'income' : 'expense',
+          value: proposal.saleValue,
+          description: `${fromIsIncome ? 'Venda' : 'Compra'} para ${getActiveUser()?.displayName || 'Parceiro'}${codesLabel ? ': ' + codesLabel : ''}`,
+          uid: proposal.fromUid,
+        });
+      }
+      showToast(`Financeiro atualizado nos dois lados: R$ ${proposal.saleValue.toFixed(2).replace('.', ',')}`, 'success');
+    }
 
     // Atualizar estado local (reflete no grid imediatamente)
     for (const code of (proposal.offeredCodes || [])) {
@@ -2702,15 +2793,31 @@ const TEAM_FLAG_ISO = {
   UZB: 'uz',
 };
 
-document.getElementById('btn-export-pdf').addEventListener('click', exportAlbumPDF);
+// Abrir modal de seleção de modo PDF
+document.getElementById('btn-export-pdf').addEventListener('click', () => {
+  document.getElementById('modal-pdf-mode').classList.remove('hidden');
+});
+document.getElementById('btn-close-pdf-mode').addEventListener('click', () => {
+  document.getElementById('modal-pdf-mode').classList.add('hidden');
+});
+document.getElementById('modal-pdf-mode').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-pdf-mode')) {
+    document.getElementById('modal-pdf-mode').classList.add('hidden');
+  }
+});
+document.querySelectorAll('.pdf-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('modal-pdf-mode').classList.add('hidden');
+    exportAlbumPDF(btn.dataset.mode);
+  });
+});
 
-async function exportAlbumPDF() {
+async function exportAlbumPDF(pdfMode = 'full') {
   if (!allStickers || allStickers.length === 0) {
     showToast('Aguarde o carregamento das figurinhas.', 'error');
     return;
   }
 
-  // Mostrar mensagem de progresso
   showToast('Gerando PDF, aguarde… (carregando bandeiras)', 'info');
 
   try {
@@ -2744,14 +2851,9 @@ async function exportAlbumPDF() {
       teamMap[tc].stickers.push(s);
     });
 
-    // Mesclar SUI e SWI (mesmo time, códigos diferentes)
     if (teamMap['SUI'] && teamMap['SWI']) {
       teamMap['SUI'].stickers = [...teamMap['SUI'].stickers, ...teamMap['SWI'].stickers]
-        .sort((a, b) => {
-          const na = parseInt(a.code.replace(/^[A-Z]+/, ''));
-          const nb = parseInt(b.code.replace(/^[A-Z]+/, ''));
-          return na - nb;
-        });
+        .sort((a, b) => parseInt(a.code.replace(/^[A-Z]+/, '')) - parseInt(b.code.replace(/^[A-Z]+/, '')));
       delete teamMap['SWI'];
     }
 
@@ -2763,17 +2865,12 @@ async function exportAlbumPDF() {
     const orderedTeams = [...regular, ...fwc, ...cc];
 
     // Pré-carregar bandeiras
-    showToast('Gerando PDF, aguarde… (carregando bandeiras)', 'info');
     const flagCache = {};
     const flagPromises = orderedTeams.map(async team => {
       const iso = TEAM_FLAG_ISO[team.code];
       if (!iso) return;
-      try {
-        const url = `https://flagcdn.com/w20/${iso}.png`;
-        flagCache[team.code] = await loadImageAsDataUrl(url);
-      } catch (_) {}
+      try { flagCache[team.code] = await loadImageAsDataUrl(`https://flagcdn.com/w20/${iso}.png`); } catch (_) {}
     });
-    // Logos especiais embutidos como base64 (sem dependência de URL externa)
     flagCache['FWC'] = FIFA_LOGO_B64;
     flagCache['CC'] = CC_LOGO_B64;
     await Promise.all(flagPromises);
@@ -2781,23 +2878,47 @@ async function exportAlbumPDF() {
     showToast('Gerando PDF, aguarde… (montando páginas)', 'info');
 
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const baseParams = { userName, today, totalOwned, totalStickers, totalMissing, pct, userPhotoDataUrl, flagCache };
 
-    // ── PÁGINA 1: Controle do Álbum ──
-    await drawPDFPageV2(doc, {
-      teams: orderedTeams, collection: myCollection, duplicates: null,
-      pageTitle: 'Controle do Álbum', userName, today, totalOwned, totalStickers, totalMissing, pct,
-      userPhotoDataUrl, flagCache, mode: 'collection', isFirstPage: true
-    });
+    if (pdfMode === 'full') {
+      // ── MODO COMPLETO: página coleção + página repetidas ──
+      await drawPDFPageV2(doc, { ...baseParams, teams: orderedTeams, collection: myCollection, duplicates: null,
+        pageTitle: 'Controle do Álbum', mode: 'collection', isFirstPage: true });
+      doc.addPage();
+      await drawPDFPageV2(doc, { ...baseParams, teams: orderedTeams, collection: myCollection, duplicates: myDuplicates || {},
+        pageTitle: 'Repetidas para Troca', mode: 'duplicates', isFirstPage: false });
 
-    // ── PÁGINA 2: Controle de Repetidas ──
-    doc.addPage();
-    await drawPDFPageV2(doc, {
-      teams: orderedTeams, collection: myCollection, duplicates: myDuplicates || {},
-      pageTitle: 'Repetidas para Troca', userName, today, totalOwned, totalStickers, totalMissing, pct,
-      userPhotoDataUrl, flagCache, mode: 'duplicates', isFirstPage: false
-    });
+    } else if (pdfMode === 'missing') {
+      // ── MODO INTERMEDIÁRIO: apenas seções incompletas + resumo das completas ──
+      const incompleteTeams = orderedTeams.filter(team => {
+        return team.stickers.some(s => !myCollection.has(s.code));
+      });
+      const completeTeams = orderedTeams.filter(team => {
+        return team.stickers.every(s => myCollection.has(s.code));
+      });
+      await drawPDFPageV2(doc, { ...baseParams, teams: incompleteTeams, collection: myCollection, duplicates: null,
+        pageTitle: 'Faltantes (seções incompletas)', mode: 'collection', isFirstPage: true,
+        completedTeamsSummary: completeTeams });
 
-    doc.save(`album-copa-2026-${userName.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+    } else if (pdfMode === 'duplicates') {
+      // ── MODO REPETIDAS: apenas seções com repetidas ──
+      const teamsWithDups = orderedTeams.filter(team => {
+        return team.stickers.some(s => (myDuplicates || {})[s.code] > 0);
+      });
+      if (teamsWithDups.length === 0) {
+        showToast('Você não tem figurinhas repetidas no momento.', 'error');
+        return;
+      }
+      await drawPDFPageV2(doc, { ...baseParams, teams: teamsWithDups, collection: myCollection, duplicates: myDuplicates || {},
+        pageTitle: 'Repetidas para Troca', mode: 'duplicates', isFirstPage: true });
+
+    } else if (pdfMode === 'simple') {
+      // ── MODO SIMPLES: layout clean, faltantes com números + repetidas com qtd ──
+      await drawPDFSimple(doc, { ...baseParams, teams: orderedTeams, collection: myCollection, duplicates: myDuplicates || {} });
+    }
+
+    const modeSuffix = { full: 'completo', missing: 'faltantes', duplicates: 'repetidas', simple: 'simples' }[pdfMode] || pdfMode;
+    doc.save(`album-copa-2026-${userName.replace(/\s+/g, '-').toLowerCase()}-${modeSuffix}.pdf`);
     showToast('PDF gerado com sucesso!', 'success');
   } catch (e) {
     console.error('Erro ao gerar PDF:', e);
@@ -2805,7 +2926,7 @@ async function exportAlbumPDF() {
   }
 }
 
-async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, userName, today, totalOwned, totalStickers, totalMissing, pct, userPhotoDataUrl, flagCache, mode }) {
+async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, userName, today, totalOwned, totalStickers, totalMissing, pct, userPhotoDataUrl, flagCache, mode, completedTeamsSummary }) {
   const pageW = 210;
   const pageH = 297;
   const margin = 5;
@@ -2993,7 +3114,168 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
     rowIndex++;
   }
 
+  // ── Bloco de resumo das seções completas (modo intermediário) ──
+  if (completedTeamsSummary && completedTeamsSummary.length > 0) {
+    if (y + 10 > pageH - 14) {
+      doc.addPage();
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pageW, pageH, 'F');
+      y = 8;
+    }
+    y += 3;
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y, margin + contentW, y);
+    y += 3;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Seções completas (${completedTeamsSummary.length}):`, margin, y);
+    y += 3;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.5);
+    doc.setTextColor(80, 80, 80);
+    const names = completedTeamsSummary.map(t => `${TEAM_NAMES_PT[t.code] || t.code} (${t.code})`).join('  •  ');
+    const lines = doc.splitTextToSize(names, contentW);
+    doc.text(lines, margin, y);
+    y += lines.length * 3.5;
+  }
+
   // ── Rodapé de patrocínio ──
+  const footerY = pageH - 11;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.3);
+  doc.rect(margin, footerY, contentW, 8, 'FD');
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7);
+  doc.setTextColor(150, 150, 150);
+  doc.text('Deixe seu patrocínio aqui', pageW / 2, footerY + 4.5, { align: 'center' });
+}
+
+// ── MODO SIMPLES: layout clean com apenas números das faltantes e repetidas com qtd ──
+async function drawPDFSimple(doc, { teams, collection, duplicates, userName, today, totalOwned, totalStickers, totalMissing, pct, userPhotoDataUrl, flagCache }) {
+  const pageW = 210;
+  const pageH = 297;
+  const margin = 8;
+  const contentW = pageW - margin * 2;
+
+  function ensurePage(doc, y, needed) {
+    if (y + needed > pageH - 14) {
+      doc.addPage();
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pageW, pageH, 'F');
+      return 10;
+    }
+    return y;
+  }
+
+  // Cabeçalho
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, pageW, pageH, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(20, 20, 20);
+  doc.text('Copa do Mundo 2026 — Figurinhas', pageW / 2, 8, { align: 'center' });
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  doc.text(`${userName}  ·  ${today}  ·  ${totalOwned}/${totalStickers} (${pct}%)  ·  Faltam: ${totalMissing}`, pageW / 2, 13, { align: 'center' });
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(margin, 16, margin + contentW, 16);
+
+  let y = 20;
+
+  // ── Seção 1: Figurinhas faltantes por seleção ──
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 30, 30);
+  doc.text('FIGURINHAS FALTANTES', margin, y);
+  y += 5;
+
+  for (const team of teams) {
+    const missing = team.stickers.filter(s => !collection.has(s.code));
+    if (missing.length === 0) continue;
+
+    y = ensurePage(doc, y, 10);
+
+    // Nome da seleção
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(40, 40, 40);
+    const teamLabel = `${TEAM_NAMES_PT[team.code] || team.country || team.code} (${team.code})`;
+    doc.text(teamLabel, margin, y);
+
+    // Bandeira
+    const flagDataUrl = flagCache[team.code];
+    if (flagDataUrl) {
+      try { doc.addImage(flagDataUrl, 'PNG', margin + 55, y - 3, 6, 4); } catch (_) {}
+    }
+    y += 4;
+
+    // Números das faltantes em linha
+    const nums = missing.map(s => {
+      const n = parseInt(s.code.replace(/^[A-Z]+/, ''));
+      return team.code === 'FWC' && n === 0 ? '00' : String(n);
+    }).join('  ');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    doc.setTextColor(60, 60, 60);
+    const numLines = doc.splitTextToSize(nums, contentW - 4);
+    y = ensurePage(doc, y, numLines.length * 3.5 + 2);
+    doc.text(numLines, margin + 2, y);
+    y += numLines.length * 3.5 + 2;
+  }
+
+  // ── Seção 2: Repetidas ──
+  const teamsWithDups = teams.filter(t => t.stickers.some(s => (duplicates[s.code] || 0) >= 2));
+  if (teamsWithDups.length > 0) {
+    y = ensurePage(doc, y, 12);
+    y += 4;
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y, margin + contentW, y);
+    y += 5;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(30, 30, 30);
+    doc.text('REPETIDAS (2 ou mais)', margin, y);
+    y += 5;
+
+    for (const team of teamsWithDups) {
+      const dups = team.stickers.filter(s => (duplicates[s.code] || 0) >= 2);
+      if (dups.length === 0) continue;
+
+      y = ensurePage(doc, y, 10);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(40, 40, 40);
+      const teamLabel = `${TEAM_NAMES_PT[team.code] || team.country || team.code} (${team.code})`;
+      doc.text(teamLabel, margin, y);
+      const flagDataUrl = flagCache[team.code];
+      if (flagDataUrl) {
+        try { doc.addImage(flagDataUrl, 'PNG', margin + 55, y - 3, 6, 4); } catch (_) {}
+      }
+      y += 4;
+
+      const dupNums = dups.map(s => {
+        const n = parseInt(s.code.replace(/^[A-Z]+/, ''));
+        const num = team.code === 'FWC' && n === 0 ? '00' : String(n);
+        const qty = duplicates[s.code];
+        return `${num}(${qty}x)`;
+      }).join('  ');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(60, 60, 60);
+      const dupLines = doc.splitTextToSize(dupNums, contentW - 4);
+      y = ensurePage(doc, y, dupLines.length * 3.5 + 2);
+      doc.text(dupLines, margin + 2, y);
+      y += dupLines.length * 3.5 + 2;
+    }
+  }
+
+  // Rodapé
   const footerY = pageH - 11;
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(180, 180, 180);
@@ -3352,9 +3634,9 @@ function updateFinanceSummary() {
 }
 
 // ── Adicionar movimento a partir de troca/venda ───────────────
-async function addFinanceMovementFromTrade({ type, value, description }) {
+async function addFinanceMovementFromTrade({ type, value, description, uid: targetUid }) {
   try {
-    const uid = getActiveUid();
+    const uid = targetUid || getActiveUid();
     await addDoc(collection(db, 'financial_movements'), {
       uid,
       type,
