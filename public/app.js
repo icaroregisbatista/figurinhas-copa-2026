@@ -3795,12 +3795,18 @@ async function loadExternalProposals() {
   try {
     const uid = currentUser?.uid;
     if (!uid) { list.innerHTML = ''; return; }
-    const snap = await getDocs(
-      query(collection(db, 'external_proposals'),
-        where('toUid', '==', uid),
-        orderBy('createdAt', 'desc')
-      )
+    // Buscar sem orderBy para evitar índice composto; filtrar e ordenar no cliente
+    const rawSnap = await getDocs(
+      query(collection(db, 'external_proposals'), where('toUid', '==', uid))
     );
+    const allItems = [];
+    rawSnap.forEach(d => allItems.push({ id: d.id, ...d.data() }));
+    allItems.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    // Simular snap.empty e snap.forEach
+    const snap = {
+      empty: allItems.length === 0,
+      forEach: (fn) => allItems.forEach(item => fn({ data: () => item }))
+    };
     if (snap.empty) {
       list.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px">Nenhuma proposta externa recebida ainda.</div>';
       return;
@@ -3828,43 +3834,7 @@ async function loadExternalProposals() {
       list.appendChild(div);
     });
   } catch (e) {
-    // Se o índice não existir, buscar sem orderBy
-    try {
-      const uid = currentUser?.uid;
-      const snap2 = await getDocs(
-        query(collection(db, 'external_proposals'), where('toUid', '==', uid))
-      );
-      const items = [];
-      snap2.forEach(d => items.push({ id: d.id, ...d.data() }));
-      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      if (items.length === 0) {
-        list.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px">Nenhuma proposta externa recebida ainda.</div>';
-        return;
-      }
-      list.innerHTML = '';
-      items.forEach(p => {
-        const dt = p.createdAt ? new Date(p.createdAt).toLocaleString('pt-BR') : '';
-        const typeLabel = p.type === 'venda' ? `💰 R$ ${(p.saleValue||0).toFixed(2)}` : '🔄 Troca';
-        const statusColors = { pending: '#c0a020', accepted: '#4a9', refused: '#e55', cancelled: '#888' };
-        const statusLabels = { pending: 'Pendente', accepted: 'Aceita', refused: 'Recusada', cancelled: 'Cancelada' };
-        const div = document.createElement('div');
-        div.style.cssText = 'background:#1a1a2e;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px';
-        div.innerHTML = `
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <strong style="color:#f0f0f0">${p.senderName}</strong>
-            <span style="color:${statusColors[p.status]||'#aaa'};font-size:11px">${statusLabels[p.status]||p.status}</span>
-          </div>
-          <div style="color:#aaa;margin-bottom:4px">${typeLabel} · ${dt}</div>
-          ${p.senderContact ? `<div style="color:#88c">📞 ${p.senderContact}</div>` : ''}
-          ${p.message ? `<div style="color:#ccc;margin-top:4px;font-style:italic">"${p.message}"</div>` : ''}
-          ${p.offeredCodes?.length ? `<div style="margin-top:4px;color:#9de">Oferece: ${p.offeredCodes.join(', ')}</div>` : ''}
-          ${p.requestedCodes?.length ? `<div style="color:#fda">Quer: ${p.requestedCodes.join(', ')}</div>` : ''}
-        `;
-        list.appendChild(div);
-      });
-    } catch (e2) {
-      list.innerHTML = '<div style="color:#e55;font-size:12px;padding:8px">Erro ao carregar propostas.</div>';
-    }
+    list.innerHTML = '<div style="color:#e55;font-size:12px;padding:8px">Erro ao carregar propostas.</div>';
   }
 }
 
