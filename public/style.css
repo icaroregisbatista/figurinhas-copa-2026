@@ -2301,3 +2301,20 @@ body {
 }
 .trade-filter-chip:hover { border-color: var(--gold); color: var(--gold); }
 .trade-filter-chip.active { background: var(--gold-dim); border-color: var(--gold); color: var(--gold); font-weight: 600; }
+
+/* ── Estatísticas: coluna pessoal ── */
+.stats-col-personal .stats-col-title {
+  color: #c0a020;
+}
+.stats-col-personal .stats-col-title svg {
+  stroke: #c0a020;
+}
+
+/* ── Filtro local da aba Repetidas ── */
+.dup-filter-status {
+  margin: 8px 0 4px 0;
+  padding: 0 4px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}

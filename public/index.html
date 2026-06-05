@@ -191,6 +191,11 @@
 
     <!-- Aba: Repetidas -->
     <div id="tab-repetidas" class="tab-panel">
+      <!-- Filtro Tenho/Faltando local da aba Repetidas -->
+      <div class="filter-status dup-filter-status">
+        <button class="filter-chip" id="dup-filter-missing" data-dup-status="missing">⬜ Faltando</button>
+        <button class="filter-chip" id="dup-filter-owned" data-dup-status="owned">✅ Tenho</button>
+      </div>
       <div id="sticker-grid-dup" class="sticker-grid"></div>
       <div id="empty-state-dup" class="empty-state hidden">
         <span>🔍</span>
@@ -251,38 +256,36 @@
           <div id="received-proposals-list" class="collapsible-body"></div>
         </div>
 
-        <!-- Filtro Tenho/Faltando nas Negociações -->
-        <div class="trade-sticker-filter-bar">
-          <span class="trade-filter-label">Filtrar figurinhas:</span>
-          <button class="trade-filter-chip active" data-trade-filter="all">Todas</button>
-          <button class="trade-filter-chip" data-trade-filter="owned">Tenho</button>
-          <button class="trade-filter-chip" data-trade-filter="missing">Faltando</button>
+        <!-- Minhas repetidas que outros precisam (colapsável) -->
+        <div class="trading-section collapsible-section" id="section-matches">
+          <div class="section-title collapsible-header" data-target="matches-body">
+            <div class="section-title-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Minhas repetidas que outros precisam
+              <span class="badge badge-green" id="matches-count">0</span>
+            </div>
+            <svg class="collapse-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="matches-body" class="collapsible-body">
+            <p class="section-desc">Figurinhas que você tem como repetida e que outros colecionadores ainda não possuem.</p>
+            <div id="matches-list" class="trading-grid"></div>
+          </div>
         </div>
 
-        <!-- Minhas repetidas que outros precisam -->
-        <div class="trading-section">
-          <div class="section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-            Minhas repetidas que outros precisam
-            <span class="badge badge-green" id="matches-count">0</span>
+        <!-- O que eu preciso e outros têm repetido (colapsável) -->
+        <div class="trading-section collapsible-section" id="section-needs">
+          <div class="section-title collapsible-header" data-target="needs-body">
+            <div class="section-title-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              O que eu preciso e outros têm repetido
+              <span class="badge badge-gold" id="needs-count">0</span>
+            </div>
+            <svg class="collapse-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <p class="section-desc">
-            Figurinhas que você tem como repetida e que outros colecionadores ainda não possuem.
-          </p>
-          <div id="matches-list" class="trading-grid"></div>
-        </div>
-
-        <!-- O que eu preciso e outros têm repetido -->
-        <div class="trading-section">
-          <div class="section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            O que eu preciso e outros têm repetido
-            <span class="badge badge-gold" id="needs-count">0</span>
+          <div id="needs-body" class="collapsible-body">
+            <p class="section-desc">Figurinhas que você ainda não tem, mas algum colega possui como repetida.</p>
+            <div id="needs-list" class="trading-grid"></div>
           </div>
-          <p class="section-desc">
-            Figurinhas que você ainda não tem, mas algum colega possui como repetida.
-          </p>
-          <div id="needs-list" class="trading-grid"></div>
         </div>
 
       </div>

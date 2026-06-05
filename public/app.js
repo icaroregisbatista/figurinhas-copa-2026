@@ -65,6 +65,7 @@ let activeStatus = null;        // 'missing' | 'owned' | null
 let activeTradeGroup = 'all';   // filtro de grupo na aba trocas
 let activeProposalStatus = 'all'; // filtro de status das propostas
 let activeTradeFilter = 'all';   // filtro tenho/faltando nas negociações
+let activeDupStatus = null;      // 'owned' | 'missing' | null — filtro local da aba Repetidas
 let searchQuery = '';
 let impersonatedUser = null; // { uid, name, email } - usuário que o admin está operando como
 let realUser = null;         // backup do currentUser original durante impersonação
@@ -376,7 +377,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('tab-' + activeTab).classList.add('active');
 
     // Mostrar/ocultar filtros de status (só na coleção)
-    document.querySelector('.filter-status').style.display =
+    document.querySelector('.filter-status:not(.dup-filter-status)').style.display =
       activeTab === 'colecao' ? 'flex' : 'none';
 
     // Ocultar barra de filtro inteira nas abas Admin, Estatísticas e Financeiro
@@ -394,6 +395,23 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // Os chips de grupo do topo (data-group) já controlam activeGroup e chamam renderMatchesList via renderGrid/renderDuplicatesGrid
 // Quando a aba Trocas está ativa, o filtro de grupo usa activeGroup diretamente
+
+// Filtro Tenho/Faltando na aba Repetidas
+document.querySelectorAll('[data-dup-status]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const status = btn.dataset.dupStatus;
+    if (activeDupStatus === status) {
+      // Toggle off
+      activeDupStatus = null;
+      document.querySelectorAll('[data-dup-status]').forEach(b => b.classList.remove('active'));
+    } else {
+      activeDupStatus = status;
+      document.querySelectorAll('[data-dup-status]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    renderDuplicatesGrid();
+  });
+});
 
 // Filtro Tenho/Faltando nas Negociações
 document.querySelectorAll('.trade-filter-chip').forEach(btn => {
@@ -1164,7 +1182,15 @@ async function toggleSticker(code, card) {
 // RENDER — REPETIDAS
 // ══════════════════════════════════════════════
 function renderDuplicatesGrid() {
-  const filtered = getFilteredStickers();
+  let filtered = getFilteredStickers();
+
+  // Aplicar filtro local da aba Repetidas
+  if (activeDupStatus === 'owned') {
+    filtered = filtered.filter(s => (myDuplicates[s.code] || 0) > 0);
+  } else if (activeDupStatus === 'missing') {
+    filtered = filtered.filter(s => (myDuplicates[s.code] || 0) === 0);
+  }
+
   stickerGridDup.innerHTML = '';
 
   if (filtered.length === 0) {
@@ -1444,7 +1470,34 @@ function renderGroupStats(colSnaps, dupSnaps) {
     .sort((a, b) => a.count - b.count)
     .slice(0, 5);
 
+  // Top 5 repetidas do usuário atual
+  const myTopDups = Object.entries(myDuplicates)
+    .filter(([, qty]) => qty > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([code, qty]) => ({ code, qty, sticker: allStickers.find(s => s.code === code) }))
+    .filter(x => x.sticker);
+
   statsGrid.innerHTML = `
+    <div class="stats-col stats-col-personal">
+      <div class="stats-col-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Minhas mais repetidas
+      </div>
+      ${myTopDups.length === 0
+        ? '<div class="stats-empty">Nenhuma repetida registrada ainda.</div>'
+        : myTopDups.map((x, i) => `
+          <div class="stats-row">
+            <span class="stats-rank">${i + 1}</span>
+            <div class="stats-info">
+              <span class="stats-code">${x.code}</span>
+              <span class="stats-name">${x.sticker.name}</span>
+            </div>
+            <span class="stats-value gold">${x.qty}x</span>
+          </div>
+        `).join('')
+      }
+    </div>
     <div class="stats-col">
       <div class="stats-col-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
@@ -3153,126 +3206,135 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
   doc.text('Deixe seu patrocínio aqui', pageW / 2, footerY + 4.5, { align: 'center' });
 }
 
-// ── MODO SIMPLES: layout clean com apenas números das faltantes e repetidas com qtd ──
+// ── MODO SIMPLES: 1 página, bandeira + nome + números faltantes e repetidas ──
 async function drawPDFSimple(doc, { teams, collection, duplicates, userName, today, totalOwned, totalStickers, totalMissing, pct, userPhotoDataUrl, flagCache }) {
   const pageW = 210;
   const pageH = 297;
   const margin = 8;
   const contentW = pageW - margin * 2;
 
-  function ensurePage(doc, y, needed) {
-    if (y + needed > pageH - 14) {
-      doc.addPage();
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, 0, pageW, pageH, 'F');
-      return 10;
-    }
-    return y;
-  }
-
-  // Cabeçalho
+  // ── Cabeçalho padrão igual ao mapa geral ──
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageW, pageH, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(20, 20, 20);
-  doc.text('Copa do Mundo 2026 — Figurinhas', pageW / 2, 8, { align: 'center' });
+  doc.text('Planilha de Controle de Figurinhas — Copa do Mundo 2026', pageW / 2, 8, { align: 'center' });
+  doc.setFontSize(8);
+  doc.setTextColor(60, 60, 60);
+  doc.text('Versão Simples', pageW / 2, 13.5, { align: 'center' });
   doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(80, 80, 80);
-  doc.text(`${userName}  ·  ${today}  ·  ${totalOwned}/${totalStickers} (${pct}%)  ·  Faltam: ${totalMissing}`, pageW / 2, 13, { align: 'center' });
+  doc.setTextColor(100, 100, 100);
+  doc.text(`${userName}  ·  Gerado em ${today}  ·  ${totalOwned}/${totalStickers} (${pct}%)  ·  Faltam: ${totalMissing}`, pageW / 2, 19, { align: 'center' });
+
+  // Foto do usuário (canto superior direito)
+  const photoSize = 16;
+  const photoX = pageW - margin - photoSize;
+  const photoY = 4;
+  if (userPhotoDataUrl) {
+    try { doc.addImage(userPhotoDataUrl, 'JPEG', photoX, photoY, photoSize, photoSize); } catch (_) { drawPhotoPlaceholderV2(doc, photoX, photoY, photoSize, userName); }
+  } else {
+    drawPhotoPlaceholderV2(doc, photoX, photoY, photoSize, userName);
+  }
+
+  // Linha separadora
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.3);
-  doc.line(margin, 16, margin + contentW, 16);
+  doc.line(margin, 23, margin + contentW, 23);
 
-  let y = 20;
+  // ── Layout: cada linha = bandeira | nome seleção | números ──
+  // Colunas: flag(5) + nome(28) + sep(2) + números(resto)
+  const flagW = 5;
+  const flagH = 3.3;
+  const nameW = 28;
+  const sepW = 2;
+  const numsX = margin + flagW + nameW + sepW;
+  const numsW = contentW - flagW - nameW - sepW;
+  const rowH = 5.5;   // altura base por seleção
 
-  // ── Seção 1: Figurinhas faltantes por seleção ──
+  // Cabeçalho de colunas
+  let y = 26;
+  doc.setFillColor(230, 235, 240);
+  doc.rect(margin, y, contentW, 4, 'F');
+  doc.setFontSize(5.5);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(30, 30, 30);
-  doc.text('FIGURINHAS FALTANTES', margin, y);
+  doc.setTextColor(60, 70, 80);
+  doc.text('Seleção', margin + flagW + 1, y + 2.8);
+  doc.text('Faltantes  /  Repetidas (qtd)', numsX, y + 2.8);
   y += 5;
 
+  // Linhas por seleção
+  let rowBg = false;
   for (const team of teams) {
     const missing = team.stickers.filter(s => !collection.has(s.code));
-    if (missing.length === 0) continue;
+    const dups = team.stickers.filter(s => (duplicates[s.code] || 0) > 0);
+    if (missing.length === 0 && dups.length === 0) continue;
 
-    y = ensurePage(doc, y, 10);
+    // Montar texto de números faltantes
+    const missingNums = missing.map(s => {
+      const n = parseInt(s.code.replace(/^[A-Z]+/, ''));
+      return team.code === 'FWC' && n === 0 ? '00' : String(n);
+    }).join(' ');
 
-    // Nome da seleção
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.5);
-    doc.setTextColor(40, 40, 40);
-    const teamLabel = `${TEAM_NAMES_PT[team.code] || team.country || team.code} (${team.code})`;
-    doc.text(teamLabel, margin, y);
+    // Montar texto de repetidas com quantidade
+    const dupNums = dups.map(s => {
+      const n = parseInt(s.code.replace(/^[A-Z]+/, ''));
+      const num = team.code === 'FWC' && n === 0 ? '00' : String(n);
+      const qty = duplicates[s.code];
+      return qty > 1 ? `${num}(${qty}x)` : num;
+    }).join(' ');
+
+    // Combinar: faltantes | repetidas separadas por linha ou barra
+    let numsText = '';
+    if (missingNums && dupNums) numsText = `F: ${missingNums}   R: ${dupNums}`;
+    else if (missingNums) numsText = `F: ${missingNums}`;
+    else numsText = `R: ${dupNums}`;
+
+    const numsLines = doc.splitTextToSize(numsText, numsW - 2);
+    const lineH = Math.max(rowH, numsLines.length * 3.8 + 2);
+
+    // Verificar se cabe na página
+    if (y + lineH > pageH - 14) {
+      doc.addPage();
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pageW, pageH, 'F');
+      y = 10;
+      rowBg = false;
+    }
+
+    // Fundo alternado
+    if (rowBg) {
+      doc.setFillColor(248, 249, 250);
+      doc.rect(margin, y, contentW, lineH, 'F');
+    }
+    rowBg = !rowBg;
 
     // Bandeira
     const flagDataUrl = flagCache[team.code];
     if (flagDataUrl) {
-      try { doc.addImage(flagDataUrl, 'PNG', margin + 55, y - 3, 6, 4); } catch (_) {}
+      try { doc.addImage(flagDataUrl, 'PNG', margin, y + (lineH - flagH) / 2, flagW, flagH); } catch (_) {}
     }
-    y += 4;
 
-    // Números das faltantes em linha
-    const nums = missing.map(s => {
-      const n = parseInt(s.code.replace(/^[A-Z]+/, ''));
-      return team.code === 'FWC' && n === 0 ? '00' : String(n);
-    }).join('  ');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
-    doc.setTextColor(60, 60, 60);
-    const numLines = doc.splitTextToSize(nums, contentW - 4);
-    y = ensurePage(doc, y, numLines.length * 3.5 + 2);
-    doc.text(numLines, margin + 2, y);
-    y += numLines.length * 3.5 + 2;
-  }
-
-  // ── Seção 2: Repetidas ──
-  const teamsWithDups = teams.filter(t => t.stickers.some(s => (duplicates[s.code] || 0) >= 2));
-  if (teamsWithDups.length > 0) {
-    y = ensurePage(doc, y, 12);
-    y += 4;
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
-    doc.line(margin, y, margin + contentW, y);
-    y += 5;
+    // Nome da seleção
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(6);
     doc.setTextColor(30, 30, 30);
-    doc.text('REPETIDAS (2 ou mais)', margin, y);
-    y += 5;
+    const teamName = TEAM_NAMES_PT[team.code] || team.country || team.code;
+    const nameLines = doc.splitTextToSize(teamName, nameW - 1);
+    doc.text(nameLines, margin + flagW + 1, y + lineH / 2 - (nameLines.length - 1) * 1.8 + 0.5);
 
-    for (const team of teamsWithDups) {
-      const dups = team.stickers.filter(s => (duplicates[s.code] || 0) >= 2);
-      if (dups.length === 0) continue;
+    // Números
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.8);
+    doc.setTextColor(50, 50, 50);
+    doc.text(numsLines, numsX, y + lineH / 2 - (numsLines.length - 1) * 1.9 + 0.5);
 
-      y = ensurePage(doc, y, 10);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.5);
-      doc.setTextColor(40, 40, 40);
-      const teamLabel = `${TEAM_NAMES_PT[team.code] || team.country || team.code} (${team.code})`;
-      doc.text(teamLabel, margin, y);
-      const flagDataUrl = flagCache[team.code];
-      if (flagDataUrl) {
-        try { doc.addImage(flagDataUrl, 'PNG', margin + 55, y - 3, 6, 4); } catch (_) {}
-      }
-      y += 4;
+    // Linha separadora leve
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.15);
+    doc.line(margin, y + lineH, margin + contentW, y + lineH);
 
-      const dupNums = dups.map(s => {
-        const n = parseInt(s.code.replace(/^[A-Z]+/, ''));
-        const num = team.code === 'FWC' && n === 0 ? '00' : String(n);
-        const qty = duplicates[s.code];
-        return `${num}(${qty}x)`;
-      }).join('  ');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
-      doc.setTextColor(60, 60, 60);
-      const dupLines = doc.splitTextToSize(dupNums, contentW - 4);
-      y = ensurePage(doc, y, dupLines.length * 3.5 + 2);
-      doc.text(dupLines, margin + 2, y);
-      y += dupLines.length * 3.5 + 2;
-    }
+    y += lineH;
   }
 
   // Rodapé
