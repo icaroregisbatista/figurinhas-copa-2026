@@ -382,8 +382,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     // Mostrar/ocultar filtros de status conforme a aba ativa
     const filterStatusColecao = document.getElementById('filter-status-colecao');
     const filterStatusRepetidas = document.getElementById('filter-status-repetidas');
-    if (filterStatusColecao) filterStatusColecao.style.display = activeTab === 'colecao' ? 'flex' : 'none';
-    if (filterStatusRepetidas) filterStatusRepetidas.style.display = activeTab === 'repetidas' ? 'flex' : 'none';
+    if (filterStatusColecao) {
+      filterStatusColecao.classList.toggle('hidden', activeTab !== 'colecao');
+    }
+    if (filterStatusRepetidas) {
+      filterStatusRepetidas.classList.toggle('hidden', activeTab !== 'repetidas');
+    }
 
     // Ocultar barra de filtro inteira nas abas Admin, Estatísticas e Financeiro
     const filterBar = document.querySelector('.filter-bar');
