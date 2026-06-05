@@ -2,27 +2,66 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper: verifica se o usuário autenticado é admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'icaroregis@gmail.com';
+    }
+
     // Usuários autorizados — leitura pública para verificação de acesso
     // Escrita: admin pode tudo; usuário pode atualizar apenas o próprio campo uid
     match /authorized_users/{email} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.email == 'icaroregis@gmail.com';
+      allow write: if isAdmin();
       allow update: if request.auth != null
         && request.auth.token.email == email
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'photoURL', 'linkEnabled']);
     }
 
-    // Coleções — cada usuário lê/escreve apenas a própria
+    // Coleções — cada usuário lê/escreve apenas a própria; admin pode escrever em qualquer uma
     // Leitura por outros usuários autorizados (para painel de trocas)
     match /collections/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
     // Repetidas — idem
     match /duplicates/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Propostas de troca — qualquer usuário autenticado pode criar/ler
+    // Apenas os participantes (fromUid ou toUid) ou admin podem atualizar
+    match /trade_proposals/{proposalId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.fromUid ||
+        request.auth.uid == resource.data.toUid ||
+        isAdmin()
+      );
+    }
+
+    // Propostas externas (via link público) — qualquer pessoa pode criar; dono e admin podem ler
+    match /external_proposals/{propId} {
+      allow create: if true; // página pública, sem autenticação
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.toUid || isAdmin()
+      );
+      allow update, delete: if request.auth != null && (
+        request.auth.uid == resource.data.toUid || isAdmin()
+      );
+    }
+
+    // Movimentos financeiros — cada usuário lê/escreve apenas os próprios; admin pode tudo
+    match /financial_movements/{movId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.uid || isAdmin()
+      );
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        request.auth.uid == resource.data.uid || isAdmin()
+      );
     }
   }
 }
