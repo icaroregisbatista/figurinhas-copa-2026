@@ -175,6 +175,9 @@ onAuthStateChanged(auth, async (user) => {
     document.querySelector('[data-tab="admin"]')?.click();
   }
 
+  // Atualizar visibilidade do botão de link
+  updateShareLinkVisibility();
+
   await initApp();
 });
 
@@ -376,9 +379,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     activeTab = btn.dataset.tab;
     document.getElementById('tab-' + activeTab).classList.add('active');
 
-    // Mostrar/ocultar filtros de status (só na coleção)
-    document.querySelector('.filter-status:not(.dup-filter-status)').style.display =
-      activeTab === 'colecao' ? 'flex' : 'none';
+    // Mostrar/ocultar filtros de status conforme a aba ativa
+    const filterStatusColecao = document.getElementById('filter-status-colecao');
+    const filterStatusRepetidas = document.getElementById('filter-status-repetidas');
+    if (filterStatusColecao) filterStatusColecao.style.display = activeTab === 'colecao' ? 'flex' : 'none';
+    if (filterStatusRepetidas) filterStatusRepetidas.style.display = activeTab === 'repetidas' ? 'flex' : 'none';
 
     // Ocultar barra de filtro inteira nas abas Admin, Estatísticas e Financeiro
     const filterBar = document.querySelector('.filter-bar');
@@ -1653,6 +1658,7 @@ async function startImpersonation(user) {
   document.getElementById('dup-count-header').classList.remove('hidden');
   document.getElementById('missing-count-header').classList.remove('hidden');
   document.getElementById('btn-export-pdf').classList.remove('hidden');
+  updateShareLinkVisibility();
 
   // Carregar dados do usuário impersonado
   loadingOverlay.style.display = 'flex';
@@ -1695,6 +1701,7 @@ async function stopImpersonation() {
   document.getElementById('dup-count-header').classList.add('hidden');
   document.getElementById('missing-count-header').classList.add('hidden');
   document.getElementById('btn-export-pdf').classList.add('hidden');
+  updateShareLinkVisibility();
 
   // Recarregar dados do admin
   loadingOverlay.style.display = 'flex';
@@ -2308,6 +2315,10 @@ document.querySelectorAll('.prop-filter-chip').forEach(btn => {
 });
 
 // ── Colapso das seções de propostas ──────────────────────────
+// Fechar todas as seções colapsáveis por padrão
+document.querySelectorAll('.collapsible-section').forEach(section => {
+  section.classList.add('collapsed');
+});
 document.querySelectorAll('.collapsible-header').forEach(header => {
   header.addEventListener('click', () => {
     const section = header.closest('.collapsible-section');
@@ -3711,4 +3722,152 @@ async function addFinanceMovementFromTrade({ type, value, description, uid: targ
   } catch (e) {
     console.error('Erro ao registrar movimento financeiro da troca:', e);
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LINK DE NEGOCIAÇÃO (PÚBLICO)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function getMyShareLink() {
+  const uid = currentUser?.uid;
+  if (!uid) return '';
+  const base = window.location.origin;
+  return `${base}/troca/${uid}`;
+}
+
+async function openShareLinkModal() {
+  if (!currentUser) return;
+  const modal = document.getElementById('modal-share-link');
+  modal.classList.remove('hidden');
+
+  // Preencher URL
+  const linkInput = document.getElementById('share-link-url');
+  linkInput.value = getMyShareLink();
+
+  // Ler estado do link (linkEnabled) do authorized_users
+  try {
+    const userDocRef = doc(db, 'authorized_users', currentUser.email.toLowerCase());
+    const snap = await getDoc(userDocRef);
+    const enabled = snap.exists() ? snap.data().linkEnabled !== false : true;
+    document.getElementById('share-link-toggle').checked = enabled;
+  } catch (e) {
+    document.getElementById('share-link-toggle').checked = true;
+  }
+
+  // Carregar propostas externas recebidas
+  await loadExternalProposals();
+}
+
+function closeShareLinkModal() {
+  document.getElementById('modal-share-link').classList.add('hidden');
+}
+
+async function toggleShareLink(enabled) {
+  if (!currentUser) return;
+  try {
+    const userDocRef = doc(db, 'authorized_users', currentUser.email.toLowerCase());
+    await updateDoc(userDocRef, { linkEnabled: enabled });
+    showToast(enabled ? '🔗 Link ativado!' : '🔒 Link desativado.', enabled ? 'success' : '');
+  } catch (e) {
+    showToast('Erro ao atualizar link.', 'error');
+  }
+}
+
+function copyShareLink() {
+  const url = getMyShareLink();
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('🔗 Link copiado!', 'success');
+  }).catch(() => {
+    const input = document.getElementById('share-link-url');
+    input.select();
+    document.execCommand('copy');
+    showToast('🔗 Link copiado!', 'success');
+  });
+}
+
+async function loadExternalProposals() {
+  const list = document.getElementById('share-link-proposals-list');
+  list.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px">Carregando…</div>';
+  try {
+    const uid = currentUser?.uid;
+    if (!uid) { list.innerHTML = ''; return; }
+    const snap = await getDocs(
+      query(collection(db, 'external_proposals'),
+        where('toUid', '==', uid),
+        orderBy('createdAt', 'desc')
+      )
+    );
+    if (snap.empty) {
+      list.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px">Nenhuma proposta externa recebida ainda.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    snap.forEach(d => {
+      const p = d.data();
+      const dt = p.createdAt ? new Date(p.createdAt).toLocaleString('pt-BR') : '';
+      const typeLabel = p.type === 'venda' ? `💰 ${p.saleRole === 'vendedor' ? 'Venda' : 'Compra'} R$ ${(p.saleValue||0).toFixed(2)}` : '🔄 Troca';
+      const statusColors = { pending: '#c0a020', accepted: '#4a9', refused: '#e55', cancelled: '#888' };
+      const statusLabels = { pending: 'Pendente', accepted: 'Aceita', refused: 'Recusada', cancelled: 'Cancelada' };
+      const div = document.createElement('div');
+      div.style.cssText = 'background:#1a1a2e;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px';
+      div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <strong style="color:#f0f0f0">${p.senderName}</strong>
+          <span style="color:${statusColors[p.status]||'#aaa'};font-size:11px">${statusLabels[p.status]||p.status}</span>
+        </div>
+        <div style="color:#aaa;margin-bottom:4px">${typeLabel} · ${dt}</div>
+        ${p.senderContact ? `<div style="color:#88c">📞 ${p.senderContact}</div>` : ''}
+        ${p.message ? `<div style="color:#ccc;margin-top:4px;font-style:italic">"${p.message}"</div>` : ''}
+        ${p.offeredCodes?.length ? `<div style="margin-top:4px;color:#9de">Oferece: ${p.offeredCodes.join(', ')}</div>` : ''}
+        ${p.requestedCodes?.length ? `<div style="color:#fda">Quer: ${p.requestedCodes.join(', ')}</div>` : ''}
+      `;
+      list.appendChild(div);
+    });
+  } catch (e) {
+    // Se o índice não existir, buscar sem orderBy
+    try {
+      const uid = currentUser?.uid;
+      const snap2 = await getDocs(
+        query(collection(db, 'external_proposals'), where('toUid', '==', uid))
+      );
+      const items = [];
+      snap2.forEach(d => items.push({ id: d.id, ...d.data() }));
+      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      if (items.length === 0) {
+        list.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px">Nenhuma proposta externa recebida ainda.</div>';
+        return;
+      }
+      list.innerHTML = '';
+      items.forEach(p => {
+        const dt = p.createdAt ? new Date(p.createdAt).toLocaleString('pt-BR') : '';
+        const typeLabel = p.type === 'venda' ? `💰 R$ ${(p.saleValue||0).toFixed(2)}` : '🔄 Troca';
+        const statusColors = { pending: '#c0a020', accepted: '#4a9', refused: '#e55', cancelled: '#888' };
+        const statusLabels = { pending: 'Pendente', accepted: 'Aceita', refused: 'Recusada', cancelled: 'Cancelada' };
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#1a1a2e;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px';
+        div.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <strong style="color:#f0f0f0">${p.senderName}</strong>
+            <span style="color:${statusColors[p.status]||'#aaa'};font-size:11px">${statusLabels[p.status]||p.status}</span>
+          </div>
+          <div style="color:#aaa;margin-bottom:4px">${typeLabel} · ${dt}</div>
+          ${p.senderContact ? `<div style="color:#88c">📞 ${p.senderContact}</div>` : ''}
+          ${p.message ? `<div style="color:#ccc;margin-top:4px;font-style:italic">"${p.message}"</div>` : ''}
+          ${p.offeredCodes?.length ? `<div style="margin-top:4px;color:#9de">Oferece: ${p.offeredCodes.join(', ')}</div>` : ''}
+          ${p.requestedCodes?.length ? `<div style="color:#fda">Quer: ${p.requestedCodes.join(', ')}</div>` : ''}
+        `;
+        list.appendChild(div);
+      });
+    } catch (e2) {
+      list.innerHTML = '<div style="color:#e55;font-size:12px;padding:8px">Erro ao carregar propostas.</div>';
+    }
+  }
+}
+
+// Esconder o botão de link para admin sem impersonação
+function updateShareLinkVisibility() {
+  const btn = document.getElementById('btn-share-link');
+  if (!btn) return;
+  const isAdminNoImpersonation = currentUser && ADMIN_EMAILS.includes(currentUser.email) && !impersonatedUser;
+  btn.classList.toggle('hidden', isAdminNoImpersonation);
 }
