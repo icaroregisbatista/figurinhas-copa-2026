@@ -1126,13 +1126,115 @@ function renderGrid() {
   }
   emptyState.classList.add('hidden');
 
-  // Usar DocumentFragment para performance
-  const frag = document.createDocumentFragment();
+  // Agrupar por seleção (country) e ordenar alfabeticamente
+  const byCountry = {};
   filtered.forEach(s => {
-    frag.appendChild(createStickerCard(s));
+    if (!byCountry[s.country]) byCountry[s.country] = [];
+    byCountry[s.country].push(s);
+  });
+  const sortedCountries = Object.keys(byCountry).sort((a, b) => {
+    // FIFA World Cup sempre primeiro
+    if (a === 'FIFA World Cup') return -1;
+    if (b === 'FIFA World Cup') return 1;
+    return a.localeCompare(b, 'pt-BR');
+  });
+
+  const frag = document.createDocumentFragment();
+  sortedCountries.forEach(country => {
+    const stickers = byCountry[country];
+    const firstSticker = stickers[0];
+    const flag = COUNTRY_FLAGS[country] || '🏳️';
+    const group = firstSticker.group && firstSticker.group !== '-' ? `Grupo ${firstSticker.group}` : 'FIFA';
+    const ownedCount = stickers.filter(s => myCollection.has(s.code)).length;
+    const total = stickers.length;
+
+    const section = document.createElement('div');
+    section.className = 'sticker-section';
+    section.dataset.country = country;
+
+    const header = document.createElement('div');
+    header.className = 'sticker-section-header';
+    header.innerHTML = `
+      <div class="sticker-section-left">
+        <span class="sticker-section-flag">${flag}</span>
+        <span class="sticker-section-name">${country}</span>
+        <span class="sticker-section-group">${group}</span>
+      </div>
+      <div class="sticker-section-right">
+        <span class="sticker-section-count ${ownedCount === total ? 'complete' : ''}">${ownedCount}/${total}</span>
+        <svg class="sticker-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    `;
+
+    const grid = document.createElement('div');
+    grid.className = 'sticker-section-grid';
+    stickers.forEach(s => grid.appendChild(createStickerCard(s)));
+
+    header.addEventListener('click', () => {
+      section.classList.toggle('collapsed');
+    });
+
+    section.appendChild(header);
+    section.appendChild(grid);
+    frag.appendChild(section);
   });
   stickerGrid.appendChild(frag);
 }
+
+// Mapa de bandeiras por país
+const COUNTRY_FLAGS = {
+  'FIFA World Cup': '🌍',
+  'Mexico': '🇲🇽',
+  'South Korea': '🇰🇷',
+  'South Africa': '🇿🇦',
+  'Czechia': '🇨🇿',
+  'Canada': '🇨🇦',
+  'Bosnia and Herzegovina': '🇧🇦',
+  'Qatar': '🇶🇦',
+  'Switzerland': '🇨🇭',
+  'Brazil': '🇧🇷',
+  'Morocco': '🇲🇦',
+  'Haiti': '🇭🇹',
+  'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'USA': '🇺🇸',
+  'Paraguay': '🇵🇾',
+  'Australia': '🇦🇺',
+  'Türkiye': '🇹🇷',
+  'Germany': '🇩🇪',
+  'Ivory Coast': '🇨🇮',
+  'Ecuador': '🇪🇨',
+  'Curaçao': '🇨🇼',
+  'Netherlands': '🇳🇱',
+  'Japan': '🇯🇵',
+  'SWE': '🇸🇪',
+  'TUN': '🇹🇳',
+  'BEL': '🇧🇪',
+  'EGY': '🇪🇬',
+  'IRN': '🇮🇷',
+  'NZL': '🇳🇿',
+  'ESP': '🇪🇸',
+  'KSA': '🇸🇦',
+  'URU': '🇺🇾',
+  'FRA': '🇫🇷',
+  'SEN': '🇸🇳',
+  'IRQ': '🇮🇶',
+  'NOR': '🇳🇴',
+  'ARG': '🇦🇷',
+  'ALG': '🇩🇿',
+  'AUT': '🇦🇹',
+  'JOR': '🇯🇴',
+  'POR': '🇵🇹',
+  'COD': '🇨🇩',
+  'COL': '🇨🇴',
+  'UZB': '🇺🇿',
+  'CRO': '🇭🇷',
+  'ENG': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'GHA': '🇬🇭',
+  'PAN': '🇵🇦',
+  'CPV': '🇨🇻',
+  'Colômbia': '🇨🇴',
+  'Uruguay': '🇺🇾',
+};
 
 function createStickerCard(s) {
   const owned = myCollection.has(s.code);
@@ -1147,10 +1249,6 @@ function createStickerCard(s) {
     </div>
     <div class="sticker-code">${s.code}</div>
     <div class="sticker-name">${s.name}</div>
-    <div class="sticker-meta">
-      ${s.group && s.group !== '-' ? `<span class="sticker-group">Grupo ${s.group}</span>` : s.group === '-' ? '<span class="sticker-group">FIFA</span>' : ''}
-      <span class="sticker-page">Pág. ${s.page}</span>
-    </div>
   `;
   card.addEventListener('click', () => toggleSticker(s.code, card));
   return card;
@@ -1167,6 +1265,18 @@ async function toggleSticker(code, card) {
     card.classList.add('owned');
   }
   updateProgress();
+  // Atualizar contador da seção da seleção
+  const section = card.closest('.sticker-section');
+  if (section) {
+    const countEl = section.querySelector('.sticker-section-count');
+    if (countEl) {
+      const cards = section.querySelectorAll('.sticker-card');
+      const ownedNow = section.querySelectorAll('.sticker-card.owned').length;
+      const total = cards.length;
+      countEl.textContent = `${ownedNow}/${total}`;
+      countEl.classList.toggle('complete', ownedNow === total);
+    }
+  }
 
   // Persistir no Firestore
   try {
@@ -1208,9 +1318,56 @@ function renderDuplicatesGrid() {
   }
   emptyStateDup.classList.add('hidden');
 
-  const frag = document.createDocumentFragment();
+  // Agrupar por seleção e ordenar alfabeticamente
+  const byCountry = {};
   filtered.forEach(s => {
-    frag.appendChild(createDupCard(s));
+    if (!byCountry[s.country]) byCountry[s.country] = [];
+    byCountry[s.country].push(s);
+  });
+  const sortedCountries = Object.keys(byCountry).sort((a, b) => {
+    if (a === 'FIFA World Cup') return -1;
+    if (b === 'FIFA World Cup') return 1;
+    return a.localeCompare(b, 'pt-BR');
+  });
+
+  const frag = document.createDocumentFragment();
+  sortedCountries.forEach(country => {
+    const stickers = byCountry[country];
+    const firstSticker = stickers[0];
+    const flag = COUNTRY_FLAGS[country] || '🏳️';
+    const group = firstSticker.group && firstSticker.group !== '-' ? `Grupo ${firstSticker.group}` : 'FIFA';
+    const dupCount = stickers.filter(s => (myDuplicates[s.code] || 0) > 0).length;
+    const total = stickers.length;
+
+    const section = document.createElement('div');
+    section.className = 'sticker-section';
+    section.dataset.country = country;
+
+    const header = document.createElement('div');
+    header.className = 'sticker-section-header';
+    header.innerHTML = `
+      <div class="sticker-section-left">
+        <span class="sticker-section-flag">${flag}</span>
+        <span class="sticker-section-name">${country}</span>
+        <span class="sticker-section-group">${group}</span>
+      </div>
+      <div class="sticker-section-right">
+        <span class="sticker-section-count ${dupCount > 0 ? 'complete' : ''}">${dupCount}/${total}</span>
+        <svg class="sticker-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    `;
+
+    const grid = document.createElement('div');
+    grid.className = 'sticker-section-grid';
+    stickers.forEach(s => grid.appendChild(createDupCard(s)));
+
+    header.addEventListener('click', () => {
+      section.classList.toggle('collapsed');
+    });
+
+    section.appendChild(header);
+    section.appendChild(grid);
+    frag.appendChild(section);
   });
   stickerGridDup.appendChild(frag);
 }
@@ -1223,10 +1380,6 @@ function createDupCard(s) {
   card.innerHTML = `
     <div class="sticker-code">${s.code}</div>
     <div class="sticker-name">${s.name}</div>
-    <div class="sticker-meta">
-      ${s.group && s.group !== '-' ? `<span class="sticker-group">Grupo ${s.group}</span>` : s.group === '-' ? '<span class="sticker-group">FIFA</span>' : ''}
-      <span class="sticker-page">Pág. ${s.page}</span>
-    </div>
     <div class="dup-controls">
       <button class="dup-btn" data-action="dec">−</button>
       <span class="dup-qty ${qty > 0 ? 'has-dup' : ''}">${qty}</span>
@@ -1261,6 +1414,22 @@ async function updateDuplicate(code, newQty, card) {
   qtyEl.textContent = newQty;
   qtyEl.className = 'dup-qty' + (newQty > 0 ? ' has-dup' : '');
   card.classList.toggle('owned', newQty > 0);
+
+  // Atualizar contador da seção da seleção
+  const section = card.closest('.sticker-section');
+  if (section) {
+    const countEl = section.querySelector('.sticker-section-count');
+    if (countEl) {
+      const allCards = section.querySelectorAll('.sticker-card');
+      const withDup = [...allCards].filter(c => {
+        const qEl = c.querySelector('.dup-qty');
+        return qEl && parseInt(qEl.textContent, 10) > 0;
+      }).length;
+      const total = allCards.length;
+      countEl.textContent = `${withDup}/${total}`;
+      countEl.classList.toggle('complete', withDup > 0);
+    }
+  }
 
   // Atualizar contador do header imediatamente (otimista)
   updateProgress();

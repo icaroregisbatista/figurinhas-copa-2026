@@ -307,9 +307,107 @@ body {
 .tab-panel.active { display: block; }
 
 .sticker-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ── Seções colapsáveis por seleção ── */
+.sticker-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.sticker-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  background: var(--surface2);
+  transition: background 0.15s;
+  gap: 0.5rem;
+}
+.sticker-section-header:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.sticker-section-left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.sticker-section-flag {
+  font-size: 1.3rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.sticker-section-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sticker-section-group {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  background: var(--gold-dim);
+  color: var(--gold);
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+
+.sticker-section-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.sticker-section-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--surface);
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+}
+.sticker-section-count.complete {
+  color: var(--green);
+  border-color: rgba(63,185,80,0.35);
+  background: var(--green-dim);
+}
+
+.sticker-section-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s cubic-bezier(0.23,1,0.32,1);
+  flex-shrink: 0;
+}
+.sticker-section.collapsed .sticker-section-chevron {
+  transform: rotate(-90deg);
+}
+
+.sticker-section-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.65rem;
+  padding: 0.75rem;
+  transition: none;
+}
+.sticker-section.collapsed .sticker-section-grid {
+  display: none;
 }
 
 .sticker-card {
