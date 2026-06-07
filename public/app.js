@@ -1441,6 +1441,12 @@ function renderGroupStats(colSnaps, dupSnaps) {
   colSnaps.forEach(snap => { colByUid[snap.id] = snap.data().codes || []; });
   dupSnaps.forEach(snap => { dupByUid[snap.id] = snap.data().items || {}; });
 
+  // Garantir que o usuário atual sempre esteja incluído com os dados em memória
+  // (evita que ele fique de fora por dessincronização com o Firestore)
+  const activeUid = getActiveUid();
+  colByUid[activeUid] = [...myCollection];
+  dupByUid[activeUid] = myDuplicates;
+
   const allUids = new Set([...Object.keys(colByUid), ...Object.keys(dupByUid)]);
   const activeUids = new Set();
   allUids.forEach(u => {
@@ -1450,17 +1456,15 @@ function renderGroupStats(colSnaps, dupSnaps) {
   });
 
   const ownerCount = {};
-  colSnaps.forEach(snap => {
-    if (!activeUids.has(snap.id)) return; // ignorar inativos
-    (snap.data().codes || []).forEach(code => {
+  activeUids.forEach(uid => {
+    (colByUid[uid] || []).forEach(code => {
       ownerCount[code] = (ownerCount[code] || 0) + 1;
     });
   });
 
   const dupCount = {};
-  dupSnaps.forEach(snap => {
-    if (!activeUids.has(snap.id)) return; // ignorar inativos
-    Object.entries(snap.data().items || {}).forEach(([code, qty]) => {
+  activeUids.forEach(uid => {
+    Object.entries(dupByUid[uid] || {}).forEach(([code, qty]) => {
       if (qty > 0) dupCount[code] = (dupCount[code] || 0) + qty;
     });
   });
