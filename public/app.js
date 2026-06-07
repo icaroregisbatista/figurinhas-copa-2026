@@ -1511,31 +1511,41 @@ function renderGroupStats(colSnaps, dupSnaps) {
     .slice(0, 3)
     .map(([pos, cnt]) => ({ pos: parseInt(pos, 10), cnt }));
 
-  // Posições mais ausentes no grupo
-  // Para cada posição, conta quantos participantes ativos NÃO possuem NENHUMA figurinha daquela posição
-  const allPositions = [...new Set(
-    allStickers.map(s => { const m = s.code.match(posRegex); return m ? parseInt(m[1], 10) : null; }).filter(p => p !== null)
-  )];
-  const groupMissingByPos = {};
-  activeUids.forEach(uid => {
-    const userCodes = new Set(colByUid[uid] || []);
-    const posHas = {};
-    allStickers.forEach(s => {
-      const m = s.code.match(posRegex);
-      if (!m) return;
-      const pos = parseInt(m[1], 10);
-      if (userCodes.has(s.code)) posHas[pos] = true;
-    });
-    allPositions.forEach(pos => {
-      if (!posHas[pos]) {
-        groupMissingByPos[pos] = (groupMissingByPos[pos] || 0) + 1;
-      }
-    });
+  // Posições mais ausentes no grupo (Opção B)
+  // Para cada posição, soma quantas figurinhas daquela posição faltam no total para todos os membros ativos
+  // Ex: posição 13 tem 50 figurinhas × 6 membros = 300 possíveis; se o grupo tem 180, faltam 120 → exibe 120/300
+
+  // Mapa: posição → lista de códigos daquela posição
+  const stickersByPos = {};
+  allStickers.forEach(s => {
+    const m = s.code.match(posRegex);
+    if (!m) return;
+    const pos = parseInt(m[1], 10);
+    if (!stickersByPos[pos]) stickersByPos[pos] = [];
+    stickersByPos[pos].push(s.code);
   });
+
+  const groupMissingByPos = {}; // posição → total de figurinhas faltando no grupo
+  const groupTotalByPos = {};   // posição → total possível (stickers_na_posição × membros_ativos)
+
+  Object.entries(stickersByPos).forEach(([posStr, codes]) => {
+    const pos = parseInt(posStr, 10);
+    let missingCount = 0;
+    activeUids.forEach(uid => {
+      const userCodes = new Set(colByUid[uid] || []);
+      codes.forEach(code => {
+        if (!userCodes.has(code)) missingCount++;
+      });
+    });
+    groupMissingByPos[pos] = missingCount;
+    groupTotalByPos[pos] = codes.length * activeUids.size;
+  });
+
   const groupTopMissingPos = Object.entries(groupMissingByPos)
+    .filter(([, cnt]) => cnt > 0)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
-    .map(([pos, cnt]) => ({ pos: parseInt(pos, 10), cnt }));
+    .map(([pos, cnt]) => ({ pos: parseInt(pos, 10), cnt, total: groupTotalByPos[parseInt(pos, 10)] }));
 
   // Verificar se o usuário atual é admin sem impersonação (não tem coleção própria)
   const isAdminNoImpersonation = currentUser && ADMIN_EMAILS.includes(currentUser.email) && !impersonatedUser;
@@ -1631,9 +1641,9 @@ function renderGroupStats(colSnaps, dupSnaps) {
             <span class="stats-rank">${i + 1}</span>
             <div class="stats-info">
               <span class="stats-code">Posição ${x.pos}</span>
-              <span class="stats-name">${x.cnt} membro${x.cnt !== 1 ? 's' : ''} sem esta posição</span>
+              <span class="stats-name">${x.cnt} figurinha${x.cnt !== 1 ? 's' : ''} faltando no grupo</span>
             </div>
-            <span class="stats-value blue">${x.cnt}/${totalParticipants}</span>
+            <span class="stats-value blue">${x.cnt}/${x.total}</span>
           </div>
         `).join('')
       }
