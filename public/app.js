@@ -1473,10 +1473,11 @@ function renderGroupStats(colSnaps, dupSnaps) {
     .map(([code, qty]) => ({ code, qty, sticker: allStickers.find(s => s.code === code) }))
     .filter(x => x.sticker);
 
+  // Figurinhas mais faltantes: ordenar por mais membros sem ela
   const topNeeded = allStickers
-    .map(s => ({ code: s.code, name: s.name, count: ownerCount[s.code] || 0, sticker: s }))
-    .filter(x => x.count > 0)
-    .sort((a, b) => a.count - b.count)
+    .map(s => ({ code: s.code, name: s.name, owned: ownerCount[s.code] || 0, missing: totalParticipants - (ownerCount[s.code] || 0), sticker: s }))
+    .filter(x => x.missing > 0 && totalParticipants > 0)
+    .sort((a, b) => b.missing - a.missing)
     .slice(0, 5);
 
   // Top 5 repetidas do usuário atual
@@ -1487,7 +1488,56 @@ function renderGroupStats(colSnaps, dupSnaps) {
     .map(([code, qty]) => ({ code, qty, sticker: allStickers.find(s => s.code === code) }))
     .filter(x => x.sticker);
 
+  // ── Posições mais ausentes ──
+  // Extrai o número de posição do final do código (ex: MEX7 → 7, BRA14 → 14)
+  const posRegex = /(\d+)$/;
+
+  // Posições mais ausentes do usuário atual (figurinhas que não possui)
+  const myMissingByPos = {};
+  allStickers.forEach(s => {
+    const m = s.code.match(posRegex);
+    if (!m) return;
+    const pos = parseInt(m[1], 10);
+    if (!myCollection.has(s.code)) {
+      myMissingByPos[pos] = (myMissingByPos[pos] || 0) + 1;
+    }
+  });
+  const myTopMissingPos = Object.entries(myMissingByPos)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([pos, cnt]) => ({ pos: parseInt(pos, 10), cnt }));
+
+  // Posições mais ausentes no grupo
+  // Para cada posição, conta quantos participantes ativos NÃO possuem NENHUMA figurinha daquela posição
+  const allPositions = [...new Set(
+    allStickers.map(s => { const m = s.code.match(posRegex); return m ? parseInt(m[1], 10) : null; }).filter(p => p !== null)
+  )];
+  const groupMissingByPos = {};
+  activeUids.forEach(uid => {
+    const userCodes = new Set(colByUid[uid] || []);
+    const posHas = {};
+    allStickers.forEach(s => {
+      const m = s.code.match(posRegex);
+      if (!m) return;
+      const pos = parseInt(m[1], 10);
+      if (userCodes.has(s.code)) posHas[pos] = true;
+    });
+    allPositions.forEach(pos => {
+      if (!posHas[pos]) {
+        groupMissingByPos[pos] = (groupMissingByPos[pos] || 0) + 1;
+      }
+    });
+  });
+  const groupTopMissingPos = Object.entries(groupMissingByPos)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([pos, cnt]) => ({ pos: parseInt(pos, 10), cnt }));
+
+  // Verificar se o usuário atual é admin sem impersonação (não tem coleção própria)
+  const isAdminNoImpersonation = currentUser && ADMIN_EMAILS.includes(currentUser.email) && !impersonatedUser;
+
   statsGrid.innerHTML = `
+    ${!isAdminNoImpersonation ? `
     <div class="stats-col stats-col-personal">
       <div class="stats-col-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1507,6 +1557,26 @@ function renderGroupStats(colSnaps, dupSnaps) {
         `).join('')
       }
     </div>
+    <div class="stats-col stats-col-personal">
+      <div class="stats-col-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Minhas posições mais ausentes
+      </div>
+      ${myTopMissingPos.length === 0
+        ? '<div class="stats-empty">Coleção completa ou sem dados.</div>'
+        : myTopMissingPos.map((x, i) => `
+          <div class="stats-row">
+            <span class="stats-rank">${i + 1}</span>
+            <div class="stats-info">
+              <span class="stats-code">Posição ${x.pos}</span>
+              <span class="stats-name">${x.cnt} figurinha${x.cnt !== 1 ? 's' : ''} faltando</span>
+            </div>
+            <span class="stats-value gold">${x.cnt}x</span>
+          </div>
+        `).join('')
+      }
+    </div>
+    ` : ''}
     <div class="stats-col">
       <div class="stats-col-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
@@ -1529,7 +1599,7 @@ function renderGroupStats(colSnaps, dupSnaps) {
     <div class="stats-col">
       <div class="stats-col-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Mais necessárias no grupo
+        Mais faltantes no grupo
       </div>
       ${topNeeded.length === 0
         ? '<div class="stats-empty">Dados insuficientes ainda.</div>'
@@ -1540,7 +1610,26 @@ function renderGroupStats(colSnaps, dupSnaps) {
               <span class="stats-code">${x.code}</span>
               <span class="stats-name">${x.sticker.name}</span>
             </div>
-            <span class="stats-value blue">${x.count}/${totalParticipants}</span>
+            <span class="stats-value blue">${x.missing}/${totalParticipants}</span>
+          </div>
+        `).join('')
+      }
+    </div>
+    <div class="stats-col">
+      <div class="stats-col-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Posições mais ausentes no grupo
+      </div>
+      ${groupTopMissingPos.length === 0
+        ? '<div class="stats-empty">Dados insuficientes ainda.</div>'
+        : groupTopMissingPos.map((x, i) => `
+          <div class="stats-row">
+            <span class="stats-rank">${i + 1}</span>
+            <div class="stats-info">
+              <span class="stats-code">Posição ${x.pos}</span>
+              <span class="stats-name">${x.cnt} membro${x.cnt !== 1 ? 's' : ''} sem esta posição</span>
+            </div>
+            <span class="stats-value blue">${x.cnt}/${totalParticipants}</span>
           </div>
         `).join('')
       }
