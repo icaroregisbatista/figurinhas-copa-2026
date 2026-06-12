@@ -1,9 +1,9 @@
-// ══════════════════════════════════════════════
-// FIGURINHAS COPA 2026 — Firebase App
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// FIGURINHAS COPA 2026 â€” Firebase App
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // IMPORTANTE: Substitua o objeto firebaseConfig abaixo
-// com as configurações do seu projeto Firebase.
-// ══════════════════════════════════════════════
+// com as configuraÃ§Ãµes do seu projeto Firebase.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
@@ -31,8 +31,8 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ── ⚙️ CONFIGURAÇÃO DO FIREBASE ──────────────────────────────
-// Cole aqui as configurações do seu projeto Firebase Console
+// â”€â”€ âš™ï¸ CONFIGURAÃ‡ÃƒO DO FIREBASE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Cole aqui as configuraÃ§Ãµes do seu projeto Firebase Console
 const firebaseConfig = {
   apiKey: "AIzaSyBNkjkDk8V1gz3csSupP3xGk5Wz5B8nxWY",
   authDomain: "figurinhas-copa-2026-a4577.firebaseapp.com",
@@ -41,36 +41,36 @@ const firebaseConfig = {
   messagingSenderId: "247750071545",
   appId: "1:247750071545:web:39baade14aadfd2049fe28"
 };
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ── Admins autorizados ───────────────────────────────────────
+// â”€â”€ Admins autorizados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ADMIN_EMAILS = ['icaroregis@gmail.com'];
-// ── Logos embutidos (base64) para PDF ────────────────────────
+// â”€â”€ Logos embutidos (base64) para PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const FIFA_LOGO_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAUCAYAAAD/Rn+7AAABI0lEQVR4nGNk0Ej5zzCIAdNAO4AQGHUgpWDUgZSCUQdSCliIVfjt/DSGU5fvw/mb9l1g6Fuwm+HDqUkMAmZ5eNUwMDAwpITYMkyti2KQcyxnePn2E/Ud+Ov3HwaHuG6y1fg66jNMWryXwctel2H+uqNEO5AuUczFwcbAzcXGMGfNEQYfBz2S9NLFge422gw7Dl9luHn/BYOCtAgDGyvREUd8FLOxsjAcWFQK56fXL2a4ef8FUWr8nQ0YDDRkGULcjRmkxPgZ7E3VGHYfu0ZdB5KbBpmZmRjUFMQZDAKbGBgYIKHp46BHtANpHsXWhioMF288gfMPn7nN4GatTbR+mjvQ39mAYd/JG3D+tx+/GF69+8SgqSxJlH7G0fYghWDUgZQCAI6sYv5cTBUqAAAAAElFTkSuQmCC';
 const CC_LOGO_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAAUCAYAAADRA14pAAACXUlEQVR4nO2WT0iaYRzHP2+WfzPKmZW2jYigQyFEt0KKTv3B0EMQ1D2LOnQIii4RdekkdegQ0i0xCq08RV6sa4egQzBZGywoUpiZE8erHTY2R+4VaywwP6eX93n4fn5fHh54hA96fZpXRMlLD/C/KRYudIqFC51i4UInZ+GK0VHqAwGMe3vUbW1RajL98yHydTSEQk92lUotqrq6KLfb+dLXRzqRQN3Tg2F1lSu7/cnCl3BkInnClePjRJaWSCcSAMSPjvh+eYlQVobMYKDO7ca0v0+d243MYECm01G7uYnR58O4vY1Mr0fe3IzJ7+dtMEjl2NizHZnkys6GIPW0fH92xuf2dtLJ5KO1mvV14oEAdx4P2qEh1N3dpEWReCBAbHcX7fAwyrY2AO52dkheXPAuGOSypeVZjmuHg4ZQiI+NjVSvrEhmZ0PyhAWZ7K9ryo4OYl4vADGvF2VnJyqLhfuDgx8lPR7Ci4uEFxaQNzVRNTmJoNUCoJubw+jzoenvz9uRSbbsXEgWToZCKFpbf/8QBAxraz8/hUf7/xheFElFo9S4XAB83diAVAqAyPIyV4OD3Pv9eTsyyZadC8nCUZcL3ewsglwOQLnNhqBQAPDt+BiN1QqAxmolcXJC4vQUTW8vABUjI7yZn0dhNhPz+RAUil85z3Fkkis7G5J3GKBqeppymw0xHEa8veV2ZgYxEqG0tpZqp5MStZpUPM7N1BQlKhXVTicIAqlolJuJCSodDjQDAyTPz1FZLHwymx/d13wc4vU19YeH3Pv9CEplzuy8CxcaxZdWofPqCj8AgJ8oiE4J3DsAAAAASUVORK5CYII=';
 
 
-// ── Estado global ─────────────────────────────────────────────
+// â”€â”€ Estado global â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let currentUser = null;
 let allStickers = [];
-let myCollection = new Set();   // Set de códigos que o usuário possui
+let myCollection = new Set();   // Set de cÃ³digos que o usuÃ¡rio possui
 let myDuplicates = {};          // { code: quantity }
 let activeTab = 'colecao';
 let activeGroup = 'all';
 let activeStatus = null;        // 'missing' | 'owned' | null
 let activeTradeGroup = 'all';   // filtro de grupo na aba trocas
 let activeProposalStatus = 'all'; // filtro de status das propostas
-let activeTradeFilter = 'all';   // filtro tenho/faltando nas negociações
-let activeDupStatus = null;      // 'owned' | 'missing' | null — filtro local da aba Repetidas
+let activeTradeFilter = 'all';   // filtro tenho/faltando nas negociaÃ§Ãµes
+let activeDupStatus = null;      // 'owned' | 'missing' | null â€” filtro local da aba Repetidas
 let searchQuery = '';
-let impersonatedUser = null; // { uid, name, email } - usuário que o admin está operando como
-let realUser = null;         // backup do currentUser original durante impersonação
+let impersonatedUser = null; // { uid, name, email } - usuÃ¡rio que o admin estÃ¡ operando como
+let realUser = null;         // backup do currentUser original durante impersonaÃ§Ã£o
 
-// ── Helper: UID ativo (impersonação) ────────────────────────
+// â”€â”€ Helper: UID ativo (impersonaÃ§Ã£o) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function getActiveUid() {
   return (impersonatedUser && impersonatedUser.uid) ? impersonatedUser.uid : currentUser.uid;
 }
@@ -78,7 +78,7 @@ function getActiveUser() {
   return impersonatedUser ? { uid: impersonatedUser.uid, email: impersonatedUser.email, displayName: impersonatedUser.name } : currentUser;
 }
 
-// ── Elementos do DOM ──────────────────────────────────────────
+// â”€â”€ Elementos do DOM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const loginScreen    = document.getElementById('login-screen');
 const deniedScreen   = document.getElementById('denied-screen');
 const appScreen      = document.getElementById('app-screen');
@@ -110,9 +110,9 @@ const cameraResult   = document.getElementById('camera-result');
 let   cameraStream   = null;
 let   ocrInterval    = null;
 
-// ══════════════════════════════════════════════
-// AUTENTICAÇÃO
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// AUTENTICAÃ‡ÃƒO
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 btnLogin.addEventListener('click', async () => {
   try {
     const provider = new GoogleAuthProvider();
@@ -142,10 +142,10 @@ onAuthStateChanged(auth, async (user) => {
     showScreen('login');
     return;
   }
-  // Mostrar tela de carregamento enquanto verifica autorização
+  // Mostrar tela de carregamento enquanto verifica autorizaÃ§Ã£o
   showScreen('auth-loading');
 
-  // Verificar se está autorizado
+  // Verificar se estÃ¡ autorizado
   const authorized = await checkAuthorized(user.email);
   if (!authorized) {
     deniedEmail.textContent = user.email;
@@ -156,26 +156,26 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   showScreen('app');
 
-  // Mostrar aba Estatísticas para todos os usuários
+  // Mostrar aba EstatÃ­sticas para todos os usuÃ¡rios
   document.getElementById('tab-btn-stats').classList.remove('hidden');
 
   // Mostrar aba Admin apenas para administradores
   const isAdminUser = ADMIN_EMAILS.includes(user.email.toLowerCase());
   if (isAdminUser) {
     document.getElementById('tab-btn-admin').classList.remove('hidden');
-    // Admin não tem coleção própria: ocultar abas Coleção e Repetidas
+    // Admin nÃ£o tem coleÃ§Ã£o prÃ³pria: ocultar abas ColeÃ§Ã£o e Repetidas
     document.getElementById('tab-btn-colecao').classList.add('hidden');
     document.getElementById('tab-btn-repetidas').classList.add('hidden');
-    // Ocultar progresso no header (não tem sentido para o admin)
+    // Ocultar progresso no header (nÃ£o tem sentido para o admin)
     document.getElementById('dup-count-header').classList.add('hidden');
     document.getElementById('missing-count-header').classList.add('hidden');
-    // Ocultar botão PDF (só faz sentido ao impersonar)
+    // Ocultar botÃ£o PDF (sÃ³ faz sentido ao impersonar)
     document.getElementById('btn-export-pdf').classList.add('hidden');
     // Ir direto para a aba Admin
     document.querySelector('[data-tab="admin"]')?.click();
   }
 
-  // Atualizar visibilidade do botão de link
+  // Atualizar visibilidade do botÃ£o de link
   updateShareLinkVisibility();
 
   await initApp();
@@ -203,12 +203,12 @@ function showScreen(name) {
   else if (name === 'auth-loading') { if (authLoadingScreen) authLoadingScreen.classList.remove('hidden'); }
 }
 
-// ══════════════════════════════════════════════
-// INICIALIZAÇÃO DO APP
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// INICIALIZAÃ‡ÃƒO DO APP
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// Atualiza o header (avatar + nome) para qualquer usuário
-// { displayName, email, photoURL } — aceita tanto currentUser quanto impersonatedUser
+// Atualiza o header (avatar + nome) para qualquer usuÃ¡rio
+// { displayName, email, photoURL } â€” aceita tanto currentUser quanto impersonatedUser
 function updateHeader({ displayName, email, photoURL }) {
   const name = displayName || email || '';
   const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -237,10 +237,10 @@ function updateHeader({ displayName, email, photoURL }) {
 }
 
 async function initApp() {
-  // Exibir dados do usuário no header
+  // Exibir dados do usuÃ¡rio no header
   updateHeader(currentUser);
 
-  // Registrar UID e photoURL no documento do usuário autorizado
+  // Registrar UID e photoURL no documento do usuÃ¡rio autorizado
   try {
     const userDocRef = doc(db, 'authorized_users', currentUser.email.toLowerCase());
     const updates = { uid: currentUser.uid };
@@ -248,7 +248,7 @@ async function initApp() {
     await updateDoc(userDocRef, updates).catch(() => {});
   } catch (_) {}
 
-  // Carregar figurinhas do JSON estático (instantâneo, sem Firestore)
+  // Carregar figurinhas do JSON estÃ¡tico (instantÃ¢neo, sem Firestore)
   loadingOverlay.style.display = 'flex';
   try {
     const res = await fetch('stickers.json');
@@ -259,7 +259,7 @@ async function initApp() {
     return;
   }
 
-  // Carregar coleção e repetidas do Firestore em paralelo
+  // Carregar coleÃ§Ã£o e repetidas do Firestore em paralelo
   const uid = currentUser.uid;
   const [colSnap, dupSnap] = await Promise.all([
     getDoc(doc(db, 'collections', uid)),
@@ -275,9 +275,9 @@ async function initApp() {
   renderDuplicatesGrid();
 }
 
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // PROGRESSO
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function updateProgress() {
   const owned = myCollection.size;
   const total = allStickers.length;
@@ -296,9 +296,9 @@ function updateProgress() {
   if (missingEl) missingEl.textContent = missing;
 }
 
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // FILTROS
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 searchInput.addEventListener('input', () => {
   searchQuery = searchInput.value.trim().toLowerCase();
   btnClearSearch.classList.toggle('hidden', !searchQuery);
@@ -368,9 +368,9 @@ function getFilteredStickers() {
   });
 }
 
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TABS
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -389,7 +389,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       filterStatusRepetidas.classList.toggle('hidden', activeTab !== 'repetidas');
     }
 
-    // Ocultar barra de filtro inteira nas abas Admin, Estatísticas e Financeiro
+    // Ocultar barra de filtro inteira nas abas Admin, EstatÃ­sticas e Financeiro
     const filterBar = document.querySelector('.filter-bar');
     if (filterBar) {
       filterBar.style.display = (activeTab === 'admin' || activeTab === 'stats' || activeTab === 'financeiro') ? 'none' : '';
@@ -402,8 +402,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-// Os chips de grupo do topo (data-group) já controlam activeGroup e chamam renderMatchesList via renderGrid/renderDuplicatesGrid
-// Quando a aba Trocas está ativa, o filtro de grupo usa activeGroup diretamente
+// Os chips de grupo do topo (data-group) jÃ¡ controlam activeGroup e chamam renderMatchesList via renderGrid/renderDuplicatesGrid
+// Quando a aba Trocas estÃ¡ ativa, o filtro de grupo usa activeGroup diretamente
 
 // Filtro Tenho/Faltando na aba Repetidas
 document.querySelectorAll('[data-dup-status]').forEach(btn => {
@@ -422,7 +422,7 @@ document.querySelectorAll('[data-dup-status]').forEach(btn => {
   });
 });
 
-// Filtro Tenho/Faltando nas Negociações
+// Filtro Tenho/Faltando nas NegociaÃ§Ãµes
 document.querySelectorAll('.trade-filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.trade-filter-chip').forEach(b => b.classList.remove('active'));
@@ -457,8 +457,8 @@ function renderMatchesList() {
     if (!sticker) return;
     // Aplicar filtro de grupo (usa o mesmo activeGroup dos chips do topo)
     if (activeGroup !== 'all' && sticker.group !== activeGroup) return;
-    // Aplicar filtro Tenho/Faltando: "Tenho" = tenho repetida (já filtrado), "Faltando" = não mostrar aqui
-    if (activeTradeFilter === 'missing') return; // seção de repetidas não aparece no filtro "Faltando"
+    // Aplicar filtro Tenho/Faltando: "Tenho" = tenho repetida (jÃ¡ filtrado), "Faltando" = nÃ£o mostrar aqui
+    if (activeTradeFilter === 'missing') return; // seÃ§Ã£o de repetidas nÃ£o aparece no filtro "Faltando"
     // Aplicar filtro de busca
     if (tradeSearch) {
       const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
@@ -482,12 +482,12 @@ function renderMatchesList() {
         <div class="trade-name">${sticker.name}</div>
         <div class="trade-meta">
           <span class="trade-group">${groupLabel}</span>
-          <span class="trade-page">Pág. ${sticker.page}</span>
+          <span class="trade-page">PÃ¡g. ${sticker.page}</span>
         </div>
         <div class="trade-users">
           <div class="trade-user">
             <span class="trade-user-dot" style="background:var(--gold)"></span>
-            <span>Você tem</span>
+            <span>VocÃª tem</span>
             <span class="trade-user-qty" style="color:var(--gold);background:var(--gold-dim)">${qty}x</span>
           </div>
           ${reserved > 0 ? `
@@ -511,7 +511,7 @@ function renderMatchesList() {
   const countEl = document.getElementById('matches-count');
   if (countEl) countEl.textContent = matchCount;
 
-  // Renderizar seção "O que eu preciso"
+  // Renderizar seÃ§Ã£o "O que eu preciso"
   renderNeedsList();
 }
 
@@ -526,11 +526,11 @@ function renderNeedsList() {
   const othersDuplicates = window._tradeOthersDuplicates || {};
   const userNames = window._tradeUserNames || {};
 
-  // Para cada figurinha que eu não tenho, verificar se alguém tem repetida
+  // Para cada figurinha que eu nÃ£o tenho, verificar se alguÃ©m tem repetida
   allStickers.forEach(sticker => {
-    if (myCollection.has(sticker.code)) return; // já tenho
+    if (myCollection.has(sticker.code)) return; // jÃ¡ tenho
     if (activeGroup !== 'all' && sticker.group !== activeGroup) return;
-    // Aplicar filtro Tenho/Faltando: "Tenho" = não mostrar aqui (são faltantes)
+    // Aplicar filtro Tenho/Faltando: "Tenho" = nÃ£o mostrar aqui (sÃ£o faltantes)
     if (activeTradeFilter === 'owned') return;
     if (tradeSearch) {
       const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
@@ -553,7 +553,7 @@ function renderNeedsList() {
         <div class="trade-name">${sticker.name}</div>
         <div class="trade-meta">
           <span class="trade-group">${groupLabel}</span>
-          <span class="trade-page">Pág. ${sticker.page}</span>
+          <span class="trade-page">PÃ¡g. ${sticker.page}</span>
         </div>
         <div class="trade-users">
           ${providers.map(p => `
@@ -573,9 +573,9 @@ function renderNeedsList() {
   if (countEl) countEl.textContent = needsCount;
 }
 
-// ════════════════════════════════════════════
-// CÂMERA OCR
-// ════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// CÃ‚MERA OCR
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 document.getElementById('btn-camera').addEventListener('click', () => openCamera());
 document.getElementById('btn-close-camera').addEventListener('click', () => closeCamera());
 document.getElementById('btn-close-camera-2').addEventListener('click', () => closeCamera());
@@ -587,16 +587,16 @@ async function openCamera() {
   cameraResult.innerHTML = '';
   const btnCapture = document.getElementById('btn-capture-photo');
   btnCapture.disabled = false;
-  btnCapture.textContent = '📸 Fotografar código';
+  btnCapture.textContent = 'ðŸ“¸ Fotografar cÃ³digo';
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
     });
     cameraVideo.srcObject = cameraStream;
-    cameraResult.innerHTML = '<span class="camera-scanning">Aponte para o verso da figurinha e toque em “Fotografar código”</span>';
+    cameraResult.innerHTML = '<span class="camera-scanning">Aponte para o verso da figurinha e toque em â€œFotografar cÃ³digoâ€</span>';
   } catch (e) {
-    console.error('Erro ao abrir câmera:', e);
-    cameraResult.innerHTML = `<span class="camera-error">Não foi possível acessar a câmera: ${e.message}. Verifique as permissões do navegador.</span>`;
+    console.error('Erro ao abrir cÃ¢mera:', e);
+    cameraResult.innerHTML = `<span class="camera-error">NÃ£o foi possÃ­vel acessar a cÃ¢mera: ${e.message}. Verifique as permissÃµes do navegador.</span>`;
   }
 }
 
@@ -609,15 +609,15 @@ function closeCamera() {
   modalCamera.classList.add('hidden');
 }
 
-// Captura o frame atual e envia para Gemini Vision identificar o código
+// Captura o frame atual e envia para Gemini Vision identificar o cÃ³digo
 async function captureAndAnalyze() {
   const btnCapture = document.getElementById('btn-capture-photo');
   btnCapture.disabled = true;
-  btnCapture.textContent = '⏳ Analisando...';
+  btnCapture.textContent = 'â³ Analisando...';
   cameraResult.innerHTML = '<span class="camera-scanning">Analisando imagem, aguarde...</span>';
 
   try {
-    // Captura frame completo do vídeo
+    // Captura frame completo do vÃ­deo
     const canvas = document.createElement('canvas');
     canvas.width  = cameraVideo.videoWidth  || 1280;
     canvas.height = cameraVideo.videoHeight || 720;
@@ -632,7 +632,7 @@ async function captureAndAnalyze() {
     formData.append('isOverlayRequired', 'false');
     formData.append('detectOrientation', 'true');
     formData.append('scale', 'true');
-    formData.append('OCREngine', '2'); // Engine 2 é mais precisa para texto impresso
+    formData.append('OCREngine', '2'); // Engine 2 Ã© mais precisa para texto impresso
 
     const resp = await fetch('https://api.ocr.space/parse/image', {
       method: 'POST',
@@ -647,13 +647,13 @@ async function captureAndAnalyze() {
     const rawText = json.ParsedResults?.[0]?.ParsedText || '';
     console.log('Texto OCR bruto:', rawText);
 
-    // Normaliza: maiúsculas, remove caracteres estranhos mas mantém letras, números e espaços
+    // Normaliza: maiÃºsculas, remove caracteres estranhos mas mantÃ©m letras, nÃºmeros e espaÃ§os
     const cleaned = rawText.toUpperCase().replace(/[^A-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 
-    // Estratégia 1: tokens juntos (ex: "NED14")
+    // EstratÃ©gia 1: tokens juntos (ex: "NED14")
     const tokensJuntos = cleaned.split(' ').filter(t => /^[A-Z]{2,5}[0-9]{1,2}$/.test(t));
 
-    // Estratégia 2: pares adjacentes separados por espaço (ex: "NED 14" → "NED14")
+    // EstratÃ©gia 2: pares adjacentes separados por espaÃ§o (ex: "NED 14" â†’ "NED14")
     const words = cleaned.split(' ');
     const tokensPares = [];
     for (let i = 0; i < words.length - 1; i++) {
@@ -661,7 +661,7 @@ async function captureAndAnalyze() {
       if (/^[A-Z]{2,5}[0-9]{1,2}$/.test(combined)) tokensPares.push(combined);
     }
 
-    // Estratégia 3: busca direta na string limpa por qualquer código conhecido
+    // EstratÃ©gia 3: busca direta na string limpa por qualquer cÃ³digo conhecido
     const tokensDirectMatch = allStickers
       .filter(s => cleaned.includes(s.code))
       .map(s => s.code);
@@ -678,16 +678,16 @@ async function captureAndAnalyze() {
     if (found) {
       markStickerFromCamera(found);
     } else {
-      // Mostra o texto bruto lido para ajudar o usuário a entender o problema
+      // Mostra o texto bruto lido para ajudar o usuÃ¡rio a entender o problema
       const preview = cleaned.slice(0, 60) || 'nenhum texto detectado';
-      cameraResult.innerHTML = `<span class="camera-error">Não encontrei o código. Texto lido: "${preview}". Enquadre a caixinha preta com o código e tente novamente.</span>`;
+      cameraResult.innerHTML = `<span class="camera-error">NÃ£o encontrei o cÃ³digo. Texto lido: "${preview}". Enquadre a caixinha preta com o cÃ³digo e tente novamente.</span>`;
       btnCapture.disabled = false;
-      btnCapture.textContent = '📸 Tentar novamente';
+      btnCapture.textContent = 'ðŸ“¸ Tentar novamente';
     }
   } catch (e) {
-    cameraResult.innerHTML = `<span class="camera-error">Erro ao analisar imagem: ${e.message}. Verifique sua conexão e tente novamente.</span>`;
+    cameraResult.innerHTML = `<span class="camera-error">Erro ao analisar imagem: ${e.message}. Verifique sua conexÃ£o e tente novamente.</span>`;
     btnCapture.disabled = false;
-    btnCapture.textContent = '📸 Tentar novamente';
+    btnCapture.textContent = 'ðŸ“¸ Tentar novamente';
   }
 }
 
@@ -695,11 +695,11 @@ async function markStickerFromCamera(sticker) {
   const wasOwned = myCollection.has(sticker.code);
 
   if (wasOwned) {
-    // Já está na coleção — perguntar se quer adicionar às repetidas
+    // JÃ¡ estÃ¡ na coleÃ§Ã£o â€” perguntar se quer adicionar Ã s repetidas
     showCameraConfirm(
-      `🔁 <strong>${sticker.code}</strong> — ${sticker.name}`,
-      'Essa figurinha já está na sua coleção. Deseja somá-la às repetidas?',
-      'Sim, adicionar às repetidas',
+      `ðŸ” <strong>${sticker.code}</strong> â€” ${sticker.name}`,
+      'Essa figurinha jÃ¡ estÃ¡ na sua coleÃ§Ã£o. Deseja somÃ¡-la Ã s repetidas?',
+      'Sim, adicionar Ã s repetidas',
       async () => {
         const newQty = (myDuplicates[sticker.code] || 0) + 1;
         myDuplicates[sticker.code] = newQty;
@@ -709,7 +709,7 @@ async function markStickerFromCamera(sticker) {
             updatedAt: new Date().toISOString()
           });
           updateProgress();
-          showToast(`✅ ${sticker.code} adicionada às repetidas (${newQty}x)!`, 'success');
+          showToast(`âœ… ${sticker.code} adicionada Ã s repetidas (${newQty}x)!`, 'success');
         } catch (e) {
           myDuplicates[sticker.code] = newQty - 1;
           if (myDuplicates[sticker.code] <= 0) delete myDuplicates[sticker.code];
@@ -718,11 +718,11 @@ async function markStickerFromCamera(sticker) {
       }
     );
   } else {
-    // Não está na coleção — perguntar se quer incluir
+    // NÃ£o estÃ¡ na coleÃ§Ã£o â€” perguntar se quer incluir
     showCameraConfirm(
-      `✨ <strong>${sticker.code}</strong> — ${sticker.name}`,
-      'Figurinha nova! Deseja incluí-la na sua coleção?',
-      'Sim, incluir na coleção',
+      `âœ¨ <strong>${sticker.code}</strong> â€” ${sticker.name}`,
+      'Figurinha nova! Deseja incluÃ­-la na sua coleÃ§Ã£o?',
+      'Sim, incluir na coleÃ§Ã£o',
       async () => {
         myCollection.add(sticker.code);
         updateProgress();
@@ -732,7 +732,7 @@ async function markStickerFromCamera(sticker) {
             codes: Array.from(myCollection),
             updatedAt: new Date().toISOString()
           });
-          showToast(`✅ ${sticker.code} — ${sticker.name} adicionada!`, 'success');
+          showToast(`âœ… ${sticker.code} â€” ${sticker.name} adicionada!`, 'success');
         } catch (e) {
           myCollection.delete(sticker.code);
           updateProgress();
@@ -745,7 +745,7 @@ async function markStickerFromCamera(sticker) {
 }
 
 function showCameraConfirm(title, message, confirmLabel, onConfirm) {
-  // Reutilizar o modal da câmera para mostrar confirmação
+  // Reutilizar o modal da cÃ¢mera para mostrar confirmaÃ§Ã£o
   const resultEl = document.getElementById('camera-result');
   resultEl.innerHTML = `
     <div class="camera-confirm">
@@ -768,9 +768,9 @@ function showCameraConfirm(title, message, confirmLabel, onConfirm) {
   });
 }
 
-// ════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // MODAL DE COMPARTILHAMENTO
-// ════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const modalShare       = document.getElementById('modal-share');
 const shareStep1       = document.getElementById('share-step-1');
 const shareStep2       = document.getElementById('share-step-2');
@@ -820,7 +820,7 @@ function openShareModal() {
     groupList.appendChild(lbl);
   });
 
-  // Popular lista de seleções (multi-select)
+  // Popular lista de seleÃ§Ãµes (multi-select)
   const countryList = document.getElementById('share-country-list');
   countryList.innerHTML = '';
   const countryConfirmBtn = document.getElementById('share-country-confirm');
@@ -857,14 +857,14 @@ function showShareStep(step) {
   if (step === 'preview') shareStepPreview.classList.remove('hidden');
 }
 
-// Habilitar botão Próximo quando ao menos um checkbox estiver marcado
+// Habilitar botÃ£o PrÃ³ximo quando ao menos um checkbox estiver marcado
 [chkMissing, chkDuplicates].forEach(chk => {
   chk.addEventListener('change', () => {
     shareNextBtn.disabled = !chkMissing.checked && !chkDuplicates.checked;
   });
 });
 
-// Passo 1 → Passo 2
+// Passo 1 â†’ Passo 2
 shareNextBtn.addEventListener('click', () => {
   shareContext = {
     includeMissing: chkMissing.checked,
@@ -877,7 +877,7 @@ shareNextBtn.addEventListener('click', () => {
   showShareStep('step2');
 });
 
-// Navegação entre passos
+// NavegaÃ§Ã£o entre passos
 document.getElementById('share-back-2').addEventListener('click', () => showShareStep('step1'));
 document.getElementById('share-back-group').addEventListener('click', () => showShareStep('step2'));
 document.getElementById('share-back-country').addEventListener('click', () => showShareStep('step2'));
@@ -887,7 +887,7 @@ document.getElementById('share-back-preview').addEventListener('click', () => {
   else showShareStep('step2');
 });
 
-// Confirmar seleção de grupos
+// Confirmar seleÃ§Ã£o de grupos
 document.getElementById('share-group-confirm').addEventListener('click', () => {
   const checked = document.querySelectorAll('#share-group-list input:checked');
   const values = [...checked].map(i => i.value);
@@ -899,7 +899,7 @@ document.getElementById('share-group-confirm').addEventListener('click', () => {
   showShareStep('preview');
 });
 
-// Confirmar seleção de países
+// Confirmar seleÃ§Ã£o de paÃ­ses
 document.getElementById('share-country-confirm').addEventListener('click', () => {
   const checked = document.querySelectorAll('#share-country-list input:checked');
   const values = [...checked].map(i => i.value);
@@ -911,7 +911,7 @@ document.getElementById('share-country-confirm').addEventListener('click', () =>
   showShareStep('preview');
 });
 
-// Opções do passo 2 (escopo)
+// OpÃ§Ãµes do passo 2 (escopo)
 document.querySelectorAll('[data-scope]').forEach(btn => {
   btn.addEventListener('click', () => {
     const scope = btn.dataset.scope;
@@ -930,46 +930,46 @@ document.querySelectorAll('[data-scope]').forEach(btn => {
 // Helpers de agrupamento
 const GROUP_ORDER = ['FIFA', ...'ABCDEFGHIJKL'.split('').map(g => `Grupo ${g}`), 'Coca-Cola'];
 
-// Mapa de bandeiras por país
+// Mapa de bandeiras por paÃ­s
 const COUNTRY_FLAGS = {
   // Siglas
-  'ALG': '🇩🇿', 'ARG': '🇦🇷', 'AUT': '🇦🇹',
-  'BEL': '🇧🇪', 'COD': '🇨🇩', 'COL': '🇨🇴',
-  'CPV': '🇨🇻', 'CRO': '🇭🇷', 'EGY': '🇪🇬',
-  'ENG': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'ESP': '🇪🇸', 'FRA': '🇫🇷',
-  'GHA': '🇬🇭', 'IRN': '🇮🇷', 'IRQ': '🇮🇶',
-  'JOR': '🇯🇴', 'KAS': '🇰🇿', 'KSA': '🇸🇦',
-  'NOR': '🇳🇴', 'NZL': '🇳🇿', 'PAN': '🇵🇦',
-  'POR': '🇵🇹', 'SEN': '🇸🇳', 'SWE': '🇸🇪',
-  'TUN': '🇹🇳', 'URU': '🇺🇾', 'USA': '🇺🇸',
-  'UZB': '🇺🇿',
+  'ALG': 'ðŸ‡©ðŸ‡¿', 'ARG': 'ðŸ‡¦ðŸ‡·', 'AUT': 'ðŸ‡¦ðŸ‡¹',
+  'BEL': 'ðŸ‡§ðŸ‡ª', 'COD': 'ðŸ‡¨ðŸ‡©', 'COL': 'ðŸ‡¨ðŸ‡´',
+  'CPV': 'ðŸ‡¨ðŸ‡»', 'CRO': 'ðŸ‡­ðŸ‡·', 'EGY': 'ðŸ‡ªðŸ‡¬',
+  'ENG': 'ðŸ´ó §ó ¢ó ¥ó ®ó §ó ¿', 'ESP': 'ðŸ‡ªðŸ‡¸', 'FRA': 'ðŸ‡«ðŸ‡·',
+  'GHA': 'ðŸ‡¬ðŸ‡­', 'IRN': 'ðŸ‡®ðŸ‡·', 'IRQ': 'ðŸ‡®ðŸ‡¶',
+  'JOR': 'ðŸ‡¯ðŸ‡´', 'KAS': 'ðŸ‡°ðŸ‡¿', 'KSA': 'ðŸ‡¸ðŸ‡¦',
+  'NOR': 'ðŸ‡³ðŸ‡´', 'NZL': 'ðŸ‡³ðŸ‡¿', 'PAN': 'ðŸ‡µðŸ‡¦',
+  'POR': 'ðŸ‡µðŸ‡¹', 'SEN': 'ðŸ‡¸ðŸ‡³', 'SWE': 'ðŸ‡¸ðŸ‡ª',
+  'TUN': 'ðŸ‡¹ðŸ‡³', 'URU': 'ðŸ‡ºðŸ‡¾', 'USA': 'ðŸ‡ºðŸ‡¸',
+  'UZB': 'ðŸ‡ºðŸ‡¿',
   // Nomes completos (como aparecem no stickers.json)
-  'Australia': '🇦🇺',
-  'Bosnia and Herzegovina': '🇧🇦',
-  'Brazil': '🇧🇷',
-  'Canada': '🇨🇦',
-  'Colômbia': '🇨🇴',
-  'Curaçao': '🇨🇼',
-  'Czechia': '🇨🇿',
-  'Ecuador': '🇪🇨',
-  'FIFA World Cup': '🏆',
-  'Germany': '🇩🇪',
-  'Haiti': '🇭🇹',
-  'Ivory Coast': '🇨🇮',
-  'Japan': '🇯🇵',
-  'Mexico': '🇲🇽',
-  'Morocco': '🇲🇦',
-  'Netherlands': '🇳🇱',
-  'Paraguay': '🇵🇾',
-  'Qatar': '🇶🇦',
-  'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  'South Africa': '🇿🇦',
-  'South Korea': '🇰🇷',
-  'Switzerland': '🇨🇭',
-  'Türkiye': '🇹🇷',
-  'Uruguay': '🇺🇾',
+  'Australia': 'ðŸ‡¦ðŸ‡º',
+  'Bosnia and Herzegovina': 'ðŸ‡§ðŸ‡¦',
+  'Brazil': 'ðŸ‡§ðŸ‡·',
+  'Canada': 'ðŸ‡¨ðŸ‡¦',
+  'ColÃ´mbia': 'ðŸ‡¨ðŸ‡´',
+  'CuraÃ§ao': 'ðŸ‡¨ðŸ‡¼',
+  'Czechia': 'ðŸ‡¨ðŸ‡¿',
+  'Ecuador': 'ðŸ‡ªðŸ‡¨',
+  'FIFA World Cup': 'ðŸ†',
+  'Germany': 'ðŸ‡©ðŸ‡ª',
+  'Haiti': 'ðŸ‡­ðŸ‡¹',
+  'Ivory Coast': 'ðŸ‡¨ðŸ‡®',
+  'Japan': 'ðŸ‡¯ðŸ‡µ',
+  'Mexico': 'ðŸ‡²ðŸ‡½',
+  'Morocco': 'ðŸ‡²ðŸ‡¦',
+  'Netherlands': 'ðŸ‡³ðŸ‡±',
+  'Paraguay': 'ðŸ‡µðŸ‡¾',
+  'Qatar': 'ðŸ‡¶ðŸ‡¦',
+  'Scotland': 'ðŸ´ó §ó ¢ó ³ó £ó ´ó ¿',
+  'South Africa': 'ðŸ‡¿ðŸ‡¦',
+  'South Korea': 'ðŸ‡°ðŸ‡·',
+  'Switzerland': 'ðŸ‡¨ðŸ‡­',
+  'TÃ¼rkiye': 'ðŸ‡¹ðŸ‡·',
+  'Uruguay': 'ðŸ‡ºðŸ‡¾',
   // Grupos especiais
-  'Coca-Cola Stars': '🥤',
+  'Coca-Cola Stars': 'ðŸ¥¤',
 };
 
 function getFlag(country) {
@@ -991,7 +991,7 @@ function groupStickers(stickers) {
   return { grouped, sortedKeys };
 }
 
-// Agrupa figurinhas por país para a mensagem de compartilhamento
+// Agrupa figurinhas por paÃ­s para a mensagem de compartilhamento
 function groupStickersByCountry(stickers) {
   const grouped = {};
   stickers.forEach(s => {
@@ -1001,7 +1001,7 @@ function groupStickersByCountry(stickers) {
   });
   const sortedKeys = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
   sortedKeys.forEach(k => grouped[k].sort((a, b) => {
-    // Extrair número do código para ordenação numérica (ex: ARG1, ARG2, ARG10)
+    // Extrair nÃºmero do cÃ³digo para ordenaÃ§Ã£o numÃ©rica (ex: ARG1, ARG2, ARG10)
     const numA = parseInt(a.code.replace(/[^0-9]/g, '')) || 0;
     const numB = parseInt(b.code.replace(/[^0-9]/g, '')) || 0;
     return numA - numB;
@@ -1013,9 +1013,9 @@ function buildSharePreview() {
   const name = (currentUser.displayName || currentUser.email).split(' ')[0];
   const { includeMissing, includeDuplicates, scope, scopeValues, scopeLabel } = shareContext;
 
-  // Filtrar por escopo (suporta múltiplos valores)
+  // Filtrar por escopo (suporta mÃºltiplos valores)
   let scopeStickers = allStickers;
-  let scopeTitle = 'Álbum Completo';
+  let scopeTitle = 'Ãlbum Completo';
   if (scope === 'group' && scopeValues?.length) {
     scopeStickers = allStickers.filter(s => scopeValues.includes(s.group));
     scopeTitle = scopeLabel;
@@ -1024,17 +1024,17 @@ function buildSharePreview() {
     scopeTitle = scopeLabel;
   }
 
-  let msg = `🏆 *Figurinhas Copa 2026 — ${name}*\n`;
+  let msg = `ðŸ† *Figurinhas Copa 2026 â€” ${name}*\n`;
   msg += `_${scopeTitle}_\n\n`;
 
   let hasContent = false;
 
-  // Formata lista agrupada por país com bandeiras
-  // Formato: 🇦🇷 ARG: 1, 2, 5, 10
-  // Agrupa por prefixo do código (não por país) para evitar duplicatas
+  // Formata lista agrupada por paÃ­s com bandeiras
+  // Formato: ðŸ‡¦ðŸ‡· ARG: 1, 2, 5, 10
+  // Agrupa por prefixo do cÃ³digo (nÃ£o por paÃ­s) para evitar duplicatas
   // Ex: CC6 (COL) e COL6 ficam em grupos separados
   function formatList(stickers) {
-    // Agrupar por prefixo do código (ex: ARG, BRA, CC, FWC)
+    // Agrupar por prefixo do cÃ³digo (ex: ARG, BRA, CC, FWC)
     const byPrefix = {};
     stickers.forEach(s => {
       const prefix = s.code.replace(/[0-9]/g, '').trim();
@@ -1049,7 +1049,7 @@ function buildSharePreview() {
         const nb = parseInt(b.code.replace(/[^0-9]/g, '')) || 0;
         return na - nb;
       });
-      // Usar país do primeiro item para a bandeira
+      // Usar paÃ­s do primeiro item para a bandeira
       const flag = getFlag(items[0].country);
       const nums = items.map(s => s.code.replace(/[^0-9]/g, '') || s.code).join(', ');
       lines += `${flag} *${prefix}:* ${nums}\n`;
@@ -1057,28 +1057,28 @@ function buildSharePreview() {
     return lines;
   }
 
-  // Seção: Faltando
+  // SeÃ§Ã£o: Faltando
   if (includeMissing) {
     const missing = scopeStickers.filter(s => !myCollection.has(s.code));
     if (missing.length > 0) {
       hasContent = true;
-      msg += `*⬜ Faltando (${missing.length})*\n`;
+      msg += `*â¬œ Faltando (${missing.length})*\n`;
       msg += formatList(missing);
       msg += '\n';
     } else {
-      msg += `*⬜ Faltando:* nenhuma! 🎉\n\n`;
+      msg += `*â¬œ Faltando:* nenhuma! ðŸŽ‰\n\n`;
     }
   }
 
-  // Seção: Repetidas
+  // SeÃ§Ã£o: Repetidas
   if (includeDuplicates) {
     const dups = scopeStickers.filter(s => (myDuplicates[s.code] || 0) > 0);
     if (dups.length > 0) {
       hasContent = true;
       const totalQty = dups.reduce((sum, s) => sum + (myDuplicates[s.code] || 0), 0);
-      msg += `*🔄 Repetidas (${totalQty} unidades)*\n`;
-      // Para repetidas, mostrar quantidade ao lado do número quando > 1
-      // Agrupar por prefixo do código para evitar duplicatas (ex: CC6 e COL6)
+      msg += `*ðŸ”„ Repetidas (${totalQty} unidades)*\n`;
+      // Para repetidas, mostrar quantidade ao lado do nÃºmero quando > 1
+      // Agrupar por prefixo do cÃ³digo para evitar duplicatas (ex: CC6 e COL6)
       const byPrefix = {};
       dups.forEach(s => {
         const prefix = s.code.replace(/[0-9]/g, '').trim();
@@ -1101,7 +1101,7 @@ function buildSharePreview() {
       });
       msg += '\n';
     } else {
-      msg += `*🔄 Repetidas:* nenhuma no momento.\n\n`;
+      msg += `*ðŸ”„ Repetidas:* nenhuma no momento.\n\n`;
     }
   }
 
@@ -1115,7 +1115,7 @@ function buildSharePreview() {
   shareContext.message = msg;
 }
 
-// Botão enviar WhatsApp
+// BotÃ£o enviar WhatsApp
 document.getElementById('btn-share-whatsapp-send').addEventListener('click', () => {
   if (!shareContext?.message) return;
   const url = `https://wa.me/?text=${encodeURIComponent(shareContext.message)}`;
@@ -1125,11 +1125,11 @@ document.getElementById('btn-share-whatsapp-send').addEventListener('click', () 
   }
 });
 
-// Botão copiar texto
+// BotÃ£o copiar texto
 document.getElementById('btn-share-copy').addEventListener('click', () => {
   if (!shareContext?.message) return;
   navigator.clipboard.writeText(shareContext.message)
-    .then(() => showToast('Texto copiado para a área de transferência!', 'success'))
+    .then(() => showToast('Texto copiado para a Ã¡rea de transferÃªncia!', 'success'))
     .catch(() => {
       // Fallback para navegadores sem suporte
       sharePreviewText.select();
@@ -1138,9 +1138,9 @@ document.getElementById('btn-share-copy').addEventListener('click', () => {
     });
 });
 
-// ══════════════════════════════════════════════
-// RENDER — COLEÇÃO
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// RENDER â€” COLEÃ‡ÃƒO
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function renderGrid() {
   const filtered = getFilteredStickers();
   stickerGrid.innerHTML = '';
@@ -1151,8 +1151,8 @@ function renderGrid() {
   }
   emptyState.classList.add('hidden');
 
-  // Agrupar por seleção (country) e ordenar alfabeticamente
-  // CC stickers são agrupados como 'Coca-Cola Stars' independente do country original
+  // Agrupar por seleÃ§Ã£o (country) e ordenar alfabeticamente
+  // CC stickers sÃ£o agrupados como 'Coca-Cola Stars' independente do country original
   const byCountry = {};
   filtered.forEach(s => {
     const groupKey = s.code.startsWith('CC') ? 'Coca-Cola Stars' : s.country;
@@ -1160,7 +1160,7 @@ function renderGrid() {
     byCountry[groupKey].push(s);
   });
   const sortedCountries = Object.keys(byCountry).sort((a, b) => {
-    // FIFA World Cup sempre primeiro, Coca-Cola Stars sempre último
+    // FIFA World Cup sempre primeiro, Coca-Cola Stars sempre Ãºltimo
     if (a === 'FIFA World Cup') return -1;
     if (b === 'FIFA World Cup') return 1;
     if (a === 'Coca-Cola Stars') return 1;
@@ -1172,8 +1172,8 @@ function renderGrid() {
   sortedCountries.forEach(country => {
     const stickers = byCountry[country];
     const firstSticker = stickers[0];
-    const flag = COUNTRY_FLAGS[country] || '🏳️';
-    // Label do grupo: CC → Coca-Cola, FWC → FIFA, outros normal
+    const flag = COUNTRY_FLAGS[country] || 'ðŸ³ï¸';
+    // Label do grupo: CC â†’ Coca-Cola, FWC â†’ FIFA, outros normal
     let group;
     if (country === 'Coca-Cola Stars') {
       group = 'Coca-Cola';
@@ -1243,7 +1243,7 @@ async function toggleSticker(code, card) {
     card.classList.add('owned');
   }
   updateProgress();
-  // Atualizar contador da seção da seleção
+  // Atualizar contador da seÃ§Ã£o da seleÃ§Ã£o
   const section = card.closest('.sticker-section');
   if (section) {
     const countEl = section.querySelector('.sticker-section-count');
@@ -1275,9 +1275,9 @@ async function toggleSticker(code, card) {
   }
 }
 
-// ══════════════════════════════════════════════
-// RENDER — REPETIDAS
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// RENDER â€” REPETIDAS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function renderDuplicatesGrid() {
   let filtered = getFilteredStickers();
 
@@ -1296,8 +1296,8 @@ function renderDuplicatesGrid() {
   }
   emptyStateDup.classList.add('hidden');
 
-  // Agrupar por seleção e ordenar alfabeticamente
-  // CC stickers são agrupados como 'Coca-Cola Stars' independente do country original
+  // Agrupar por seleÃ§Ã£o e ordenar alfabeticamente
+  // CC stickers sÃ£o agrupados como 'Coca-Cola Stars' independente do country original
   const byCountry = {};
   filtered.forEach(s => {
     const groupKey = s.code.startsWith('CC') ? 'Coca-Cola Stars' : s.country;
@@ -1316,8 +1316,8 @@ function renderDuplicatesGrid() {
   sortedCountries.forEach(country => {
     const stickers = byCountry[country];
     const firstSticker = stickers[0];
-    const flag = COUNTRY_FLAGS[country] || '🏳️';
-    // Label do grupo: CC → Coca-Cola, FWC → FIFA, outros normal
+    const flag = COUNTRY_FLAGS[country] || 'ðŸ³ï¸';
+    // Label do grupo: CC â†’ Coca-Cola, FWC â†’ FIFA, outros normal
     let group;
     if (country === 'Coca-Cola Stars') {
       group = 'Coca-Cola';
@@ -1370,7 +1370,7 @@ function createDupCard(s) {
     <div class="sticker-code">${s.code}</div>
     <div class="sticker-name">${s.name}</div>
     <div class="dup-controls">
-      <button class="dup-btn" data-action="dec">−</button>
+      <button class="dup-btn" data-action="dec">âˆ’</button>
       <span class="dup-qty ${qty > 0 ? 'has-dup' : ''}">${qty}</span>
       <button class="dup-btn" data-action="inc">+</button>
     </div>
@@ -1404,7 +1404,7 @@ async function updateDuplicate(code, newQty, card) {
   qtyEl.className = 'dup-qty' + (newQty > 0 ? ' has-dup' : '');
   card.classList.toggle('owned', newQty > 0);
 
-  // Atualizar contador da seção da seleção
+  // Atualizar contador da seÃ§Ã£o da seleÃ§Ã£o
   const section = card.closest('.sticker-section');
   if (section) {
     const countEl = section.querySelector('.sticker-section-count');
@@ -1442,20 +1442,20 @@ async function updateDuplicate(code, newQty, card) {
   }
 }
 
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // PAINEL DE TROCAS
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async function loadTradingPanel() {
-  // Garantir que os dados do usuário já foram carregados
+  // Garantir que os dados do usuÃ¡rio jÃ¡ foram carregados
   if (!currentUser || !allStickers || allStickers.length === 0) {
-    showToast('Aguarde o carregamento da coleção.', '');
+    showToast('Aguarde o carregamento da coleÃ§Ã£o.', '');
     return;
   }
   tradingLoading.style.display = 'flex';
   tradingContent.classList.add('hidden');
 
   try {
-    // Buscar coleções, repetidas e propostas de todos os usuários
+    // Buscar coleÃ§Ãµes, repetidas e propostas de todos os usuÃ¡rios
     const [colSnaps, dupSnaps, proposalSnaps] = await Promise.all([
       getDocs(collection(db, 'collections')),
       getDocs(collection(db, 'duplicates')),
@@ -1465,29 +1465,29 @@ async function loadTradingPanel() {
 
     const uid = getActiveUid();
 
-    // Constante: mínimo de figurinhas para ser considerado participante ativo
+    // Constante: mÃ­nimo de figurinhas para ser considerado participante ativo
     const MIN_STICKERS_ACTIVE = 7;
 
-    // Determinar quais UIDs são participantes ativos (coleção + repetidas >= 7)
+    // Determinar quais UIDs sÃ£o participantes ativos (coleÃ§Ã£o + repetidas >= 7)
     const activeUids = new Set();
     const colByUid = {}; // { uid: Set<code> }
     const dupByUid = {}; // { uid: { code: qty } }
     colSnaps.forEach(snap => { colByUid[snap.id] = new Set(snap.data().codes || []); });
     dupSnaps.forEach(snap => { dupByUid[snap.id] = snap.data().items || {}; });
 
-    // Verificar o próprio usuário também (sempre ativo para si mesmo)
+    // Verificar o prÃ³prio usuÃ¡rio tambÃ©m (sempre ativo para si mesmo)
     activeUids.add(uid);
 
-    // Para os outros: contar coleção + total de repetidas
+    // Para os outros: contar coleÃ§Ã£o + total de repetidas
     const allUids = new Set([...Object.keys(colByUid), ...Object.keys(dupByUid)]);
     allUids.forEach(u => {
-      if (u === uid) return; // já adicionado
+      if (u === uid) return; // jÃ¡ adicionado
       const colCount = (colByUid[u] || new Set()).size;
       const dupCount = Object.values(dupByUid[u] || {}).reduce((s, q) => s + q, 0);
       if (colCount + dupCount >= MIN_STICKERS_ACTIVE) activeUids.add(u);
     });
 
-    // Mapear coleções dos outros usuários ATIVOS
+    // Mapear coleÃ§Ãµes dos outros usuÃ¡rios ATIVOS
     const othersCollection = {}; // { uid: Set<code> }
     colSnaps.forEach(snap => {
       if (snap.id !== uid && activeUids.has(snap.id)) {
@@ -1495,7 +1495,7 @@ async function loadTradingPanel() {
       }
     });
 
-    // Mapear repetidas dos outros usuários ATIVOS
+    // Mapear repetidas dos outros usuÃ¡rios ATIVOS
     const othersDuplicates = {}; // { uid: { code: qty } }
     dupSnaps.forEach(snap => {
       if (snap.id !== uid && activeUids.has(snap.id)) {
@@ -1503,7 +1503,7 @@ async function loadTradingPanel() {
       }
     });
 
-    // Buscar nomes dos usuários (mapeamento UID → nome via campo uid em authorized_users)
+    // Buscar nomes dos usuÃ¡rios (mapeamento UID â†’ nome via campo uid em authorized_users)
     const userSnaps = await getDocs(collection(db, 'authorized_users'));
     const userNames = {}; // { uid: nome }
     const userList = []; // lista de membros para o modal de proposta (apenas ativos)
@@ -1568,13 +1568,13 @@ async function loadTradingPanel() {
 }
 
 
-// ════════════════════════════════════════════
-// ESTATÍSTICAS DO GRUPO (aba própria)
-// ════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ESTATÃSTICAS DO GRUPO (aba prÃ³pria)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async function loadStatsPanel() {
   const statsGrid = document.getElementById('stats-grid');
   if (!statsGrid) return;
-  statsGrid.innerHTML = '<div class="stats-loading"><div class="spinner"></div><span>Calculando estatísticas…</span></div>';
+  statsGrid.innerHTML = '<div class="stats-loading"><div class="spinner"></div><span>Calculando estatÃ­sticasâ€¦</span></div>';
   try {
     const [colSnaps, dupSnaps] = await Promise.all([
       getDocs(collection(db, 'collections')),
@@ -1582,7 +1582,7 @@ async function loadStatsPanel() {
     ]);
     renderGroupStats(colSnaps, dupSnaps);
   } catch (e) {
-    statsGrid.innerHTML = '<div class="stats-empty">Erro ao carregar estatísticas.</div>';
+    statsGrid.innerHTML = '<div class="stats-empty">Erro ao carregar estatÃ­sticas.</div>';
   }
 }
 
@@ -1590,7 +1590,7 @@ function renderGroupStats(colSnaps, dupSnaps) {
   const statsGrid = document.getElementById('stats-grid');
   if (!statsGrid) return;
 
-  // Constante: mínimo de figurinhas (coleção + repetidas) para ser participante ativo
+  // Constante: mÃ­nimo de figurinhas (coleÃ§Ã£o + repetidas) para ser participante ativo
   const MIN_STICKERS_ACTIVE = 7;
 
   // Determinar UIDs ativos
@@ -1599,8 +1599,8 @@ function renderGroupStats(colSnaps, dupSnaps) {
   colSnaps.forEach(snap => { colByUid[snap.id] = snap.data().codes || []; });
   dupSnaps.forEach(snap => { dupByUid[snap.id] = snap.data().items || {}; });
 
-  // Garantir que o usuário atual sempre esteja incluído com os dados em memória
-  // (evita que ele fique de fora por dessincronização com o Firestore)
+  // Garantir que o usuÃ¡rio atual sempre esteja incluÃ­do com os dados em memÃ³ria
+  // (evita que ele fique de fora por dessincronizaÃ§Ã£o com o Firestore)
   const activeUid = getActiveUid();
   colByUid[activeUid] = [...myCollection];
   dupByUid[activeUid] = myDuplicates;
@@ -1642,7 +1642,7 @@ function renderGroupStats(colSnaps, dupSnaps) {
     .sort((a, b) => b.missing - a.missing)
     .slice(0, 5);
 
-  // Top 5 repetidas do usuário atual
+  // Top 5 repetidas do usuÃ¡rio atual
   const myTopDups = Object.entries(myDuplicates)
     .filter(([, qty]) => qty > 0)
     .sort((a, b) => b[1] - a[1])
@@ -1650,11 +1650,11 @@ function renderGroupStats(colSnaps, dupSnaps) {
     .map(([code, qty]) => ({ code, qty, sticker: allStickers.find(s => s.code === code) }))
     .filter(x => x.sticker);
 
-  // ── Posições mais ausentes ──
-  // Extrai o número de posição do final do código (ex: MEX7 → 7, BRA14 → 14)
+  // â”€â”€ PosiÃ§Ãµes mais ausentes â”€â”€
+  // Extrai o nÃºmero de posiÃ§Ã£o do final do cÃ³digo (ex: MEX7 â†’ 7, BRA14 â†’ 14)
   const posRegex = /(\d+)$/;
 
-  // Posições mais ausentes do usuário atual (figurinhas que não possui)
+  // PosiÃ§Ãµes mais ausentes do usuÃ¡rio atual (figurinhas que nÃ£o possui)
   const myMissingByPos = {};
   allStickers.forEach(s => {
     const m = s.code.match(posRegex);
@@ -1669,11 +1669,11 @@ function renderGroupStats(colSnaps, dupSnaps) {
     .slice(0, 3)
     .map(([pos, cnt]) => ({ pos: parseInt(pos, 10), cnt }));
 
-  // Posições mais ausentes no grupo (Opção B)
-  // Para cada posição, soma quantas figurinhas daquela posição faltam no total para todos os membros ativos
-  // Ex: posição 13 tem 50 figurinhas × 6 membros = 300 possíveis; se o grupo tem 180, faltam 120 → exibe 120/300
+  // PosiÃ§Ãµes mais ausentes no grupo (OpÃ§Ã£o B)
+  // Para cada posiÃ§Ã£o, soma quantas figurinhas daquela posiÃ§Ã£o faltam no total para todos os membros ativos
+  // Ex: posiÃ§Ã£o 13 tem 50 figurinhas Ã— 6 membros = 300 possÃ­veis; se o grupo tem 180, faltam 120 â†’ exibe 120/300
 
-  // Mapa: posição → lista de códigos daquela posição
+  // Mapa: posiÃ§Ã£o â†’ lista de cÃ³digos daquela posiÃ§Ã£o
   const stickersByPos = {};
   allStickers.forEach(s => {
     const m = s.code.match(posRegex);
@@ -1683,8 +1683,8 @@ function renderGroupStats(colSnaps, dupSnaps) {
     stickersByPos[pos].push(s.code);
   });
 
-  const groupMissingByPos = {}; // posição → total de figurinhas faltando no grupo
-  const groupTotalByPos = {};   // posição → total possível (stickers_na_posição × membros_ativos)
+  const groupMissingByPos = {}; // posiÃ§Ã£o â†’ total de figurinhas faltando no grupo
+  const groupTotalByPos = {};   // posiÃ§Ã£o â†’ total possÃ­vel (stickers_na_posiÃ§Ã£o Ã— membros_ativos)
 
   Object.entries(stickersByPos).forEach(([posStr, codes]) => {
     const pos = parseInt(posStr, 10);
@@ -1705,7 +1705,7 @@ function renderGroupStats(colSnaps, dupSnaps) {
     .slice(0, 3)
     .map(([pos, cnt]) => ({ pos: parseInt(pos, 10), cnt, total: groupTotalByPos[parseInt(pos, 10)] }));
 
-  // Verificar se o usuário atual é admin sem impersonação (não tem coleção própria)
+  // Verificar se o usuÃ¡rio atual Ã© admin sem impersonaÃ§Ã£o (nÃ£o tem coleÃ§Ã£o prÃ³pria)
   const isAdminNoImpersonation = currentUser && ADMIN_EMAILS.includes(currentUser.email) && !impersonatedUser;
 
   statsGrid.innerHTML = `
@@ -1732,15 +1732,15 @@ function renderGroupStats(colSnaps, dupSnaps) {
     <div class="stats-col stats-col-personal">
       <div class="stats-col-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        Minhas posições mais ausentes
+        Minhas posiÃ§Ãµes mais ausentes
       </div>
       ${myTopMissingPos.length === 0
-        ? '<div class="stats-empty">Coleção completa ou sem dados.</div>'
+        ? '<div class="stats-empty">ColeÃ§Ã£o completa ou sem dados.</div>'
         : myTopMissingPos.map((x, i) => `
           <div class="stats-row">
             <span class="stats-rank">${i + 1}</span>
             <div class="stats-info">
-              <span class="stats-code">Posição ${x.pos}</span>
+              <span class="stats-code">PosiÃ§Ã£o ${x.pos}</span>
               <span class="stats-name">${x.cnt} figurinha${x.cnt !== 1 ? 's' : ''} faltando</span>
             </div>
             <span class="stats-value gold">${x.cnt}x</span>
@@ -1790,7 +1790,7 @@ function renderGroupStats(colSnaps, dupSnaps) {
     <div class="stats-col">
       <div class="stats-col-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Posições mais ausentes no grupo
+        PosiÃ§Ãµes mais ausentes no grupo
       </div>
       ${groupTopMissingPos.length === 0
         ? '<div class="stats-empty">Dados insuficientes ainda.</div>'
@@ -1798,7 +1798,7 @@ function renderGroupStats(colSnaps, dupSnaps) {
           <div class="stats-row">
             <span class="stats-rank">${i + 1}</span>
             <div class="stats-info">
-              <span class="stats-code">Posição ${x.pos}</span>
+              <span class="stats-code">PosiÃ§Ã£o ${x.pos}</span>
               <span class="stats-name">${x.cnt} figurinha${x.cnt !== 1 ? 's' : ''} faltando no grupo</span>
             </div>
             <span class="stats-value blue">${x.cnt}/${x.total}</span>
@@ -1809,13 +1809,13 @@ function renderGroupStats(colSnaps, dupSnaps) {
   `;
 }
 
-// ══════════════════════════════════════════════
-// PAINEL DE ADMINISTRAÇÃO
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// PAINEL DE ADMINISTRAÃ‡ÃƒO
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async function loadAdminPanel() {
   if (!ADMIN_EMAILS.includes(currentUser.email.toLowerCase())) return;
 
-  // Carregar lista de usuários para seleção de impersonação
+  // Carregar lista de usuÃ¡rios para seleÃ§Ã£o de impersonaÃ§Ã£o
   const selectLoadingEl = document.getElementById('admin-select-loading');
   if (selectLoadingEl) selectLoadingEl.style.display = 'flex';
 
@@ -1832,13 +1832,13 @@ async function loadAdminPanel() {
     renderAdminUsers(users);
     renderAdminUserSelectList(users);
   } catch (e) {
-    showToast('Erro ao carregar usuários.', 'error');
+    showToast('Erro ao carregar usuÃ¡rios.', 'error');
   } finally {
     loadingEl.style.display = 'none';
     if (selectLoadingEl) selectLoadingEl.style.display = 'none';
   }
 
-  // Configurar botão de adicionar — usar flag para evitar múltiplos listeners
+  // Configurar botÃ£o de adicionar â€” usar flag para evitar mÃºltiplos listeners
   const btnAdd = document.getElementById('btn-add-user');
   if (!btnAdd._listenerAttached) {
     btnAdd.addEventListener('click', addUser);
@@ -1847,7 +1847,7 @@ async function loadAdminPanel() {
   document.getElementById('admin-email-input').onkeydown = (e) => { if (e.key === 'Enter') addUser(); };
   document.getElementById('admin-name-input').onkeydown = (e) => { if (e.key === 'Enter') addUser(); };
 
-  // Configurar botão de parar impersonação
+  // Configurar botÃ£o de parar impersonaÃ§Ã£o
   const btnStop = document.getElementById('btn-stop-impersonate');
   if (btnStop && !btnStop._listenerAttached) {
     btnStop.addEventListener('click', stopImpersonation);
@@ -1860,11 +1860,11 @@ function renderAdminUserSelectList(users) {
   if (!listEl) return;
   listEl.innerHTML = '';
 
-  // Filtrar: não mostrar o próprio admin na lista de impersonação
+  // Filtrar: nÃ£o mostrar o prÃ³prio admin na lista de impersonaÃ§Ã£o
   const otherUsers = users.filter(u => !ADMIN_EMAILS.includes(u.id.toLowerCase()));
 
   if (otherUsers.length === 0) {
-    listEl.innerHTML = '<div class="admin-empty">Nenhum usuário cadastrado ainda.</div>';
+    listEl.innerHTML = '<div class="admin-empty">Nenhum usuÃ¡rio cadastrado ainda.</div>';
     return;
   }
 
@@ -1890,11 +1890,11 @@ function renderAdminUserSelectList(users) {
 
 async function startImpersonation(user) {
   if (!user.uid) {
-    showToast('Este usuário ainda não fez login no app. O UID não está disponível.', 'error');
+    showToast('Este usuÃ¡rio ainda nÃ£o fez login no app. O UID nÃ£o estÃ¡ disponÃ­vel.', 'error');
     return;
   }
 
-  // Salvar usuário real se ainda não foi salvo
+  // Salvar usuÃ¡rio real se ainda nÃ£o foi salvo
   if (!realUser) realUser = currentUser;
 
   impersonatedUser = {
@@ -1910,14 +1910,14 @@ async function startImpersonation(user) {
   if (banner) banner.classList.remove('hidden');
   if (bannerName) bannerName.textContent = impersonatedUser.name;
 
-  // Atualizar header com foto/nome do usuário impersonado
+  // Atualizar header com foto/nome do usuÃ¡rio impersonado
   updateHeader({
     displayName: impersonatedUser.name,
     email: impersonatedUser.email,
     photoURL: impersonatedUser.photoURL
   });
 
-  // Mostrar abas e elementos de coleção (admin está operando como outro usuário)
+  // Mostrar abas e elementos de coleÃ§Ã£o (admin estÃ¡ operando como outro usuÃ¡rio)
   document.getElementById('tab-btn-colecao').classList.remove('hidden');
   document.getElementById('tab-btn-repetidas').classList.remove('hidden');
   document.getElementById('dup-count-header').classList.remove('hidden');
@@ -1925,7 +1925,7 @@ async function startImpersonation(user) {
   document.getElementById('btn-export-pdf').classList.remove('hidden');
   updateShareLinkVisibility();
 
-  // Carregar dados do usuário impersonado
+  // Carregar dados do usuÃ¡rio impersonado
   loadingOverlay.style.display = 'flex';
   try {
     const uid = impersonatedUser.uid;
@@ -1938,11 +1938,11 @@ async function startImpersonation(user) {
     updateProgress();
     renderGrid();
     renderDuplicatesGrid();
-    showToast(`✅ Operando como ${impersonatedUser.name}`, 'success');
-    // Navegar para aba coleção para ver os dados do usuário
+    showToast(`âœ… Operando como ${impersonatedUser.name}`, 'success');
+    // Navegar para aba coleÃ§Ã£o para ver os dados do usuÃ¡rio
     document.querySelector('.tab-btn[data-tab="colecao"]').click();
   } catch (e) {
-    showToast('Erro ao carregar dados do usuário.', 'error');
+    showToast('Erro ao carregar dados do usuÃ¡rio.', 'error');
   } finally {
     loadingOverlay.style.display = 'none';
   }
@@ -1960,7 +1960,7 @@ async function stopImpersonation() {
   // Restaurar header com dados do admin
   updateHeader(realUser);
 
-  // Ocultar abas e elementos de coleção (admin voltou para a própria conta)
+  // Ocultar abas e elementos de coleÃ§Ã£o (admin voltou para a prÃ³pria conta)
   document.getElementById('tab-btn-colecao').classList.add('hidden');
   document.getElementById('tab-btn-repetidas').classList.add('hidden');
   document.getElementById('dup-count-header').classList.add('hidden');
@@ -1981,7 +1981,7 @@ async function stopImpersonation() {
     updateProgress();
     renderGrid();
     renderDuplicatesGrid();
-    showToast('Voltou para sua própria conta.', 'success');
+    showToast('Voltou para sua prÃ³pria conta.', 'success');
     document.querySelector('.tab-btn[data-tab="admin"]').click();
   } catch (e) {
     showToast('Erro ao restaurar dados.', 'error');
@@ -2000,7 +2000,7 @@ function renderAdminUsers(users) {
   if (users.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'admin-empty';
-    empty.textContent = 'Nenhum usuário autorizado ainda.';
+    empty.textContent = 'Nenhum usuÃ¡rio autorizado ainda.';
     listEl.appendChild(empty);
     return;
   }
@@ -2013,9 +2013,9 @@ function renderAdminUsers(users) {
     row.innerHTML = `
       <div class="admin-user-info">
         <div class="admin-user-email">${user.id} ${isAdmin ? '<span class="admin-badge">admin</span>' : ''}</div>
-        <div class="admin-user-name">${user.name || '—'}</div>
+        <div class="admin-user-name">${user.name || 'â€”'}</div>
       </div>
-      <button class="btn-remove-user" data-id="${user.id}" ${isAdmin ? 'disabled title="Não é possível remover o admin"' : ''}>Remover</button>
+      <button class="btn-remove-user" data-id="${user.id}" ${isAdmin ? 'disabled title="NÃ£o Ã© possÃ­vel remover o admin"' : ''}>Remover</button>
     `;
     listEl.appendChild(row);
   });
@@ -2032,15 +2032,15 @@ async function addUser() {
   const name = nameInput.value.trim();
 
   if (!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
-    showToast('Digite um email válido.', 'error');
+    showToast('Digite um email vÃ¡lido.', 'error');
     emailInput.focus();
     return;
   }
 
-  // Buscar o botão atual (pode ter sido recriado por cloneNode)
+  // Buscar o botÃ£o atual (pode ter sido recriado por cloneNode)
   const btn = document.getElementById('btn-add-user');
   btn.disabled = true;
-  btn.textContent = 'Adicionando…';
+  btn.textContent = 'Adicionandoâ€¦';
 
   try {
     await setDoc(doc(db, 'authorized_users', email), {
@@ -2051,20 +2051,20 @@ async function addUser() {
     });
     emailInput.value = '';
     nameInput.value = '';
-    showToast(`✅ ${email} adicionado com sucesso!`, 'success');
-    // Recarregar lista sem recriar o botão (evita perder referência)
+    showToast(`âœ… ${email} adicionado com sucesso!`, 'success');
+    // Recarregar lista sem recriar o botÃ£o (evita perder referÃªncia)
     await reloadAdminUsersList();
   } catch (e) {
-    showToast('Erro ao adicionar usuário.', 'error');
+    showToast('Erro ao adicionar usuÃ¡rio.', 'error');
   } finally {
-    // Resetar botão atual (não o clonado)
+    // Resetar botÃ£o atual (nÃ£o o clonado)
     const currentBtn = document.getElementById('btn-add-user');
     currentBtn.disabled = false;
     currentBtn.textContent = 'Adicionar';
   }
 }
 
-// Recarrega apenas a lista de usuários sem reconfigurar os listeners do formulário
+// Recarrega apenas a lista de usuÃ¡rios sem reconfigurar os listeners do formulÃ¡rio
 async function reloadAdminUsersList() {
   const loadingEl = document.getElementById('admin-loading');
   loadingEl.style.display = 'flex';
@@ -2085,17 +2085,17 @@ async function removeUser(email) {
   if (!confirm(`Remover acesso de ${email}?`)) return;
   try {
     await deleteDoc(doc(db, 'authorized_users', email));
-    showToast(`❌ ${email} removido.`, '');
+    showToast(`âŒ ${email} removido.`, '');
     const row = document.querySelector(`.admin-user-row[data-id="${email}"]`);
     if (row) row.remove();
   } catch (e) {
-    showToast('Erro ao remover usuário.', 'error');
+    showToast('Erro ao remover usuÃ¡rio.', 'error');
   }
 }
 
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TOAST
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 let toastTimer;
 function showToast(msg, type = '') {
   const toast = document.getElementById('toast');
@@ -2108,11 +2108,11 @@ function showToast(msg, type = '') {
 }
 
 
-// ══════════════════════════════════════════════
-// MÓDULO DE PROPOSTAS DE TROCA
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// MÃ“DULO DE PROPOSTAS DE TROCA
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ── Estado do modal de proposta ──────────────
+// â”€â”€ Estado do modal de proposta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let proposalState = {
   type: null,       // 'member' | 'external'
   partnerUid: null,
@@ -2121,7 +2121,7 @@ let proposalState = {
   requestedCodes: [],
 };
 
-// ── Elementos do modal ───────────────────────
+// â”€â”€ Elementos do modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const modalProposal = document.getElementById('modal-proposal');
 
 function openProposalModal() {
@@ -2152,10 +2152,10 @@ modalProposal.addEventListener('click', e => { if (e.target === modalProposal) c
 // Tipo: membro
 document.getElementById('proposal-type-member').addEventListener('click', () => {
   proposalState.type = 'member';
-  proposalState.subtype = 'trade'; // padrão: troca
+  proposalState.subtype = 'trade'; // padrÃ£o: troca
   proposalState.saleRole = null;
   proposalState.saleValue = 0;
-  // Resetar seleção de subtipo
+  // Resetar seleÃ§Ã£o de subtipo
   document.querySelectorAll('.member-subtype-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('member-subtype-trade').classList.add('active');
   document.getElementById('member-sale-fields').classList.add('hidden');
@@ -2192,12 +2192,12 @@ document.querySelectorAll('[data-member-role]').forEach(btn => {
 // Tipo: avulsa
 document.getElementById('proposal-type-external').addEventListener('click', () => {
   proposalState.type = 'external';
-  proposalState.subtype = 'trade'; // padrão: troca
+  proposalState.subtype = 'trade'; // padrÃ£o: troca
   proposalState.saleRole = null;
   proposalState.saleValue = 0;
   document.getElementById('proposal-external-name').value = '';
   document.getElementById('proposal-external-next').disabled = true;
-  // Resetar seleção de subtipo
+  // Resetar seleÃ§Ã£o de subtipo
   document.querySelectorAll('.external-subtype-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('external-subtype-trade').classList.add('active');
   document.getElementById('external-sale-fields').classList.add('hidden');
@@ -2238,7 +2238,7 @@ document.querySelectorAll('[data-role]').forEach(btn => {
 
 function checkExternalNextBtn() {
   const nameOk = document.getElementById('proposal-external-name').value.trim().length >= 2;
-  // Valor será preenchido no passo de build, então aqui só valida o nome
+  // Valor serÃ¡ preenchido no passo de build, entÃ£o aqui sÃ³ valida o nome
   document.getElementById('proposal-external-next').disabled = !nameOk;
 }
 
@@ -2248,12 +2248,12 @@ document.getElementById('proposal-back-member').addEventListener('click', () => 
 // Voltar do externo
 document.getElementById('proposal-back-external').addEventListener('click', () => showProposalStep('type'));
 
-// Habilitar botão próximo no externo
+// Habilitar botÃ£o prÃ³ximo no externo
 document.getElementById('proposal-external-name').addEventListener('input', function() {
   checkExternalNextBtn();
 });
 
-// Próximo no externo → ir para build
+// PrÃ³ximo no externo â†’ ir para build
 document.getElementById('proposal-external-next').addEventListener('click', () => {
   proposalState.partnerName = document.getElementById('proposal-external-name').value.trim();
   proposalState.partnerUid = null;
@@ -2312,7 +2312,7 @@ function buildProposalLists() {
     ${proposalState.type === 'external' ? '<span class="proposal-external-tag">Externo</span>' : ''}
   </div>`;
 
-  // Resetar seleções
+  // Resetar seleÃ§Ãµes
   proposalState.offeredCodes = [];
   proposalState.requestedCodes = [];
   // Resetar campo de valor no build step
@@ -2325,7 +2325,7 @@ function buildProposalLists() {
   if (buildSaleFields) buildSaleFields.classList.add('hidden');
   updateBuildCounts();
 
-  // Listas de oferta (minhas repetidas que o parceiro não tem)
+  // Listas de oferta (minhas repetidas que o parceiro nÃ£o tem)
   const offerList = document.getElementById('proposal-offer-list');
   offerList.innerHTML = '';
 
@@ -2339,7 +2339,7 @@ function buildProposalLists() {
 
   let offerCount = 0;
   myDupCodes.forEach(([code, qty]) => {
-    // Para membro: só mostrar se o parceiro não tem
+    // Para membro: sÃ³ mostrar se o parceiro nÃ£o tem
     if (proposalState.type === 'member' && partnerCollection.has(code)) return;
     const available = getAvailableQty(code);
     if (available <= 0) return; // tudo reservado
@@ -2351,10 +2351,10 @@ function buildProposalLists() {
   });
 
   if (offerCount === 0) {
-    offerList.innerHTML = '<p class="proposal-empty">Nenhuma figurinha disponível para oferecer.</p>';
+    offerList.innerHTML = '<p class="proposal-empty">Nenhuma figurinha disponÃ­vel para oferecer.</p>';
   }
 
-  // Lista do que quero (repetidas do parceiro que eu não tenho)
+  // Lista do que quero (repetidas do parceiro que eu nÃ£o tenho)
   const wantList = document.getElementById('proposal-want-list');
   wantList.innerHTML = '';
 
@@ -2374,10 +2374,10 @@ function buildProposalLists() {
     });
 
     if (wantCount === 0) {
-      wantList.innerHTML = '<p class="proposal-empty">Parceiro não tem repetidas que você precisa.</p>';
+      wantList.innerHTML = '<p class="proposal-empty">Parceiro nÃ£o tem repetidas que vocÃª precisa.</p>';
     }
   } else {
-    // Troca avulsa: mostrar todas as minhas faltantes para o usuário selecionar
+    // Troca avulsa: mostrar todas as minhas faltantes para o usuÃ¡rio selecionar
     const missing = allStickers.filter(s => !myCollection.has(s.code))
       .sort((a, b) => a.code.localeCompare(b.code));
     missing.forEach(sticker => {
@@ -2385,7 +2385,7 @@ function buildProposalLists() {
       wantList.appendChild(item);
     });
     if (missing.length === 0) {
-      wantList.innerHTML = '<p class="proposal-empty">Você já tem todas as figurinhas! 🎉</p>';
+      wantList.innerHTML = '<p class="proposal-empty">VocÃª jÃ¡ tem todas as figurinhas! ðŸŽ‰</p>';
     }
   }
 
@@ -2454,7 +2454,7 @@ function updateBuildCounts() {
     const isSale = proposalState.subtype === 'sale';
     buildSaleFields.classList.toggle('hidden', !(isSale && hasAny));
   }
-  // Validar botão próximo
+  // Validar botÃ£o prÃ³ximo
   const saleOk = proposalState.subtype !== 'sale' || (proposalState.saleRole && proposalState.saleValue > 0);
   document.getElementById('proposal-build-next').disabled = !(hasAny && saleOk);
 }
@@ -2473,7 +2473,7 @@ document.getElementById('build-sale-value')?.addEventListener('input', function(
   proposalState.saleValue = parseFloat(this.value) || 0;
   updateBuildCounts();
 });
-// Próximo no build → confirmar
+// PrÃ³ximo no build â†’ confirmar
 document.getElementById('proposal-build-next').addEventListener('click', () => {
   buildProposalSummary();
   showProposalStep('confirm');
@@ -2482,11 +2482,11 @@ document.getElementById('proposal-build-next').addEventListener('click', () => {
 function buildProposalSummary() {
   const summary = document.getElementById('proposal-summary');
   const now = new Date();
-  const dateStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('pt-BR') + ' Ã s ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   const formatList = codes => codes.map(code => {
     const s = allStickers.find(x => x.code === code);
-    return `<li><strong>${code}</strong>${s ? ' · ' + s.name : ''}</li>`;
+    return `<li><strong>${code}</strong>${s ? ' Â· ' + s.name : ''}</li>`;
   }).join('');
 
   summary.innerHTML = `
@@ -2496,12 +2496,12 @@ function buildProposalSummary() {
     </div>
     ${proposalState.offeredCodes.length > 0 ? `
     <div class="proposal-summary-section offer">
-      <div class="proposal-summary-label">Você oferece (${proposalState.offeredCodes.length})</div>
+      <div class="proposal-summary-label">VocÃª oferece (${proposalState.offeredCodes.length})</div>
       <ul class="proposal-summary-list">${formatList(proposalState.offeredCodes)}</ul>
     </div>` : ''}
     ${proposalState.requestedCodes.length > 0 ? `
     <div class="proposal-summary-section want">
-      <div class="proposal-summary-label">Você quer receber (${proposalState.requestedCodes.length})</div>
+      <div class="proposal-summary-label">VocÃª quer receber (${proposalState.requestedCodes.length})</div>
       <ul class="proposal-summary-list">${formatList(proposalState.requestedCodes)}</ul>
     </div>` : ''}
   `;
@@ -2510,27 +2510,27 @@ function buildProposalSummary() {
 // WhatsApp da proposta
 document.getElementById('proposal-btn-whatsapp').addEventListener('click', () => {
   const now = new Date();
-  const dateStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('pt-BR') + ' Ã s ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const myName = (currentUser.displayName || currentUser.email).split(' ')[0];
 
-  let msg = `🏆 *Proposta de Troca — Copa 2026*\n`;
-  msg += `📅 ${dateStr}\n\n`;
-  msg += `Olá ${proposalState.partnerName}! Fiz uma oferta de troca no nosso app 👇\n\n`;
+  let msg = `ðŸ† *Proposta de Troca â€” Copa 2026*\n`;
+  msg += `ðŸ“… ${dateStr}\n\n`;
+  msg += `OlÃ¡ ${proposalState.partnerName}! Fiz uma oferta de troca no nosso app ðŸ‘‡\n\n`;
 
   if (proposalState.offeredCodes.length > 0) {
-    msg += `*Eu ofereço para você:*\n`;
+    msg += `*Eu ofereÃ§o para vocÃª:*\n`;
     proposalState.offeredCodes.forEach(code => {
       const s = allStickers.find(x => x.code === code);
-      msg += `• ${code}${s ? ' · ' + s.name : ''}\n`;
+      msg += `â€¢ ${code}${s ? ' Â· ' + s.name : ''}\n`;
     });
     msg += '\n';
   }
 
   if (proposalState.requestedCodes.length > 0) {
-    msg += `*Eu quero de você:*\n`;
+    msg += `*Eu quero de vocÃª:*\n`;
     proposalState.requestedCodes.forEach(code => {
       const s = allStickers.find(x => x.code === code);
-      msg += `• ${code}${s ? ' · ' + s.name : ''}\n`;
+      msg += `â€¢ ${code}${s ? ' Â· ' + s.name : ''}\n`;
     });
     msg += '\n';
   }
@@ -2589,7 +2589,7 @@ document.getElementById('proposal-btn-send').addEventListener('click', async () 
   }
 });
 
-// ── Filtro de status das propostas ──────────────────────────
+// â”€â”€ Filtro de status das propostas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.querySelectorAll('.prop-filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.prop-filter-chip').forEach(b => b.classList.remove('active'));
@@ -2599,8 +2599,8 @@ document.querySelectorAll('.prop-filter-chip').forEach(btn => {
   });
 });
 
-// ── Colapso das seções de propostas ──────────────────────────
-// Fechar todas as seções colapsáveis por padrão
+// â”€â”€ Colapso das seÃ§Ãµes de propostas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Fechar todas as seÃ§Ãµes colapsÃ¡veis por padrÃ£o
 document.querySelectorAll('.collapsible-section').forEach(section => {
   section.classList.add('collapsed');
 });
@@ -2611,7 +2611,7 @@ document.querySelectorAll('.collapsible-header').forEach(header => {
   });
 });
 
-// ── Renderizar propostas enviadas e recebidas ──────────────
+// â”€â”€ Renderizar propostas enviadas e recebidas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderProposals() {
   renderSentProposals();
   renderReceivedProposals();
@@ -2693,8 +2693,8 @@ function createProposalCard(p, side) {
   // Exibir TODAS as figurinhas (sem truncar)
   const offerCodes = (p.offeredCodes || []);
   const wantCodes = (p.requestedCodes || []);
-  const offerSummary = offerCodes.join(', ') || '—';
-  const wantSummary = wantCodes.join(', ') || '—';
+  const offerSummary = offerCodes.join(', ') || 'â€”';
+  const wantSummary = wantCodes.join(', ') || 'â€”';
 
   card.innerHTML = `
     <div class="proposal-card-header" style="cursor:pointer">
@@ -2731,7 +2731,7 @@ function createProposalCard(p, side) {
   if (side === 'sent' && p.type === 'external' && p.status === 'pending') {
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'btn-proposal-accept';
-    confirmBtn.textContent = '✓ Confirmar troca realizada';
+    confirmBtn.textContent = 'âœ“ Confirmar troca realizada';
     confirmBtn.addEventListener('click', (e) => { e.stopPropagation(); confirmExternalTrade(p); });
     actionsEl.appendChild(confirmBtn);
   }
@@ -2739,12 +2739,12 @@ function createProposalCard(p, side) {
   if (side === 'received' && p.status === 'pending') {
     const acceptBtn = document.createElement('button');
     acceptBtn.className = 'btn-proposal-accept';
-    acceptBtn.textContent = '✓ Aceitar';
+    acceptBtn.textContent = 'âœ“ Aceitar';
     acceptBtn.addEventListener('click', (e) => { e.stopPropagation(); acceptProposal(p); });
 
     const refuseBtn = document.createElement('button');
     refuseBtn.className = 'btn-proposal-cancel';
-    refuseBtn.textContent = '✗ Recusar';
+    refuseBtn.textContent = 'âœ— Recusar';
     refuseBtn.addEventListener('click', (e) => { e.stopPropagation(); refuseProposal(p.id); });
 
     actionsEl.appendChild(acceptBtn);
@@ -2754,7 +2754,7 @@ function createProposalCard(p, side) {
   return card;
 }
 
-// ── Modal de detalhes da proposta ──────────────────────────
+// â”€â”€ Modal de detalhes da proposta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function openProposalDetailModal(p, side) {
   const modal = document.getElementById('modal-proposal-detail');
   const titleEl = document.getElementById('proposal-detail-title');
@@ -2769,7 +2769,7 @@ function openProposalDetailModal(p, side) {
   const typeLabel = p.type === 'external' ? 'Avulsa' : 'Entre membros';
   const uid = getActiveUid();
 
-  // Verificar se o usuário pode cancelar esta proposta
+  // Verificar se o usuÃ¡rio pode cancelar esta proposta
   const canCancel = p.status === 'pending' && (
     p.fromUid === uid || p.toUid === uid || (p.type === 'external' && p.fromUid === uid)
   );
@@ -2780,10 +2780,10 @@ function openProposalDetailModal(p, side) {
 
   // Renderizar figurinhas com nome
   function stickerList(codes) {
-    if (!codes || codes.length === 0) return '<span class="detail-empty">—</span>';
+    if (!codes || codes.length === 0) return '<span class="detail-empty">â€”</span>';
     return codes.map(code => {
       const s = allStickers.find(x => x.code === code);
-      return `<span class="detail-sticker-tag"><strong>${code}</strong>${s ? ' — ' + s.name : ''}</span>`;
+      return `<span class="detail-sticker-tag"><strong>${code}</strong>${s ? ' â€” ' + s.name : ''}</span>`;
     }).join('');
   }
 
@@ -2818,13 +2818,13 @@ function openProposalDetailModal(p, side) {
   if (canAccept) {
     const acceptBtn = document.createElement('button');
     acceptBtn.className = 'btn-proposal-accept';
-    acceptBtn.textContent = '✓ Aceitar troca';
+    acceptBtn.textContent = 'âœ“ Aceitar troca';
     acceptBtn.addEventListener('click', () => { closeProposalDetailModal(); acceptProposal(p); });
     actionsEl.appendChild(acceptBtn);
 
     const refuseBtn = document.createElement('button');
     refuseBtn.className = 'btn-proposal-cancel';
-    refuseBtn.textContent = '✗ Recusar';
+    refuseBtn.textContent = 'âœ— Recusar';
     refuseBtn.addEventListener('click', () => { closeProposalDetailModal(); refuseProposal(p.id); });
     actionsEl.appendChild(refuseBtn);
   }
@@ -2832,7 +2832,7 @@ function openProposalDetailModal(p, side) {
   if (canConfirmExternal) {
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'btn-proposal-accept';
-    confirmBtn.textContent = '✓ Confirmar troca realizada';
+    confirmBtn.textContent = 'âœ“ Confirmar troca realizada';
     confirmBtn.addEventListener('click', () => { closeProposalDetailModal(); confirmExternalTrade(p); });
     actionsEl.appendChild(confirmBtn);
   }
@@ -2890,7 +2890,7 @@ async function acceptProposal(proposal) {
   if (btn) { btn.disabled = true; btn.textContent = 'Processando...'; }
 
   try {
-    // uid do receptor (pode ser usuário impersonado pelo admin)
+    // uid do receptor (pode ser usuÃ¡rio impersonado pelo admin)
     const uid = getActiveUid();
 
     await runTransaction(db, async (tx) => {
@@ -2909,14 +2909,14 @@ async function acceptProposal(proposal) {
       const theirCodes = new Set(theirColSnap.data()?.codes || []);
       const theirDups = theirDupSnap.data()?.items || {};
 
-      // Verificar conflito: alguma figurinha que vou receber já existe na coleção?
+      // Verificar conflito: alguma figurinha que vou receber jÃ¡ existe na coleÃ§Ã£o?
       for (const code of (proposal.offeredCodes || [])) {
         if (myCodes.has(code)) {
-          throw new Error(`Conflito: o usuário já tem a figurinha ${code}.`);
+          throw new Error(`Conflito: o usuÃ¡rio jÃ¡ tem a figurinha ${code}.`);
         }
       }
 
-      // Receptor recebe: offeredCodes do fromUid → entram na coleção
+      // Receptor recebe: offeredCodes do fromUid â†’ entram na coleÃ§Ã£o
       for (const code of (proposal.offeredCodes || [])) {
         myCodes.add(code);
         // Sair das repetidas do fromUid
@@ -2926,7 +2926,7 @@ async function acceptProposal(proposal) {
         }
       }
 
-      // fromUid recebe: requestedCodes → entram na coleção dele
+      // fromUid recebe: requestedCodes â†’ entram na coleÃ§Ã£o dele
       for (const code of (proposal.requestedCodes || [])) {
         theirCodes.add(code);
         // Sair das repetidas do receptor
@@ -2943,15 +2943,15 @@ async function acceptProposal(proposal) {
       tx.update(proposalRef, { status: 'accepted', confirmedAt: Date.now(), updatedAt: Date.now() });
     });
 
-    // Cancelar propostas conflitantes (fora da transação)
+    // Cancelar propostas conflitantes (fora da transaÃ§Ã£o)
     await cancelConflictingProposals(proposal.offeredCodes || []);
 
-    showToast('Negociação aceita! Coleções atualizadas. 🎉', 'success');
+    showToast('NegociaÃ§Ã£o aceita! ColeÃ§Ãµes atualizadas. ðŸŽ‰', 'success');
 
     // Registrar movimento financeiro se for venda/compra entre membros
     if (proposal.subtype === 'sale' && proposal.saleValue > 0) {
       const uid = getActiveUid(); // receptor (quem aceitou)
-      const isRecipientSeller = proposal.saleRole === 'buyer'; // se quem enviou era comprador, quem aceita é vendedor
+      const isRecipientSeller = proposal.saleRole === 'buyer'; // se quem enviou era comprador, quem aceita Ã© vendedor
       const partnerName = proposal.fromName || 'Parceiro';
       const codesLabel = (proposal.offeredCodes || []).join(', ') || '';
 
@@ -2963,7 +2963,7 @@ async function acceptProposal(proposal) {
         uid,
       });
 
-      // Movimento para o remetente (quem criou a proposta) — salvo com o uid do fromUid
+      // Movimento para o remetente (quem criou a proposta) â€” salvo com o uid do fromUid
       if (proposal.fromUid) {
         const fromIsIncome = proposal.saleRole === 'seller';
         await addFinanceMovementFromTrade({
@@ -2991,7 +2991,7 @@ async function acceptProposal(proposal) {
 
   } catch (e) {
     console.error('acceptProposal error:', e);
-    if (btn) { btn.disabled = false; btn.textContent = '✓ Aceitar'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'âœ“ Aceitar'; }
     showToast(e.message || 'Erro ao aceitar proposta.', 'error');
   }
 }
@@ -3011,11 +3011,11 @@ async function confirmExternalTrade(proposal) {
       const myCodes = new Set(myColSnap.data()?.codes || []);
       const myDups = { ...(myDupSnap.data()?.items || {}) };
 
-      // Recebo: requestedCodes entram na minha coleção
+      // Recebo: requestedCodes entram na minha coleÃ§Ã£o
       for (const code of (proposal.requestedCodes || [])) {
         myCodes.add(code);
       }
-      // Ofereço: offeredCodes saem das minhas repetidas
+      // OfereÃ§o: offeredCodes saem das minhas repetidas
       for (const code of (proposal.offeredCodes || [])) {
         if (myDups[code] > 0) {
           myDups[code] = Math.max(0, (myDups[code] || 1) - 1);
@@ -3031,7 +3031,7 @@ async function confirmExternalTrade(proposal) {
     // Cancelar propostas conflitantes
     await cancelConflictingProposals(proposal.requestedCodes || []);
 
-    showToast('Troca avulsa confirmada! Coleção atualizada. 🎉', 'success');
+    showToast('Troca avulsa confirmada! ColeÃ§Ã£o atualizada. ðŸŽ‰', 'success');
 
     // Registrar movimento financeiro se for venda/compra
     if (proposal.subtype === 'sale' && proposal.saleValue > 0) {
@@ -3062,7 +3062,7 @@ async function confirmExternalTrade(proposal) {
 
   } catch (e) {
     console.error(e);
-    if (btn) { btn.disabled = false; btn.textContent = '✓ Confirmar troca realizada'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'âœ“ Confirmar troca realizada'; }
     showToast(e.message || 'Erro ao confirmar troca.', 'error');
   }
 }
@@ -3103,29 +3103,29 @@ function updateProgressBar() {
 
 
 
-// ══════════════════════════════════════════════
-// EXPORTAÇÃO PDF — CONTROLE DO ÁLBUM v2
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// EXPORTAÃ‡ÃƒO PDF â€” CONTROLE DO ÃLBUM v2
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// Mapa completo: código ISO → nome em português
+// Mapa completo: cÃ³digo ISO â†’ nome em portuguÃªs
 const TEAM_NAMES_PT = {
-  ALG: 'Argélia', ARG: 'Argentina', AUS: 'Austrália', AUT: 'Áustria',
-  BEL: 'Bélgica', BIH: 'Bósnia e Herz.', BRA: 'Brasil', CAN: 'Canadá',
+  ALG: 'ArgÃ©lia', ARG: 'Argentina', AUS: 'AustrÃ¡lia', AUT: 'Ãustria',
+  BEL: 'BÃ©lgica', BIH: 'BÃ³snia e Herz.', BRA: 'Brasil', CAN: 'CanadÃ¡',
   CC: 'Figurinhas Coca-Cola', CIV: 'Costa do Marfim', COD: 'Congo',
-  COL: 'Colômbia', CPV: 'Cabo Verde', CRO: 'Croácia', CUW: 'Curaçao',
+  COL: 'ColÃ´mbia', CPV: 'Cabo Verde', CRO: 'CroÃ¡cia', CUW: 'CuraÃ§ao',
   CZE: 'Rep. Tcheca', ECU: 'Equador', EGY: 'Egito', ENG: 'Inglaterra',
-  ESP: 'Espanha', FRA: 'França', FWC: 'FIFA World Cup History',
-  GER: 'Alemanha', GHA: 'Gana', HAI: 'Haiti', IRN: 'Irã',
-  IRQ: 'Iraque', JOR: 'Jordânia', JPN: 'Japão', KOR: 'Coreia do Sul',
-  KSA: 'Arábia Saudita', MAR: 'Marrocos', MEX: 'México', NED: 'Holanda',
-  NOR: 'Noruega', NZL: 'Nova Zelândia', PAN: 'Panamá', PAR: 'Paraguai',
-  POR: 'Portugal', QAT: 'Catar', RSA: 'África do Sul', SCO: 'Escócia',
-  SEN: 'Senegal', SUI: 'Suíça', SWE: 'Suécia', SWI: 'Suíça',
-  TUN: 'Tunísia', TUR: 'Turquia', URU: 'Uruguai', USA: 'Estados Unidos',
-  UZB: 'Uzbequistão',
+  ESP: 'Espanha', FRA: 'FranÃ§a', FWC: 'FIFA World Cup History',
+  GER: 'Alemanha', GHA: 'Gana', HAI: 'Haiti', IRN: 'IrÃ£',
+  IRQ: 'Iraque', JOR: 'JordÃ¢nia', JPN: 'JapÃ£o', KOR: 'Coreia do Sul',
+  KSA: 'ArÃ¡bia Saudita', MAR: 'Marrocos', MEX: 'MÃ©xico', NED: 'Holanda',
+  NOR: 'Noruega', NZL: 'Nova ZelÃ¢ndia', PAN: 'PanamÃ¡', PAR: 'Paraguai',
+  POR: 'Portugal', QAT: 'Catar', RSA: 'Ãfrica do Sul', SCO: 'EscÃ³cia',
+  SEN: 'Senegal', SUI: 'SuÃ­Ã§a', SWE: 'SuÃ©cia', SWI: 'SuÃ­Ã§a',
+  TUN: 'TunÃ­sia', TUR: 'Turquia', URU: 'Uruguai', USA: 'Estados Unidos',
+  UZB: 'UzbequistÃ£o',
 };
 
-// Mapa código → código ISO 2 letras para flagcdn.com
+// Mapa cÃ³digo â†’ cÃ³digo ISO 2 letras para flagcdn.com
 const TEAM_FLAG_ISO = {
   ALG: 'dz', ARG: 'ar', AUS: 'au', AUT: 'at',
   BEL: 'be', BIH: 'ba', BRA: 'br', CAN: 'ca',
@@ -3142,7 +3142,7 @@ const TEAM_FLAG_ISO = {
   UZB: 'uz',
 };
 
-// Abrir modal de seleção de modo PDF
+// Abrir modal de seleÃ§Ã£o de modo PDF
 document.getElementById('btn-export-pdf').addEventListener('click', () => {
   document.getElementById('modal-pdf-mode').classList.remove('hidden');
 });
@@ -3167,13 +3167,13 @@ async function exportAlbumPDF(pdfMode = 'full') {
     return;
   }
 
-  showToast('Gerando PDF, aguarde… (carregando bandeiras)', 'info');
+  showToast('Gerando PDF, aguardeâ€¦ (carregando bandeiras)', 'info');
 
   try {
     const { jsPDF } = window.jspdf;
 
     const activeUser = getActiveUser();
-    const userName = activeUser.displayName || activeUser.email?.split('@')[0] || 'Usuário';
+    const userName = activeUser.displayName || activeUser.email?.split('@')[0] || 'UsuÃ¡rio';
     const now = new Date();
     const today = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const totalOwned = myCollection ? myCollection.size : 0;
@@ -3181,14 +3181,14 @@ async function exportAlbumPDF(pdfMode = 'full') {
     const totalMissing = totalStickers - totalOwned;
     const pct = Math.round((totalOwned / totalStickers) * 100);
 
-    // Carregar foto do usuário (impersonado ou real)
+    // Carregar foto do usuÃ¡rio (impersonado ou real)
     let userPhotoDataUrl = null;
     const photoURL = impersonatedUser?.photoURL || activeUser.photoURL;
     if (photoURL) {
       try { userPhotoDataUrl = await loadImageAsDataUrl(photoURL); } catch (_) {}
     }
 
-    // ── Construir lista de times ordenada ──
+    // â”€â”€ Construir lista de times ordenada â”€â”€
     const teamMap = {};
     allStickers.forEach(s => {
       const m = s.code.match(/^([A-Z]+)/);
@@ -3213,7 +3213,7 @@ async function exportAlbumPDF(pdfMode = 'full') {
     const cc = teams.filter(t => t.group === 'CC');
     const orderedTeams = [...regular, ...fwc, ...cc];
 
-    // Pré-carregar bandeiras
+    // PrÃ©-carregar bandeiras
     const flagCache = {};
     const flagPromises = orderedTeams.map(async team => {
       const iso = TEAM_FLAG_ISO[team.code];
@@ -3224,21 +3224,21 @@ async function exportAlbumPDF(pdfMode = 'full') {
     flagCache['CC'] = CC_LOGO_B64;
     await Promise.all(flagPromises);
 
-    showToast('Gerando PDF, aguarde… (montando páginas)', 'info');
+    showToast('Gerando PDF, aguardeâ€¦ (montando pÃ¡ginas)', 'info');
 
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const baseParams = { userName, today, totalOwned, totalStickers, totalMissing, pct, userPhotoDataUrl, flagCache };
 
     if (pdfMode === 'full') {
-      // ── MODO COMPLETO: página coleção + página repetidas ──
+      // â”€â”€ MODO COMPLETO: pÃ¡gina coleÃ§Ã£o + pÃ¡gina repetidas â”€â”€
       await drawPDFPageV2(doc, { ...baseParams, teams: orderedTeams, collection: myCollection, duplicates: null,
-        pageTitle: 'Controle do Álbum', mode: 'collection', isFirstPage: true });
+        pageTitle: 'Controle do Ãlbum', mode: 'collection', isFirstPage: true });
       doc.addPage();
       await drawPDFPageV2(doc, { ...baseParams, teams: orderedTeams, collection: myCollection, duplicates: myDuplicates || {},
         pageTitle: 'Repetidas para Troca', mode: 'duplicates', isFirstPage: false });
 
     } else if (pdfMode === 'missing') {
-      // ── MODO INTERMEDIÁRIO: apenas seções incompletas + resumo das completas ──
+      // â”€â”€ MODO INTERMEDIÃRIO: apenas seÃ§Ãµes incompletas + resumo das completas â”€â”€
       const incompleteTeams = orderedTeams.filter(team => {
         return team.stickers.some(s => !myCollection.has(s.code));
       });
@@ -3246,23 +3246,23 @@ async function exportAlbumPDF(pdfMode = 'full') {
         return team.stickers.every(s => myCollection.has(s.code));
       });
       await drawPDFPageV2(doc, { ...baseParams, teams: incompleteTeams, collection: myCollection, duplicates: null,
-        pageTitle: 'Faltantes (seções incompletas)', mode: 'collection', isFirstPage: true,
+        pageTitle: 'Faltantes (seÃ§Ãµes incompletas)', mode: 'collection', isFirstPage: true,
         completedTeamsSummary: completeTeams });
 
     } else if (pdfMode === 'duplicates') {
-      // ── MODO REPETIDAS: apenas seções com repetidas ──
+      // â”€â”€ MODO REPETIDAS: apenas seÃ§Ãµes com repetidas â”€â”€
       const teamsWithDups = orderedTeams.filter(team => {
         return team.stickers.some(s => (myDuplicates || {})[s.code] > 0);
       });
       if (teamsWithDups.length === 0) {
-        showToast('Você não tem figurinhas repetidas no momento.', 'error');
+        showToast('VocÃª nÃ£o tem figurinhas repetidas no momento.', 'error');
         return;
       }
       await drawPDFPageV2(doc, { ...baseParams, teams: teamsWithDups, collection: myCollection, duplicates: myDuplicates || {},
         pageTitle: 'Repetidas para Troca', mode: 'duplicates', isFirstPage: true });
 
     } else if (pdfMode === 'simple') {
-      // ── MODO SIMPLES: layout clean, faltantes com números + repetidas com qtd ──
+      // â”€â”€ MODO SIMPLES: layout clean, faltantes com nÃºmeros + repetidas com qtd â”€â”€
       await drawPDFSimple(doc, { ...baseParams, teams: orderedTeams, collection: myCollection, duplicates: myDuplicates || {} });
     }
 
@@ -3281,11 +3281,11 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
   const margin = 5;
   const contentW = pageW - margin * 2;
 
-  // ── Fundo branco ──
+  // â”€â”€ Fundo branco â”€â”€
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageW, pageH, 'F');
 
-  // ── Cabeçalho branco ──
+  // â”€â”€ CabeÃ§alho branco â”€â”€
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.3);
   doc.line(margin, 26, margin + contentW, 26);
@@ -3293,7 +3293,7 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(20, 20, 20);
-  doc.text('Planilha de Controle de Figurinhas — Copa do Mundo 2026', pageW / 2, 8, { align: 'center' });
+  doc.text('Planilha de Controle de Figurinhas â€” Copa do Mundo 2026', pageW / 2, 8, { align: 'center' });
 
   doc.setFontSize(8);
   doc.setTextColor(60, 60, 60);
@@ -3301,9 +3301,9 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
 
   doc.setFontSize(7);
   doc.setTextColor(100, 100, 100);
-  doc.text(`${userName}  ·  Gerado em ${today}  ·  ${totalOwned}/${totalStickers} (${pct}%)  ·  Faltam: ${totalMissing}`, pageW / 2, 19, { align: 'center' });
+  doc.text(`${userName}  Â·  Gerado em ${today}  Â·  ${totalOwned}/${totalStickers} (${pct}%)  Â·  Faltam: ${totalMissing}`, pageW / 2, 19, { align: 'center' });
 
-  // Foto do usuário (canto superior direito, sem moldura)
+  // Foto do usuÃ¡rio (canto superior direito, sem moldura)
   const photoSize = 16;
   const photoX = pageW - margin - photoSize;
   const photoY = 4;
@@ -3320,7 +3320,7 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
   // Legenda
   const legX = margin;
   const legY = 20;
-  // Legenda: ■ Tenho (N)   □ Falta (N)
+  // Legenda: â–  Tenho (N)   â–¡ Falta (N)
   doc.setFillColor(0, 0, 0);
   doc.rect(legX, legY, 7, 3, 'F');
   doc.setFontSize(6);
@@ -3335,32 +3335,32 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
   doc.setTextColor(60, 60, 60);
   doc.text(`Falta (${totalMissing})`, legX + 46, legY + 2.3);
 
-  // ── Tabela ──
+  // â”€â”€ Tabela â”€â”€
   let y = 28;
   const rowH = 4.0;
   const flagW = 5;
   const flagH = 3.3;
-  const labelW = 30;   // nome da seleção
-  const codeW = 8;     // código (sigla)
+  const labelW = 30;   // nome da seleÃ§Ã£o
+  const codeW = 8;     // cÃ³digo (sigla)
   const halfNums = 10;
   const maxNums = 20;
-  // Largura disponível para células numéricas (2 grupos de 10 + 1 coluna de código no meio)
+  // Largura disponÃ­vel para cÃ©lulas numÃ©ricas (2 grupos de 10 + 1 coluna de cÃ³digo no meio)
   const numAreaW = contentW - labelW - flagW - codeW * 2;
   const cellW = numAreaW / maxNums;
 
-  // Cabeçalho da tabela
+  // CabeÃ§alho da tabela
   doc.setFillColor(230, 235, 240);
   doc.rect(margin, y, contentW, rowH, 'F');
   doc.setFontSize(5.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(60, 70, 80);
-  doc.text('Seleção', margin + flagW + 1, y + rowH - 1.2);
-  doc.text('Cód', margin + flagW + labelW + 1, y + rowH - 1.2);
+  doc.text('SeleÃ§Ã£o', margin + flagW + 1, y + rowH - 1.2);
+  doc.text('CÃ³d', margin + flagW + labelW + 1, y + rowH - 1.2);
   for (let n = 1; n <= halfNums; n++) {
     const cx = margin + flagW + labelW + codeW + (n - 1) * cellW + cellW / 2;
     doc.text(String(n), cx, y + rowH - 1.2, { align: 'center' });
   }
-  doc.text('Cód', margin + flagW + labelW + codeW + halfNums * cellW + 1, y + rowH - 1.2);
+  doc.text('CÃ³d', margin + flagW + labelW + codeW + halfNums * cellW + 1, y + rowH - 1.2);
   for (let n = halfNums + 1; n <= maxNums; n++) {
     const cx = margin + flagW + labelW + codeW * 2 + (n - 1) * cellW + cellW / 2;
     doc.text(String(n), cx, y + rowH - 1.2, { align: 'center' });
@@ -3390,7 +3390,7 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
       } catch (_) {}
     }
 
-    // Nome da seleção
+    // Nome da seleÃ§Ã£o
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5.8);
     doc.setTextColor(30, 30, 30);
@@ -3408,13 +3408,13 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
     const firstHalfEnd = isFWC ? 9 : 10; // 0-9 ou 1-10
     const secondHalfStart = firstHalfEnd + 1;
 
-    // Código (1ª metade)
+    // CÃ³digo (1Âª metade)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(5.5);
     doc.setTextColor(100, 100, 100);
     doc.text(team.code, margin + flagW + labelW + 0.5, y + rowH - 1.2);
 
-    // Células 1ª metade
+    // CÃ©lulas 1Âª metade
     for (let n = startSlot; n <= firstHalfEnd; n++) {
       const slotIndex = n - startSlot; // 0-based index
       const cx = margin + flagW + labelW + codeW + slotIndex * cellW;
@@ -3431,13 +3431,13 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
       }
     }
 
-    // Código (2ª metade)
+    // CÃ³digo (2Âª metade)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(5.5);
     doc.setTextColor(100, 100, 100);
     doc.text(team.code, margin + flagW + labelW + codeW + (firstHalfEnd - startSlot + 1) * cellW + 0.5, y + rowH - 1.2);
 
-    // Células 2ª metade
+    // CÃ©lulas 2Âª metade
     for (let n = secondHalfStart; n <= endSlot; n++) {
       const slotIndex = n - startSlot; // 0-based index
       const cx = margin + flagW + labelW + codeW * 2 + slotIndex * cellW;
@@ -3454,7 +3454,7 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
       }
     }
 
-    // Linha divisória leve
+    // Linha divisÃ³ria leve
     doc.setDrawColor(220, 220, 220);
     doc.setLineWidth(0.1);
     doc.line(margin, y + rowH, margin + contentW, y + rowH);
@@ -3463,7 +3463,7 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
     rowIndex++;
   }
 
-  // ── Bloco de resumo das seções completas (modo intermediário) ──
+  // â”€â”€ Bloco de resumo das seÃ§Ãµes completas (modo intermediÃ¡rio) â”€â”€
   if (completedTeamsSummary && completedTeamsSummary.length > 0) {
     if (y + 10 > pageH - 14) {
       doc.addPage();
@@ -3479,18 +3479,18 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6);
     doc.setTextColor(60, 60, 60);
-    doc.text(`Seções completas (${completedTeamsSummary.length}):`, margin, y);
+    doc.text(`SeÃ§Ãµes completas (${completedTeamsSummary.length}):`, margin, y);
     y += 3;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5.5);
     doc.setTextColor(80, 80, 80);
-    const names = completedTeamsSummary.map(t => `${TEAM_NAMES_PT[t.code] || t.code} (${t.code})`).join('  •  ');
+    const names = completedTeamsSummary.map(t => `${TEAM_NAMES_PT[t.code] || t.code} (${t.code})`).join('  â€¢  ');
     const lines = doc.splitTextToSize(names, contentW);
     doc.text(lines, margin, y);
     y += lines.length * 3.5;
   }
 
-  // ── Rodapé de patrocínio ──
+  // â”€â”€ RodapÃ© de patrocÃ­nio â”€â”€
   const footerY = pageH - 11;
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(180, 180, 180);
@@ -3499,31 +3499,31 @@ async function drawPDFPageV2(doc, { teams, collection, duplicates, pageTitle, us
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
-  doc.text('Deixe seu patrocínio aqui', pageW / 2, footerY + 4.5, { align: 'center' });
+  doc.text('Deixe seu patrocÃ­nio aqui', pageW / 2, footerY + 4.5, { align: 'center' });
 }
 
-// ── MODO SIMPLES: 1 página, bandeira + nome + números faltantes e repetidas ──
+// â”€â”€ MODO SIMPLES: 1 pÃ¡gina, bandeira + nome + nÃºmeros faltantes e repetidas â”€â”€
 async function drawPDFSimple(doc, { teams, collection, duplicates, userName, today, totalOwned, totalStickers, totalMissing, pct, userPhotoDataUrl, flagCache }) {
   const pageW = 210;
   const pageH = 297;
   const margin = 8;
   const contentW = pageW - margin * 2;
 
-  // ── Cabeçalho padrão igual ao mapa geral ──
+  // â”€â”€ CabeÃ§alho padrÃ£o igual ao mapa geral â”€â”€
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageW, pageH, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(20, 20, 20);
-  doc.text('Planilha de Controle de Figurinhas — Copa do Mundo 2026', pageW / 2, 8, { align: 'center' });
+  doc.text('Planilha de Controle de Figurinhas â€” Copa do Mundo 2026', pageW / 2, 8, { align: 'center' });
   doc.setFontSize(8);
   doc.setTextColor(60, 60, 60);
-  doc.text('Versão Simples', pageW / 2, 13.5, { align: 'center' });
+  doc.text('VersÃ£o Simples', pageW / 2, 13.5, { align: 'center' });
   doc.setFontSize(7);
   doc.setTextColor(100, 100, 100);
-  doc.text(`${userName}  ·  Gerado em ${today}  ·  ${totalOwned}/${totalStickers} (${pct}%)  ·  Faltam: ${totalMissing}`, pageW / 2, 19, { align: 'center' });
+  doc.text(`${userName}  Â·  Gerado em ${today}  Â·  ${totalOwned}/${totalStickers} (${pct}%)  Â·  Faltam: ${totalMissing}`, pageW / 2, 19, { align: 'center' });
 
-  // Foto do usuário (canto superior direito)
+  // Foto do usuÃ¡rio (canto superior direito)
   const photoSize = 16;
   const photoX = pageW - margin - photoSize;
   const photoY = 4;
@@ -3538,35 +3538,35 @@ async function drawPDFSimple(doc, { teams, collection, duplicates, userName, tod
   doc.setLineWidth(0.3);
   doc.line(margin, 23, margin + contentW, 23);
 
-  // ── Layout: cada linha = bandeira | nome seleção | números ──
-  // Colunas: flag(5) + nome(28) + sep(2) + números(resto)
+  // â”€â”€ Layout: cada linha = bandeira | nome seleÃ§Ã£o | nÃºmeros â”€â”€
+  // Colunas: flag(5) + nome(28) + sep(2) + nÃºmeros(resto)
   const flagW = 5;
   const flagH = 3.3;
   const nameW = 28;
   const sepW = 2;
   const numsX = margin + flagW + nameW + sepW;
   const numsW = contentW - flagW - nameW - sepW;
-  const rowH = 5.5;   // altura base por seleção
+  const rowH = 5.5;   // altura base por seleÃ§Ã£o
 
-  // Cabeçalho de colunas
+  // CabeÃ§alho de colunas
   let y = 26;
   doc.setFillColor(230, 235, 240);
   doc.rect(margin, y, contentW, 4, 'F');
   doc.setFontSize(5.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(60, 70, 80);
-  doc.text('Seleção', margin + flagW + 1, y + 2.8);
+  doc.text('SeleÃ§Ã£o', margin + flagW + 1, y + 2.8);
   doc.text('Faltantes  /  Repetidas (qtd)', numsX, y + 2.8);
   y += 5;
 
-  // Linhas por seleção
+  // Linhas por seleÃ§Ã£o
   let rowBg = false;
   for (const team of teams) {
     const missing = team.stickers.filter(s => !collection.has(s.code));
     const dups = team.stickers.filter(s => (duplicates[s.code] || 0) > 0);
     if (missing.length === 0 && dups.length === 0) continue;
 
-    // Montar texto de números faltantes
+    // Montar texto de nÃºmeros faltantes
     const missingNums = missing.map(s => {
       const n = parseInt(s.code.replace(/^[A-Z]+/, ''));
       return team.code === 'FWC' && n === 0 ? '00' : String(n);
@@ -3589,7 +3589,7 @@ async function drawPDFSimple(doc, { teams, collection, duplicates, userName, tod
     const numsLines = doc.splitTextToSize(numsText, numsW - 2);
     const lineH = Math.max(rowH, numsLines.length * 3.8 + 2);
 
-    // Verificar se cabe na página
+    // Verificar se cabe na pÃ¡gina
     if (y + lineH > pageH - 14) {
       doc.addPage();
       doc.setFillColor(255, 255, 255);
@@ -3611,7 +3611,7 @@ async function drawPDFSimple(doc, { teams, collection, duplicates, userName, tod
       try { doc.addImage(flagDataUrl, 'PNG', margin, y + (lineH - flagH) / 2, flagW, flagH); } catch (_) {}
     }
 
-    // Nome da seleção
+    // Nome da seleÃ§Ã£o
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6);
     doc.setTextColor(30, 30, 30);
@@ -3619,7 +3619,7 @@ async function drawPDFSimple(doc, { teams, collection, duplicates, userName, tod
     const nameLines = doc.splitTextToSize(teamName, nameW - 1);
     doc.text(nameLines, margin + flagW + 1, y + lineH / 2 - (nameLines.length - 1) * 1.8 + 0.5);
 
-    // Números
+    // NÃºmeros
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5.8);
     doc.setTextColor(50, 50, 50);
@@ -3633,7 +3633,7 @@ async function drawPDFSimple(doc, { teams, collection, duplicates, userName, tod
     y += lineH;
   }
 
-  // Rodapé
+  // RodapÃ©
   const footerY = pageH - 11;
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(180, 180, 180);
@@ -3642,16 +3642,16 @@ async function drawPDFSimple(doc, { teams, collection, duplicates, userName, tod
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
-  doc.text('Deixe seu patrocínio aqui', pageW / 2, footerY + 4.5, { align: 'center' });
+  doc.text('Deixe seu patrocÃ­nio aqui', pageW / 2, footerY + 4.5, { align: 'center' });
 }
 
 function drawStickerCellV2(doc, x, y, w, h, code, collection, duplicates, mode, num, rowIndex) {
   const pad = 0.3;
   const cx = x + w / 2;
-  // Centralização vertical: jsPDF usa baseline, então ajustamos com metade da altura + offset de baseline
+  // CentralizaÃ§Ã£o vertical: jsPDF usa baseline, entÃ£o ajustamos com metade da altura + offset de baseline
   // Para fonte 4pt em mm: ~1.4mm de altura, baseline offset ~0.35mm por pt
-  const centerText = (fontSize) => y + h / 2 + (fontSize * 0.176); // 0.176 ≈ 0.5 * (pt para mm)
-  // Cor do número da posição: mais escuro na linha cinza, mais claro na linha branca
+  const centerText = (fontSize) => y + h / 2 + (fontSize * 0.176); // 0.176 â‰ˆ 0.5 * (pt para mm)
+  // Cor do nÃºmero da posiÃ§Ã£o: mais escuro na linha cinza, mais claro na linha branca
   const numColor = (rowIndex % 2 === 0) ? 130 : 100;
 
   if (mode === 'collection') {
@@ -3661,7 +3661,7 @@ function drawStickerCellV2(doc, x, y, w, h, code, collection, duplicates, mode, 
       doc.setFillColor(0, 0, 0);
       doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'F');
     } else {
-      // Vazio com número da posição
+      // Vazio com nÃºmero da posiÃ§Ã£o
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(170, 170, 170);
       doc.setLineWidth(0.2);
@@ -3675,7 +3675,7 @@ function drawStickerCellV2(doc, x, y, w, h, code, collection, duplicates, mode, 
     // Modo repetidas
     const qty = duplicates ? (duplicates[code] || 0) : 0;
     if (qty > 0) {
-      // Fundo cinza escuro com número da quantidade
+      // Fundo cinza escuro com nÃºmero da quantidade
       const fontSize = qty > 9 ? 3.5 : 4.5;
       doc.setFillColor(60, 60, 60);
       doc.rect(x + pad, y + pad, w - pad * 2, h - pad * 2, 'F');
@@ -3684,7 +3684,7 @@ function drawStickerCellV2(doc, x, y, w, h, code, collection, duplicates, mode, 
       doc.setTextColor(255, 255, 255);
       doc.text(String(qty), cx, centerText(fontSize), { align: 'center' });
     } else {
-      // Vazio com número da posição
+      // Vazio com nÃºmero da posiÃ§Ã£o
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(170, 170, 170);
       doc.setLineWidth(0.2);
@@ -3720,21 +3720,21 @@ async function loadImageAsDataUrl(url) {
       resolve(canvas.toDataURL('image/jpeg', 0.85));
     };
     img.onerror = reject;
-    // Timeout para não travar se a bandeira não carregar
+    // Timeout para nÃ£o travar se a bandeira nÃ£o carregar
     setTimeout(() => reject(new Error('timeout')), 5000);
     img.src = url;
   });
 }
 
-// ══════════════════════════════════════════════
-// MÓDULO FINANCEIRO
-// ══════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// MÃ“DULO FINANCEIRO
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 let financeMovements = []; // cache local dos movimentos
 let financeEditingId = null; // ID do movimento sendo editado (null = novo)
 let financeSelectedType = null; // 'income' | 'expense'
 
-// ── Abrir modal de novo movimento ─────────────────────────────
+// â”€â”€ Abrir modal de novo movimento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.getElementById('btn-new-finance').addEventListener('click', () => {
   financeEditingId = null;
   financeSelectedType = null;
@@ -3743,7 +3743,7 @@ document.getElementById('btn-new-finance').addEventListener('click', () => {
   document.getElementById('finance-step-form').classList.add('hidden');
   document.getElementById('finance-value').value = '';
   document.getElementById('finance-description').value = '';
-  // Data padrão: hoje
+  // Data padrÃ£o: hoje
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('finance-date').value = today;
   document.getElementById('modal-finance').classList.remove('hidden');
@@ -3778,9 +3778,9 @@ function showFinanceForm() {
   document.getElementById('finance-step-form').classList.remove('hidden');
   const indicator = document.getElementById('finance-type-indicator');
   if (financeSelectedType === 'income') {
-    indicator.innerHTML = '<span class="finance-type-badge income">💰 Entrada (Receita)</span>';
+    indicator.innerHTML = '<span class="finance-type-badge income">ðŸ’° Entrada (Receita)</span>';
   } else {
-    indicator.innerHTML = '<span class="finance-type-badge expense">🛒 Saída (Despesa)</span>';
+    indicator.innerHTML = '<span class="finance-type-badge expense">ðŸ›’ SaÃ­da (Despesa)</span>';
   }
 }
 
@@ -3795,7 +3795,7 @@ document.getElementById('finance-btn-save').addEventListener('click', async () =
     return;
   }
   if (isNaN(valueRaw) || valueRaw <= 0) {
-    showToast('Informe um valor válido.', 'error');
+    showToast('Informe um valor vÃ¡lido.', 'error');
     return;
   }
   if (!dateVal) {
@@ -3847,7 +3847,7 @@ document.getElementById('finance-btn-save').addEventListener('click', async () =
   }
 });
 
-// ── Carregar painel financeiro ────────────────────────────────
+// â”€â”€ Carregar painel financeiro â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadFinancePanel() {
   const listEl = document.getElementById('finance-list');
   const loadingEl = document.getElementById('finance-loading');
@@ -3857,7 +3857,7 @@ async function loadFinancePanel() {
 
   try {
     const uid = getActiveUid();
-    // Query simples por uid apenas (sem orderBy composto para evitar exigir índice)
+    // Query simples por uid apenas (sem orderBy composto para evitar exigir Ã­ndice)
     const q = query(
       collection(db, 'financial_movements'),
       where('uid', '==', uid)
@@ -3879,7 +3879,7 @@ async function loadFinancePanel() {
   }
 }
 
-// ── Renderizar lista de movimentos ────────────────────────────
+// â”€â”€ Renderizar lista de movimentos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderFinanceList() {
   const listEl = document.getElementById('finance-list');
   const loadingEl = document.getElementById('finance-loading');
@@ -3891,7 +3891,7 @@ function renderFinanceList() {
   if (financeMovements.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
-    empty.innerHTML = '<span>💸</span><p>Nenhum movimento registrado ainda.</p>';
+    empty.innerHTML = '<span>ðŸ’¸</span><p>Nenhum movimento registrado ainda.</p>';
     listEl.appendChild(empty);
     return;
   }
@@ -3899,7 +3899,7 @@ function renderFinanceList() {
   financeMovements.forEach(mov => {
     const card = document.createElement('div');
     card.className = `finance-movement-card ${mov.type}`;
-    const dateFormatted = mov.date ? mov.date.split('-').reverse().join('/') : '—';
+    const dateFormatted = mov.date ? mov.date.split('-').reverse().join('/') : 'â€”';
     const valueFormatted = (mov.value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const sign = mov.type === 'income' ? '+' : '-';
     const signClass = mov.type === 'income' ? 'income' : 'expense';
@@ -3907,7 +3907,7 @@ function renderFinanceList() {
 
     card.innerHTML = `
       <div class="finance-mov-left">
-        <div class="finance-mov-icon ${mov.type}">${mov.type === 'income' ? '💰' : '🛒'}</div>
+        <div class="finance-mov-icon ${mov.type}">${mov.type === 'income' ? 'ðŸ’°' : 'ðŸ›’'}</div>
         <div class="finance-mov-info">
           <div class="finance-mov-desc">${mov.description || (mov.type === 'income' ? 'Receita' : 'Despesa')} ${sourceTag}</div>
           <div class="finance-mov-date">${dateFormatted}</div>
@@ -3916,8 +3916,8 @@ function renderFinanceList() {
       <div class="finance-mov-right">
         <div class="finance-mov-value ${signClass}">${sign} ${valueFormatted}</div>
         <div class="finance-mov-actions">
-          <button class="finance-btn-edit" data-id="${mov.id}" title="Editar">✏️</button>
-          <button class="finance-btn-delete" data-id="${mov.id}" title="Excluir">🗑️</button>
+          <button class="finance-btn-edit" data-id="${mov.id}" title="Editar">âœï¸</button>
+          <button class="finance-btn-delete" data-id="${mov.id}" title="Excluir">ðŸ—‘ï¸</button>
         </div>
       </div>
     `;
@@ -3929,10 +3929,10 @@ function renderFinanceList() {
 
     // Excluir
     card.querySelector('.finance-btn-delete').addEventListener('click', async () => {
-      if (!confirm(`Excluir este movimento?\n${mov.description || ''} — ${(mov.value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`)) return;
+      if (!confirm(`Excluir este movimento?\n${mov.description || ''} â€” ${(mov.value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`)) return;
       try {
         await deleteDoc(doc(db, 'financial_movements', mov.id));
-        showToast('Movimento excluído.', 'success');
+        showToast('Movimento excluÃ­do.', 'success');
         await loadFinancePanel();
       } catch (e) {
         console.error(e);
@@ -3944,7 +3944,7 @@ function renderFinanceList() {
   });
 }
 
-// ── Abrir modal de edição ─────────────────────────────────────
+// â”€â”€ Abrir modal de ediÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function openEditFinanceModal(mov) {
   financeEditingId = mov.id;
   financeSelectedType = mov.type;
@@ -3956,14 +3956,14 @@ function openEditFinanceModal(mov) {
   document.getElementById('finance-description').value = mov.description || '';
   const indicator = document.getElementById('finance-type-indicator');
   if (financeSelectedType === 'income') {
-    indicator.innerHTML = '<span class="finance-type-badge income">💰 Entrada (Receita)</span>';
+    indicator.innerHTML = '<span class="finance-type-badge income">ðŸ’° Entrada (Receita)</span>';
   } else {
-    indicator.innerHTML = '<span class="finance-type-badge expense">🛒 Saída (Despesa)</span>';
+    indicator.innerHTML = '<span class="finance-type-badge expense">ðŸ›’ SaÃ­da (Despesa)</span>';
   }
   document.getElementById('modal-finance').classList.remove('hidden');
 }
 
-// ── Atualizar cards de resumo ─────────────────────────────────
+// â”€â”€ Atualizar cards de resumo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function updateFinanceSummary() {
   const totalIncome = financeMovements
     .filter(m => m.type === 'income')
@@ -3988,10 +3988,10 @@ function updateFinanceSummary() {
   costEl.textContent = fmt(costPerSticker);
   costEl.className = 'finance-card-value ' + (costPerSticker <= 0 ? 'positive' : 'negative');
   document.getElementById('finance-cost-per-sticker-sub').textContent =
-    `${ownedCount} figurinha${ownedCount !== 1 ? 's' : ''} na coleção`;
+    `${ownedCount} figurinha${ownedCount !== 1 ? 's' : ''} na coleÃ§Ã£o`;
 }
 
-// ── Adicionar movimento a partir de troca/venda ───────────────
+// â”€â”€ Adicionar movimento a partir de troca/venda â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function addFinanceMovementFromTrade({ type, value, description, uid: targetUid }) {
   try {
     const uid = targetUid || getActiveUid();
@@ -4009,9 +4009,9 @@ async function addFinanceMovementFromTrade({ type, value, description, uid: targ
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// LINK DE NEGOCIAÇÃO (PÚBLICO)
-// ══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// LINK DE NEGOCIAÃ‡ÃƒO (PÃšBLICO)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function getMyShareLink() {
   const uid = currentUser?.uid;
@@ -4052,7 +4052,7 @@ async function toggleShareLink(enabled) {
   try {
     const userDocRef = doc(db, 'authorized_users', currentUser.email.toLowerCase());
     await updateDoc(userDocRef, { linkEnabled: enabled });
-    showToast(enabled ? '🔗 Link ativado!' : '🔒 Link desativado.', enabled ? 'success' : '');
+    showToast(enabled ? 'ðŸ”— Link ativado!' : 'ðŸ”’ Link desativado.', enabled ? 'success' : '');
   } catch (e) {
     showToast('Erro ao atualizar link.', 'error');
   }
@@ -4061,22 +4061,22 @@ async function toggleShareLink(enabled) {
 function copyShareLink() {
   const url = getMyShareLink();
   navigator.clipboard.writeText(url).then(() => {
-    showToast('🔗 Link copiado!', 'success');
+    showToast('ðŸ”— Link copiado!', 'success');
   }).catch(() => {
     const input = document.getElementById('share-link-url');
     input.select();
     document.execCommand('copy');
-    showToast('🔗 Link copiado!', 'success');
+    showToast('ðŸ”— Link copiado!', 'success');
   });
 }
 
 async function loadExternalProposals() {
   const list = document.getElementById('share-link-proposals-list');
-  list.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px">Carregando…</div>';
+  list.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px">Carregandoâ€¦</div>';
   try {
     const uid = currentUser?.uid;
     if (!uid) { list.innerHTML = ''; return; }
-    // Buscar sem orderBy para evitar índice composto; filtrar e ordenar no cliente
+    // Buscar sem orderBy para evitar Ã­ndice composto; filtrar e ordenar no cliente
     const rawSnap = await getDocs(
       query(collection(db, 'external_proposals'), where('toUid', '==', uid))
     );
@@ -4096,7 +4096,7 @@ async function loadExternalProposals() {
     snap.forEach(d => {
       const p = d.data();
       const dt = p.createdAt ? new Date(p.createdAt).toLocaleString('pt-BR') : '';
-      const typeLabel = p.type === 'venda' ? `💰 ${p.saleRole === 'vendedor' ? 'Venda' : 'Compra'} R$ ${(p.saleValue||0).toFixed(2)}` : '🔄 Troca';
+      const typeLabel = p.type === 'venda' ? `ðŸ’° ${p.saleRole === 'vendedor' ? 'Venda' : 'Compra'} R$ ${(p.saleValue||0).toFixed(2)}` : 'ðŸ”„ Troca';
       const statusColors = { pending: '#c0a020', accepted: '#4a9', refused: '#e55', cancelled: '#888' };
       const statusLabels = { pending: 'Pendente', accepted: 'Aceita', refused: 'Recusada', cancelled: 'Cancelada' };
       const div = document.createElement('div');
@@ -4106,8 +4106,8 @@ async function loadExternalProposals() {
           <strong style="color:#f0f0f0">${p.senderName}</strong>
           <span style="color:${statusColors[p.status]||'#aaa'};font-size:11px">${statusLabels[p.status]||p.status}</span>
         </div>
-        <div style="color:#aaa;margin-bottom:4px">${typeLabel} · ${dt}</div>
-        ${p.senderContact ? `<div style="color:#88c">📞 ${p.senderContact}</div>` : ''}
+        <div style="color:#aaa;margin-bottom:4px">${typeLabel} Â· ${dt}</div>
+        ${p.senderContact ? `<div style="color:#88c">ðŸ“ž ${p.senderContact}</div>` : ''}
         ${p.message ? `<div style="color:#ccc;margin-top:4px;font-style:italic">"${p.message}"</div>` : ''}
         ${p.offeredCodes?.length ? `<div style="margin-top:4px;color:#9de">Oferece: ${p.offeredCodes.join(', ')}</div>` : ''}
         ${p.requestedCodes?.length ? `<div style="color:#fda">Quer: ${p.requestedCodes.join(', ')}</div>` : ''}
@@ -4119,7 +4119,7 @@ async function loadExternalProposals() {
   }
 }
 
-// Esconder o botão de link para admin sem impersonação
+// Esconder o botÃ£o de link para admin sem impersonaÃ§Ã£o
 function updateShareLinkVisibility() {
   const btn = document.getElementById('btn-share-link');
   if (!btn) return;
@@ -4127,19 +4127,19 @@ function updateShareLinkVisibility() {
   btn.classList.toggle('hidden', isAdminNoImpersonation);
 }
 
-// ── Event listeners para o modal de link de negociação ──
-// Em ES Modules o script já executa após o DOM estar pronto, sem precisar de DOMContentLoaded
+// â”€â”€ Event listeners para o modal de link de negociaÃ§Ã£o â”€â”€
+// Em ES Modules o script jÃ¡ executa apÃ³s o DOM estar pronto, sem precisar de DOMContentLoaded
 document.getElementById('btn-share-link')?.addEventListener('click', () => openShareLinkModal());
 document.getElementById('btn-copy-share-link')?.addEventListener('click', () => copyShareLink());
 document.getElementById('btn-close-share-link')?.addEventListener('click', () => closeShareLinkModal());
 document.getElementById('share-link-toggle')?.addEventListener('change', (e) => toggleShareLink(e.target.checked));
 
 
-// ══════════════════════════════════════════════════════════════
-// ESCANEAR ÁLBUM COM IA (Gemini Vision)
-// ══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ESCANEAR ÃLBUM COM IA (Gemini Vision)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// Chave pública do Gemini (Google AI Studio — free tier)
+// Chave pÃºblica do Gemini (Google AI Studio â€” free tier)
 // Substitua pela sua chave em https://aistudio.google.com/app/apikey
 // Chave configurada via Firebase Remote Config ou meta tag no index.html
 // Para configurar: adicione <meta name="gemini-key" content="SUA_CHAVE"> no index.html
@@ -4148,9 +4148,9 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2
 
 let scanImageBase64 = null; // imagem atual em base64 (sem prefixo data:...)
 let scanImageMime = 'image/jpeg';
-let scanDetectedCodes = []; // códigos detectados pela IA
+let scanDetectedCodes = []; // cÃ³digos detectados pela IA
 
-// ── Abrir modal ──
+// â”€â”€ Abrir modal â”€â”€
 document.getElementById('btn-scan-album')?.addEventListener('click', () => openScanAlbumModal());
 
 function openScanAlbumModal() {
@@ -4168,14 +4168,14 @@ function closeScanAlbumModal() {
 
 document.getElementById('btn-close-scan-album')?.addEventListener('click', closeScanAlbumModal);
 
-// ── Controle de passos ──
+// â”€â”€ Controle de passos â”€â”€
 function showScanStep(step) {
   ['source', 'preview', 'confirm'].forEach(s => {
     document.getElementById(`scan-step-${s}`)?.classList.toggle('hidden', s !== step);
   });
 }
 
-// ── Câmera ──
+// â”€â”€ CÃ¢mera â”€â”€
 document.getElementById('btn-scan-use-camera')?.addEventListener('click', () => {
   document.getElementById('scan-file-input').click();
 });
@@ -4186,7 +4186,7 @@ document.getElementById('scan-file-input')?.addEventListener('change', (e) => {
   e.target.value = '';
 });
 
-// ── Galeria ──
+// â”€â”€ Galeria â”€â”€
 document.getElementById('btn-scan-use-gallery')?.addEventListener('click', () => {
   document.getElementById('scan-gallery-input').click();
 });
@@ -4197,7 +4197,7 @@ document.getElementById('scan-gallery-input')?.addEventListener('change', (e) =>
   e.target.value = '';
 });
 
-// ── Carregar imagem selecionada ──
+// â”€â”€ Carregar imagem selecionada â”€â”€
 function loadScanImage(file) {
   scanImageMime = file.type || 'image/jpeg';
   const reader = new FileReader();
@@ -4215,13 +4215,13 @@ function loadScanImage(file) {
   reader.readAsDataURL(file);
 }
 
-// ── Trocar foto ──
+// â”€â”€ Trocar foto â”€â”€
 document.getElementById('btn-scan-retake')?.addEventListener('click', () => {
   scanImageBase64 = null;
   showScanStep('source');
 });
 
-// ── Analisar com IA ──
+// â”€â”€ Analisar com IA â”€â”€
 document.getElementById('btn-scan-analyze')?.addEventListener('click', () => analyzeScanImage());
 
 async function analyzeScanImage() {
@@ -4231,38 +4231,38 @@ async function analyzeScanImage() {
   const statusEl = document.getElementById('scan-status');
 
   btnAnalyze.disabled = true;
-  btnAnalyze.textContent = '⏳ Analisando…';
+  btnAnalyze.textContent = 'â³ Analisandoâ€¦';
   statusEl.classList.remove('hidden');
-  statusEl.textContent = 'Enviando imagem para a IA…';
+  statusEl.textContent = 'Enviando imagem para a IAâ€¦';
 
   // Verificar se a chave foi configurada
   if (!GEMINI_API_KEY || GEMINI_API_KEY === 'COLE_SUA_CHAVE_GEMINI_AQUI') {
-    statusEl.textContent = '⚠️ Chave da API Gemini não configurada. Contate o administrador.';
+    statusEl.textContent = 'âš ï¸ Chave da API Gemini nÃ£o configurada. Contate o administrador.';
     btnAnalyze.disabled = false;
-    btnAnalyze.textContent = '🧠 Analisar com IA';
+    btnAnalyze.textContent = 'ðŸ§  Analisar com IA';
     return;
   }
 
-  // Construir lista de códigos válidos para o prompt
+  // Construir lista de cÃ³digos vÃ¡lidos para o prompt
   const validCodes = allStickers.map(s => s.code).join(', ');
 
-  const prompt = `Você está analisando uma foto de páginas abertas de um álbum de figurinhas da Copa do Mundo 2026 (Panini).
+  const prompt = `VocÃª estÃ¡ analisando uma foto de pÃ¡ginas abertas de um Ã¡lbum de figurinhas da Copa do Mundo 2026 (Panini).
 
-Nas páginas do álbum, cada espaço para colar uma figurinha mostra um código impresso quando a figurinha NÃO foi colada ainda. O código é composto por letras maiúsculas (sigla do país ou "FWC") seguidas de um número (ex: MEX7, BRA13, ARG1, FWC3, KOR20).
+Nas pÃ¡ginas do Ã¡lbum, cada espaÃ§o para colar uma figurinha mostra um cÃ³digo impresso quando a figurinha NÃƒO foi colada ainda. O cÃ³digo Ã© composto por letras maiÃºsculas (sigla do paÃ­s ou "FWC") seguidas de um nÃºmero (ex: MEX7, BRA13, ARG1, FWC3, KOR20).
 
-Sua tarefa: identificar TODOS os códigos visíveis nos espaços VAZIOS (onde a figurinha ainda não foi colada).
+Sua tarefa: identificar TODOS os cÃ³digos visÃ­veis nos espaÃ§os VAZIOS (onde a figurinha ainda nÃ£o foi colada).
 
-Lista de todos os códigos válidos do álbum para referência:
+Lista de todos os cÃ³digos vÃ¡lidos do Ã¡lbum para referÃªncia:
 ${validCodes}
 
-Instruções:
+InstruÃ§Ãµes:
 1. Analise a imagem cuidadosamente
-2. Identifique todos os espaços vazios que mostram um código impresso
-3. Retorne APENAS os códigos encontrados, separados por vírgula, sem nenhum texto adicional
-4. Use apenas códigos da lista de referência acima
-5. Se não encontrar nenhum código, retorne: NENHUM
+2. Identifique todos os espaÃ§os vazios que mostram um cÃ³digo impresso
+3. Retorne APENAS os cÃ³digos encontrados, separados por vÃ­rgula, sem nenhum texto adicional
+4. Use apenas cÃ³digos da lista de referÃªncia acima
+5. Se nÃ£o encontrar nenhum cÃ³digo, retorne: NENHUM
 
-Responda apenas com os códigos, exemplo: MEX7, BRA13, ARG1`;
+Responda apenas com os cÃ³digos, exemplo: MEX7, BRA13, ARG1`;
 
   try {
     const response = await fetch(GEMINI_URL, {
@@ -4297,13 +4297,13 @@ Responda apenas com os códigos, exemplo: MEX7, BRA13, ARG1`;
     console.log('Gemini resposta bruta:', rawText);
 
     if (rawText.trim().toUpperCase() === 'NENHUM' || rawText.trim() === '') {
-      statusEl.textContent = '🔍 Nenhum código identificado. Tente uma foto mais nítida.';
+      statusEl.textContent = 'ðŸ” Nenhum cÃ³digo identificado. Tente uma foto mais nÃ­tida.';
       btnAnalyze.disabled = false;
-      btnAnalyze.textContent = '🧠 Analisar com IA';
+      btnAnalyze.textContent = 'ðŸ§  Analisar com IA';
       return;
     }
 
-    // Extrair códigos da resposta
+    // Extrair cÃ³digos da resposta
     const rawCodes = rawText
       .toUpperCase()
       .replace(/[^A-Z0-9,\s]/g, ' ')
@@ -4316,30 +4316,30 @@ Responda apenas com os códigos, exemplo: MEX7, BRA13, ARG1`;
     scanDetectedCodes = [...new Set(rawCodes.filter(c => validCodeSet.has(c)))];
 
     if (scanDetectedCodes.length === 0) {
-      statusEl.textContent = `🔍 Nenhum código válido encontrado. Texto lido: "${rawText.slice(0, 80)}". Tente uma foto mais nítida.`;
+      statusEl.textContent = `ðŸ” Nenhum cÃ³digo vÃ¡lido encontrado. Texto lido: "${rawText.slice(0, 80)}". Tente uma foto mais nÃ­tida.`;
       btnAnalyze.disabled = false;
-      btnAnalyze.textContent = '🧠 Analisar com IA';
+      btnAnalyze.textContent = 'ðŸ§  Analisar com IA';
       return;
     }
 
-    // Mostrar tela de confirmação
+    // Mostrar tela de confirmaÃ§Ã£o
     showScanConfirmStep();
 
   } catch (e) {
     console.error('Erro Gemini:', e);
     let errMsg = e.message || 'Erro desconhecido';
     if (errMsg.includes('quota') || errMsg.includes('Quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
-      errMsg = '⚠️ Limite de uso da IA atingido. Tente novamente mais tarde (cota renova a cada minuto).';
+      errMsg = 'âš ï¸ Limite de uso da IA atingido. Tente novamente mais tarde (cota renova a cada minuto).';
     } else {
-      errMsg = `❌ Erro ao analisar: ${errMsg}. Verifique sua conexão.`;
+      errMsg = `âŒ Erro ao analisar: ${errMsg}. Verifique sua conexÃ£o.`;
     }
     statusEl.textContent = errMsg;
     btnAnalyze.disabled = false;
-    btnAnalyze.textContent = '🧠 Analisar com IA';
+    btnAnalyze.textContent = 'ðŸ§  Analisar com IA';
   }
 }
 
-// ── Tela de confirmação ──
+// â”€â”€ Tela de confirmaÃ§Ã£o â”€â”€
 function showScanConfirmStep() {
   const alreadyOwned = scanDetectedCodes.filter(c => myCollection.has(c));
   const notOwned = scanDetectedCodes.filter(c => !myCollection.has(c));
@@ -4348,7 +4348,7 @@ function showScanConfirmStep() {
   const summaryEl = document.getElementById('scan-confirm-summary');
   summaryEl.innerHTML = `
     <span class="scan-summary-badge new">${notOwned.length} novas</span>
-    <span class="scan-summary-badge owned">${alreadyOwned.length} já possuídas</span>
+    <span class="scan-summary-badge owned">${alreadyOwned.length} jÃ¡ possuÃ­das</span>
     <span class="scan-summary-badge total">${scanDetectedCodes.length} total detectadas</span>
   `;
 
@@ -4356,7 +4356,7 @@ function showScanConfirmStep() {
   const listEl = document.getElementById('scan-results-list');
   listEl.innerHTML = '';
 
-  // Ordenar: novas primeiro, depois já possuídas
+  // Ordenar: novas primeiro, depois jÃ¡ possuÃ­das
   const sorted = [...notOwned, ...alreadyOwned];
   sorted.forEach(code => {
     const sticker = allStickers.find(s => s.code === code);
@@ -4370,7 +4370,7 @@ function showScanConfirmStep() {
         <span class="scan-result-code">${code}</span>
         <span class="scan-result-name">${sticker.name}</span>
       </div>
-      ${isOwned ? '<span class="scan-result-tag">já tenho</span>' : '<span class="scan-result-tag new">nova</span>'}
+      ${isOwned ? '<span class="scan-result-tag">jÃ¡ tenho</span>' : '<span class="scan-result-tag new">nova</span>'}
     `;
     listEl.appendChild(item);
   });
@@ -4378,16 +4378,16 @@ function showScanConfirmStep() {
   showScanStep('confirm');
 }
 
-// ── Voltar da confirmação ──
+// â”€â”€ Voltar da confirmaÃ§Ã£o â”€â”€
 document.getElementById('btn-scan-confirm-cancel')?.addEventListener('click', () => {
   showScanStep('preview');
   const btnAnalyze = document.getElementById('btn-scan-analyze');
   btnAnalyze.disabled = false;
-  btnAnalyze.textContent = '🧠 Analisar com IA';
+  btnAnalyze.textContent = 'ðŸ§  Analisar com IA';
   document.getElementById('scan-status').classList.add('hidden');
 });
 
-// ── Confirmar e salvar ──
+// â”€â”€ Confirmar e salvar â”€â”€
 document.getElementById('btn-scan-confirm-save')?.addEventListener('click', () => saveScanResults());
 
 async function saveScanResults() {
@@ -4399,9 +4399,9 @@ async function saveScanResults() {
 
   const btnSave = document.getElementById('btn-scan-confirm-save');
   btnSave.disabled = true;
-  btnSave.textContent = '💾 Salvando…';
+  btnSave.textContent = 'ðŸ’¾ Salvandoâ€¦';
 
-  // Adicionar à coleção (apenas as que ainda não tem)
+  // Adicionar Ã  coleÃ§Ã£o (apenas as que ainda nÃ£o tem)
   const newOnes = checked.filter(c => !myCollection.has(c));
   newOnes.forEach(c => myCollection.add(c));
   updateProgress();
@@ -4415,7 +4415,7 @@ async function saveScanResults() {
       email: activeUser.email.toLowerCase(),
       updatedAt: new Date().toISOString()
     });
-    showToast(`✅ ${newOnes.length} figurinha${newOnes.length !== 1 ? 's' : ''} adicionada${newOnes.length !== 1 ? 's' : ''} à coleção!`, 'success');
+    showToast(`âœ… ${newOnes.length} figurinha${newOnes.length !== 1 ? 's' : ''} adicionada${newOnes.length !== 1 ? 's' : ''} Ã  coleÃ§Ã£o!`, 'success');
     closeScanAlbumModal();
   } catch (e) {
     // Reverter
@@ -4424,6 +4424,6 @@ async function saveScanResults() {
     renderGrid();
     showToast('Erro ao salvar. Tente novamente.', 'error');
     btnSave.disabled = false;
-    btnSave.textContent = '✅ Confirmar e Salvar';
+    btnSave.textContent = 'âœ… Confirmar e Salvar';
   }
 }
