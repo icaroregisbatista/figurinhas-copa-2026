@@ -857,3 +857,827 @@
 </div>
 </body>
 </html>
+
+      <svg width="18" height="18" viewBox="0 0 18 18">
+        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+        <path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/>
+        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"/>
+      </svg>
+      Entrar com Google
+    </button>
+    <p class="login-note">Apenas usuários autorizados têm acesso.</p>
+  </div>
+</div>
+
+<!-- ══ TELA DE ACESSO NEGADO ══════════════════════════════ -->
+<div id="denied-screen" class="screen hidden">
+  <div class="login-card denied">
+    <div class="trophy-icon">🚫</div>
+    <h2>Acesso Restrito</h2>
+    <p>Sua conta não está na lista de usuários autorizados.</p>
+    <div class="denied-email" id="denied-email"></div>
+    <p class="denied-note">Entre em contato com o administrador para solicitar acesso.</p>
+    <button id="btn-logout-denied" class="btn-google" style="background:#f85149;color:#fff;">
+      Sair e trocar de conta
+    </button>
+  </div>
+</div>
+
+<!-- ══ APP PRINCIPAL ══════════════════════════════════════ -->
+<div id="app-screen" class="screen hidden">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <span class="header-trophy">🏆</span>
+      <div>
+        <div class="header-title">Copa 2026</div>
+        <div class="header-sub">Álbum Panini</div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-stats">
+          <span class="progress-text" id="progress-text">0 / 980</span>
+          <span class="progress-pct" id="progress-pct">0%</span>
+          <span class="dup-count-header" id="dup-count-header" title="Figurinhas repetidas">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            <span id="dup-total">0</span> rep.
+          </span>
+          <span class="missing-count-header" id="missing-count-header" title="Figurinhas faltantes">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+            <span id="missing-total">0</span> falt.
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar"><span id="user-avatar-initials">?</span></div>
+        <span class="user-name" id="user-name"></span>
+      </div>
+      <button class="btn-icon" id="btn-share" title="Compartilhar figurinhas">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </button>
+      <button class="btn-icon" id="btn-scan-album" title="Escanear página do álbum com IA">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 8h.01"/><path d="M11 8h6"/><path d="M7 12h10"/></svg>
+      </button>
+      <button class="btn-icon" id="btn-camera" title="Ler código por câmera">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+      <button class="btn-icon" id="btn-logout" title="Sair">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="colecao" id="tab-btn-colecao">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Minha Coleção
+    </button>
+    <button class="tab-btn" data-tab="repetidas" id="tab-btn-repetidas">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      Repetidas
+    </button>
+    <button class="tab-btn" data-tab="trocas">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      Negoc.
+    </button>
+    <button class="tab-btn-share" id="btn-share-link" title="Meu link de negociação">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    </button>
+    <button class="tab-btn hidden" id="tab-btn-stats" data-tab="stats">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Estatísticas
+    </button>
+    <button class="tab-btn hidden" id="tab-btn-admin" data-tab="admin">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Admin
+    </button>
+    <button class="tab-btn" data-tab="financeiro" id="tab-btn-financeiro">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Financeiro
+    </button>
+    <button class="tab-btn tab-btn-pdf" id="btn-export-pdf" title="Exportar PDF do álbum">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      PDF
+    </button>
+  </nav>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="search-input" class="search-input" placeholder="Buscar por código, nome, grupo ou página…" autocomplete="off" />
+      <button id="btn-clear-search" class="btn-clear hidden">✕</button>
+    </div>
+    <div class="filter-groups">
+      <button class="filter-chip active" data-group="all">Todos</button>
+      <button class="filter-chip" data-group="-">FIFA</button>
+      <button class="filter-chip" data-group="A">A</button>
+      <button class="filter-chip" data-group="B">B</button>
+      <button class="filter-chip" data-group="C">C</button>
+      <button class="filter-chip" data-group="D">D</button>
+      <button class="filter-chip" data-group="E">E</button>
+      <button class="filter-chip" data-group="F">F</button>
+      <button class="filter-chip" data-group="G">G</button>
+      <button class="filter-chip" data-group="H">H</button>
+      <button class="filter-chip" data-group="I">I</button>
+      <button class="filter-chip" data-group="J">J</button>
+      <button class="filter-chip" data-group="K">K</button>
+      <button class="filter-chip" data-group="L">L</button>
+      <button class="filter-chip" data-group="CC">CC</button>
+    </div>
+    <div class="filter-status" id="filter-status-colecao">
+      <button class="filter-chip" id="filter-missing" data-status="missing">⬜ Faltando</button>
+      <button class="filter-chip" id="filter-owned" data-status="owned">✅ Tenho</button>
+    </div>
+    <div class="filter-status dup-filter-status hidden" id="filter-status-repetidas">
+      <button class="filter-chip" id="dup-filter-missing" data-dup-status="missing">⬜ Faltando</button>
+      <button class="filter-chip" id="dup-filter-owned" data-dup-status="owned">✅ Tenho</button>
+    </div>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+
+    <!-- Aba: Coleção -->
+    <div id="tab-colecao" class="tab-panel active">
+      <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <span>Carregando sua coleção…</span>
+      </div>
+      <div id="sticker-grid" class="sticker-grid"></div>
+      <div id="empty-state" class="empty-state hidden">
+        <span>🔍</span>
+        <p>Nenhuma figurinha encontrada com esses filtros.</p>
+      </div>
+    </div>
+
+    <!-- Aba: Repetidas -->
+    <div id="tab-repetidas" class="tab-panel">
+      <div id="sticker-grid-dup" class="sticker-grid"></div>
+      <div id="empty-state-dup" class="empty-state hidden">
+        <span>🔍</span>
+        <p>Nenhuma figurinha encontrada com esses filtros.</p>
+      </div>
+    </div>
+
+    <!-- Aba: Trocas -->
+    <div id="tab-trocas" class="tab-panel">
+      <div id="trading-loading" class="loading-overlay" style="display:none">
+        <div class="spinner"></div>
+        <span>Cruzando dados dos colecionadores…</span>
+      </div>
+      <div id="trading-content" class="trading-content hidden">
+
+
+
+        <!-- Botão iniciar proposta de troca -->
+        <div class="trade-proposal-bar">
+          <button class="btn-new-proposal" id="btn-new-proposal">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nova Negociação
+          </button>
+        </div>
+
+        <!-- Filtro de status das propostas -->
+        <div class="proposals-filter-bar">
+          <button class="prop-filter-chip active" data-status="all">Todas</button>
+          <button class="prop-filter-chip" data-status="pending">Pendentes</button>
+          <button class="prop-filter-chip" data-status="accepted">Aceitas</button>
+          <button class="prop-filter-chip" data-status="refused">Recusadas</button>
+          <button class="prop-filter-chip" data-status="cancelled">Canceladas</button>
+        </div>
+
+        <!-- Propostas enviadas (colapsável) -->
+        <div class="trading-section collapsible-section" id="section-sent-proposals">
+          <div class="section-title collapsible-header" id="header-sent-proposals" data-target="sent-proposals-list">
+            <div class="section-title-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Propostas Enviadas
+              <span class="badge" id="sent-proposals-count">0</span>
+            </div>
+            <svg class="collapse-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="sent-proposals-list" class="collapsible-body"></div>
+        </div>
+
+        <!-- Propostas recebidas (colapsável) -->
+        <div class="trading-section collapsible-section" id="section-received-proposals">
+          <div class="section-title collapsible-header" id="header-received-proposals" data-target="received-proposals-list">
+            <div class="section-title-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Propostas Recebidas
+              <span class="badge badge-red" id="received-proposals-count"></span>
+            </div>
+            <svg class="collapse-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="received-proposals-list" class="collapsible-body"></div>
+        </div>
+
+        <!-- Minhas repetidas que outros precisam (colapsável) -->
+        <div class="trading-section collapsible-section" id="section-matches">
+          <div class="section-title collapsible-header" data-target="matches-body">
+            <div class="section-title-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Minhas repetidas que outros precisam
+              <span class="badge badge-green" id="matches-count">0</span>
+            </div>
+            <svg class="collapse-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="matches-body" class="collapsible-body">
+            <p class="section-desc">Figurinhas que você tem como repetida e que outros colecionadores ainda não possuem.</p>
+            <div id="matches-list" class="trading-grid"></div>
+          </div>
+        </div>
+
+        <!-- O que eu preciso e outros têm repetido (colapsável) -->
+        <div class="trading-section collapsible-section" id="section-needs">
+          <div class="section-title collapsible-header" data-target="needs-body">
+            <div class="section-title-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              O que eu preciso e outros têm repetido
+              <span class="badge badge-gold" id="needs-count">0</span>
+            </div>
+            <svg class="collapse-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="needs-body" class="collapsible-body">
+            <p class="section-desc">Figurinhas que você ainda não tem, mas algum colega possui como repetida.</p>
+            <div id="needs-list" class="trading-grid"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Aba: Estatísticas -->
+    <div id="tab-stats" class="tab-panel">
+      <div class="stats-panel">
+        <div class="stats-panel-header">
+          <h2 class="stats-panel-title">Estatísticas do Grupo</h2>
+          <p class="stats-panel-desc">Visão geral das figurinhas mais repetidas e mais necessárias entre os membros.</p>
+        </div>
+        <div class="stats-grid" id="stats-grid">
+          <div class="stats-loading">
+            <div class="spinner"></div>
+            <span>Calculando estatísticas…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba: Admin -->
+    <div id="tab-admin" class="tab-panel">
+
+      <!-- Banner: operando como outro usuário -->
+      <div id="admin-impersonate-banner" class="admin-impersonate-banner hidden">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Operando como: <strong id="admin-impersonate-name"></strong></span>
+        <button id="btn-stop-impersonate" class="btn-stop-impersonate">Voltar à seleção</button>
+      </div>
+
+      <!-- Seleção de usuário para operar -->
+      <div id="admin-user-select-section" class="admin-panel">
+        <div class="admin-header">
+          <h2 class="admin-title">Operar como usuário</h2>
+          <p class="admin-desc">Selecione um usuário para gerenciar a coleção dele.</p>
+        </div>
+        <div id="admin-user-select-list" class="admin-user-select-list">
+          <div class="admin-loading" id="admin-select-loading">
+            <div class="spinner"></div>
+            <span>Carregando usuários…</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel de gerenciamento de usuários (cadastro/remoção) -->
+      <div id="admin-manage-section" class="admin-panel" style="margin-top:1.5rem;">
+        <div class="admin-header">
+          <h2 class="admin-title">Gerenciar Usuários</h2>
+          <p class="admin-desc">Adicione ou remova usuários autorizados a acessar o app.</p>
+        </div>
+        <div class="admin-add-form">
+          <div class="admin-form-row">
+            <input type="email" id="admin-email-input" class="admin-input" placeholder="email@exemplo.com" autocomplete="off" />
+            <input type="text" id="admin-name-input" class="admin-input" placeholder="Nome (opcional)" autocomplete="off" />
+            <button id="btn-add-user" class="btn-add-user">Adicionar</button>
+          </div>
+        </div>
+        <div class="admin-users-list" id="admin-users-list">
+          <div class="admin-loading" id="admin-loading">
+            <div class="spinner"></div>
+            <span>Carregando usuários…</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Aba: Financeiro -->
+    <div id="tab-financeiro" class="tab-panel">
+      <!-- Cards de consolidado -->
+      <div class="finance-summary-cards" id="finance-summary-cards">
+        <div class="finance-card finance-card-income">
+          <div class="finance-card-label">Receitas</div>
+          <div class="finance-card-value" id="finance-total-income">R$ 0,00</div>
+        </div>
+        <div class="finance-card finance-card-expense">
+          <div class="finance-card-label">Despesas</div>
+          <div class="finance-card-value" id="finance-total-expense">R$ 0,00</div>
+        </div>
+        <div class="finance-card finance-card-result">
+          <div class="finance-card-label">Resultado</div>
+          <div class="finance-card-value" id="finance-total-result">R$ 0,00</div>
+        </div>
+        <div class="finance-card finance-card-indicator">
+          <div class="finance-card-label">Custo por figurinha</div>
+          <div class="finance-card-value" id="finance-cost-per-sticker">R$ 0,00</div>
+          <div class="finance-card-sub" id="finance-cost-per-sticker-sub">0 figurinhas na coleção</div>
+        </div>
+      </div>
+
+      <!-- Botão novo movimento -->
+      <div class="finance-action-bar">
+        <button class="btn-new-proposal" id="btn-new-finance">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo Movimento
+        </button>
+      </div>
+
+      <!-- Lista de movimentos -->
+      <div id="finance-list" class="finance-list">
+        <div class="loading-overlay" id="finance-loading">
+          <div class="spinner"></div>
+          <span>Carregando movimentos…</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-content -->
+
+</div><!-- /app-screen -->
+
+<!-- ══ MODAL PROPOSTA DE TROCA ════════════════════════════════════ -->
+<div id="modal-proposal" class="modal-overlay hidden">
+  <div class="modal-box proposal-modal">
+    <div class="share-modal-header">
+      <h3>Nova Negociação</h3>
+      <button class="btn-icon" id="btn-close-proposal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+
+    <!-- Passo 1: Tipo de proposta -->
+    <div id="proposal-step-type">
+      <p class="share-label">Tipo de negociação:</p>
+      <div class="share-options">
+        <button class="share-option-btn" id="proposal-type-member">
+          <span class="share-option-icon">👥</span>
+          <span class="share-option-text">
+            <strong>Com membro do grupo</strong>
+            <small>Parceiro usa o app — precisa aceitar</small>
+          </span>
+        </button>
+        <button class="share-option-btn" id="proposal-type-external">
+          <span class="share-option-icon">🤝</span>
+          <span class="share-option-text">
+            <strong>Avulsa / Externa</strong>
+            <small>Parceiro externo — você confirma</small>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Passo 2a: Escolher membro -->
+    <div id="proposal-step-member" class="hidden">
+      <button class="share-back-btn" id="proposal-back-member">← Voltar</button>
+      <p class="share-label">Tipo de operação:</p>
+      <div class="share-options" style="margin-bottom:0.75rem">
+        <button class="share-option-btn member-subtype-btn active" id="member-subtype-trade" data-subtype="trade">
+          <span class="share-option-icon">🤝</span>
+          <span class="share-option-text">
+            <strong>Troca</strong>
+            <small>Sem valor monetário</small>
+          </span>
+        </button>
+        <button class="share-option-btn member-subtype-btn" id="member-subtype-sale" data-subtype="sale">
+          <span class="share-option-icon">💵</span>
+          <span class="share-option-text">
+            <strong>Venda / Compra</strong>
+            <small>Operação com valor</small>
+          </span>
+        </button>
+      </div>
+
+      <p class="share-label">Escolha o parceiro:</p>
+      <div id="proposal-member-list" class="proposal-member-list"></div>
+    </div>
+
+    <!-- Passo 2b: Nome externo -->
+    <div id="proposal-step-external" class="hidden">
+      <button class="share-back-btn" id="proposal-back-external">← Voltar</button>
+      <p class="share-label">Tipo de operação:</p>
+      <div class="share-options" style="margin-bottom:0.75rem">
+        <button class="share-option-btn external-subtype-btn" id="external-subtype-trade" data-subtype="trade">
+          <span class="share-option-icon">🤝</span>
+          <span class="share-option-text">
+            <strong>Troca</strong>
+            <small>Troca de figurinhas sem valor monetário</small>
+          </span>
+        </button>
+        <button class="share-option-btn external-subtype-btn" id="external-subtype-sale" data-subtype="sale">
+          <span class="share-option-icon">💵</span>
+          <span class="share-option-text">
+            <strong>Venda / Compra</strong>
+            <small>Operação com valor monetário</small>
+          </span>
+        </button>
+      </div>
+      <p class="share-label">Nome do parceiro externo:</p>
+      <input type="text" id="proposal-external-name" class="admin-input" placeholder="Ex: João da feira" autocomplete="off" />
+
+      <button class="btn-share-next" id="proposal-external-next" disabled style="margin-top:0.75rem">Próximo →</button>
+    </div>
+
+    <!-- Passo 3: Montar proposta -->
+    <div id="proposal-step-build" class="hidden">
+      <button class="share-back-btn" id="proposal-back-build">← Voltar</button>
+      <div class="proposal-partner-info" id="proposal-partner-info"></div>
+
+      <div class="proposal-columns">
+        <!-- Eu ofereço -->
+        <div class="proposal-col">
+          <div class="proposal-col-title offer">Eu ofereço</div>
+          <p class="proposal-col-desc">Minhas repetidas que o parceiro não tem</p>
+          <input type="text" id="offer-search" class="proposal-col-search" placeholder="🔍 Buscar por código ou nome..." autocomplete="off" />
+          <div id="proposal-offer-list" class="proposal-checklist"></div>
+          <div class="proposal-col-count">Selecionadas: <span id="offer-count">0</span></div>
+        </div>
+        <!-- Eu quero -->
+        <div class="proposal-col">
+          <div class="proposal-col-title want">Eu quero receber</div>
+          <p class="proposal-col-desc">Repetidas do parceiro que eu não tenho</p>
+          <input type="text" id="want-search" class="proposal-col-search" placeholder="🔍 Buscar por código ou nome..." autocomplete="off" />
+          <div id="proposal-want-list" class="proposal-checklist"></div>
+          <div class="proposal-col-count">Selecionadas: <span id="want-count">0</span></div>
+        </div>
+      </div>
+
+      <!-- Campo de valor: aparece apenas quando tipo=venda e pelo menos 1 figurinha selecionada -->
+      <div id="proposal-build-sale-fields" class="hidden" style="margin-top:0.75rem;padding:0.75rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+        <p class="share-label" style="margin-bottom:0.5rem">💰 Valor da venda (R$):</p>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+          <button class="filter-chip" id="build-sale-seller" data-build-role="seller">Vendedor (Recebo)</button>
+          <button class="filter-chip" id="build-sale-buyer" data-build-role="buyer">Comprador (Pago)</button>
+        </div>
+        <input type="number" id="build-sale-value" class="admin-input" placeholder="0,00" min="0" step="0.01" />
+      </div>
+      <div class="proposal-actions">
+        <button class="btn-share-next" id="proposal-build-next" disabled>Ver Resumo →</button>
+      </div>
+    </div>
+
+    <!-- Passo 4: Resumo e confirmação -->
+    <div id="proposal-step-confirm" class="hidden">
+      <button class="share-back-btn" id="proposal-back-confirm">← Voltar</button>
+      <p class="share-label">Resumo da proposta:</p>
+      <div id="proposal-summary" class="proposal-summary"></div>
+      <div class="proposal-actions">
+        <button class="btn-share-whatsapp" id="proposal-btn-whatsapp" style="margin-bottom:0.5rem;width:100%;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+          Compartilhar no WhatsApp
+        </button>
+        <button class="btn-share-next" id="proposal-btn-send">Enviar Proposta</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL MOVIMENTO FINANCEIRO ═══════════════════════════ -->
+<div id="modal-finance" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px">
+    <div class="share-modal-header">
+      <h3 id="modal-finance-title">Novo Movimento</h3>
+      <button class="btn-icon" id="btn-close-finance"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+
+    <!-- Passo 1: Escolher tipo -->
+    <div id="finance-step-type">
+      <p class="share-label">Tipo do movimento:</p>
+      <div class="share-options">
+        <button class="share-option-btn" id="finance-type-income">
+          <span class="share-option-icon">💰</span>
+          <span class="share-option-text">
+            <strong>Entrada (Receita)</strong>
+            <small>Venda de figurinhas, recebimento</small>
+          </span>
+        </button>
+        <button class="share-option-btn" id="finance-type-expense">
+          <span class="share-option-icon">🛒</span>
+          <span class="share-option-text">
+            <strong>Saída (Despesa)</strong>
+            <small>Compra de pacotes, pagamento</small>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Passo 2: Preencher dados -->
+    <div id="finance-step-form" class="hidden">
+      <button class="share-back-btn" id="finance-back-type">← Voltar</button>
+      <div class="finance-form">
+        <div class="finance-form-group">
+          <label class="finance-form-label">Valor (R$)</label>
+          <input type="number" id="finance-value" class="admin-input" placeholder="0,00" min="0" step="0.01" />
+        </div>
+        <div class="finance-form-group">
+          <label class="finance-form-label">Data</label>
+          <input type="date" id="finance-date" class="admin-input" />
+        </div>
+        <div class="finance-form-group">
+          <label class="finance-form-label">Descrição</label>
+          <input type="text" id="finance-description" class="admin-input" placeholder="Ex: Compra de 5 pacotes" autocomplete="off" />
+        </div>
+        <div class="finance-type-indicator" id="finance-type-indicator"></div>
+      </div>
+      <div class="proposal-actions">
+        <button class="btn-share-next" id="finance-btn-save">Salvar Movimento</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CÂMERA OCR ═══════════════════════════════════════ -->
+<div id="modal-camera" class="modal-overlay hidden">
+  <div class="modal-box camera-modal">
+    <div class="camera-header">
+      <h3>Ler código por câmera</h3>
+      <button class="btn-icon" id="btn-close-camera"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <p class="camera-desc">Aponte a câmera para o <strong>verso da figurinha</strong> e toque em <strong>Fotografar código</strong>. A IA identifica o código automaticamente.</p>
+    <div class="camera-wrap"><video id="camera-video" autoplay playsinline muted></video><div class="camera-overlay"><div class="camera-target"></div></div></div>
+    <div class="camera-result" id="camera-result"></div>
+    <div class="camera-actions">
+      <button class="btn-capture" id="btn-capture-photo">📸 Fotografar código</button>
+      <button class="btn-outline" id="btn-close-camera-2">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL COMPARTILHAR ════════════════════════════════ -->
+<div id="modal-share" class="modal-overlay hidden">
+  <div class="modal-box share-modal">
+    <div class="share-modal-header">
+      <h3>📤 Compartilhar Figurinhas</h3>
+      <button class="btn-icon" id="btn-close-share"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+
+    <!-- Passo 1: O que compartilhar (checkboxes) -->
+    <div id="share-step-1">
+      <p class="share-label">O que você quer compartilhar?</p>
+      <div class="share-checkboxes">
+        <label class="share-checkbox-label">
+          <input type="checkbox" id="chk-missing" value="missing" />
+          <span class="share-checkbox-box"></span>
+          <span class="share-checkbox-text">
+            <strong>⬜ Faltando</strong>
+            <small>Figurinhas que você ainda não tem</small>
+          </span>
+        </label>
+        <label class="share-checkbox-label">
+          <input type="checkbox" id="chk-duplicates" value="duplicates" />
+          <span class="share-checkbox-box"></span>
+          <span class="share-checkbox-text">
+            <strong>🔄 Repetidas</strong>
+            <small>Figurinhas que você tem a mais</small>
+          </span>
+        </label>
+      </div>
+      <button class="btn-share-next" id="share-next-step1" disabled>Próximo →</button>
+    </div>
+
+    <!-- Passo 2: De qual parte? -->
+    <div id="share-step-2" class="hidden">
+      <button class="share-back-btn" id="share-back-2">← Voltar</button>
+      <p class="share-label">De qual parte do álbum?</p>
+      <div class="share-options">
+        <button class="share-option-btn" data-scope="all">
+          <span class="share-option-icon">📋</span>
+          <span class="share-option-text">
+            <strong>Álbum completo</strong>
+            <small>Todas as figurinhas</small>
+          </span>
+        </button>
+        <button class="share-option-btn" data-scope="group">
+          <span class="share-option-icon">🗂️</span>
+          <span class="share-option-text">
+            <strong>Por grupo</strong>
+            <small>Escolher um grupo específico</small>
+          </span>
+        </button>
+        <button class="share-option-btn" data-scope="country">
+          <span class="share-option-icon">🌎</span>
+          <span class="share-option-text">
+            <strong>Por seleção</strong>
+            <small>Escolher um país específico</small>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Passo 3a: Escolher grupo -->
+    <div id="share-step-group" class="hidden">
+      <button class="share-back-btn" id="share-back-group">← Voltar</button>
+      <p class="share-label">Escolha um ou mais grupos:</p>
+      <div class="share-sub-options" id="share-group-list"></div>
+      <button class="btn-share-next" id="share-group-confirm" disabled>Gerar mensagem →</button>
+    </div>
+
+    <!-- Passo 3b: Escolher seleção -->
+    <div id="share-step-country" class="hidden">
+      <button class="share-back-btn" id="share-back-country">← Voltar</button>
+      <p class="share-label">Escolha uma ou mais seleções:</p>
+      <div class="share-sub-options" id="share-country-list"></div>
+      <button class="btn-share-next" id="share-country-confirm" disabled>Gerar mensagem →</button>
+    </div>
+
+    <!-- Passo 4: Prévia e envio -->
+    <div id="share-step-preview" class="hidden">
+      <button class="share-back-btn" id="share-back-preview">← Voltar</button>
+      <p class="share-label">Prévia da mensagem:</p>
+      <textarea id="share-preview-text" class="share-preview" readonly></textarea>
+      <div class="share-send-actions">
+        <button id="btn-share-whatsapp-send" class="btn-share-whatsapp">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+          Enviar pelo WhatsApp
+        </button>
+        <button id="btn-share-copy" class="btn-outline">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copiar texto
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL LOGOUT ═══════════════════════════════════════ -->
+<!-- Modal de detalhes da proposta -->
+<div id="modal-proposal-detail" class="modal-overlay hidden">
+  <div class="modal-box proposal-detail-box">
+    <div class="modal-header">
+      <h3 class="modal-title" id="proposal-detail-title">Detalhes da Proposta</h3>
+      <button class="modal-close" id="proposal-detail-close">×</button>
+    </div>
+    <div id="proposal-detail-content" class="proposal-detail-content"></div>
+    <div class="proposal-detail-actions" id="proposal-detail-actions"></div>
+  </div>
+</div>
+
+<div id="modal-logout" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>Sair da conta</h3>
+    <p>Deseja sair da sua conta Google?</p>
+    <div class="modal-actions">
+      <button class="btn-outline" id="btn-cancel-logout">Cancelar</button>
+      <button class="btn-danger" id="btn-confirm-logout">Sair</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══════════════════════════════════════════════ -->
+<div id="toast" class="toast"></div>
+
+<script type="module" src="app.js"></script>
+<!-- ══ MODAL SELETOR DE MODO PDF ════════════════════════════════════════════════════════════════ -->
+<div id="modal-pdf-mode" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px">
+    <div class="share-modal-header">
+      <h3>Exportar PDF</h3>
+      <button class="btn-icon" id="btn-close-pdf-mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <p class="share-label" style="margin-bottom:0.75rem">Escolha o tipo de PDF:</p>
+    <div class="share-options" style="gap:0.5rem">
+      <button class="share-option-btn pdf-mode-btn" data-mode="full">
+        <span class="share-option-icon">📖</span>
+        <span class="share-option-text">
+          <strong>Completo</strong>
+          <small>Todas as seções com status de cada figurinha</small>
+        </span>
+      </button>
+      <button class="share-option-btn pdf-mode-btn" data-mode="missing">
+        <span class="share-option-icon">🔍</span>
+        <span class="share-option-text">
+          <strong>Intermediário — Faltantes</strong>
+          <small>Só seções incompletas + resumo das completas</small>
+        </span>
+      </button>
+      <button class="share-option-btn pdf-mode-btn" data-mode="duplicates">
+        <span class="share-option-icon">🔄</span>
+        <span class="share-option-text">
+          <strong>Repetidas</strong>
+          <small>Apenas seções com figurinhas repetidas</small>
+        </span>
+      </button>
+      <button class="share-option-btn pdf-mode-btn" data-mode="simple">
+        <span class="share-option-icon">📝</span>
+        <span class="share-option-text">
+          <strong>Simples — Faltantes</strong>
+          <small>Layout limpo: apenas números das que faltam + repetidas com qtd</small>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Meu Link de Negociação -->
+<div id="modal-share-link" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px">
+    <h3 style="margin:0 0 4px">🔗 Meu Link de Negociação</h3>
+    <p style="font-size:12px;color:#aaa;margin:0 0 14px">Compartilhe este link para que pessoas de fora do app possam ver suas figurinhas e enviar propostas.</p>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <input type="text" id="share-link-url" readonly style="flex:1;padding:8px 10px;background:#12121e;border:1px solid #3a3a5e;border-radius:8px;color:#f0f0f0;font-size:12px" />
+      <button id="btn-copy-share-link" style="padding:8px 14px;background:#c0a020;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Copiar</button>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#1a1a2e;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#e0e0e0">Link ativo</div>
+        <div style="font-size:11px;color:#aaa">Quando desativado, ninguém consegue acessar seu link</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="share-link-toggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div id="share-link-proposals-wrap">
+      <div style="font-size:13px;font-weight:600;color:#e0e0e0;margin-bottom:8px">Propostas externas recebidas</div>
+      <div id="share-link-proposals-list" style="max-height:200px;overflow-y:auto"></div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:14px">
+      <button id="btn-close-share-link" style="padding:8px 20px;background:#2a2a3e;color:#ccc;border:none;border-radius:8px;cursor:pointer">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ESCANEAR ÁLBUM (IA) ═══════════════════════════════════════ -->
+<div id="modal-scan-album" class="modal-overlay hidden">
+  <div class="modal-box scan-modal">
+    <div class="camera-header">
+      <h3>🧠 Escanear Página do Álbum</h3>
+      <button class="btn-icon" id="btn-close-scan-album"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <!-- Passo 1: Escolher fonte da imagem -->
+    <div id="scan-step-source">
+      <p class="camera-desc">Fotografe <strong>duas páginas abertas do álbum</strong>. A IA identifica os espaços vazios (códigos visíveis) e marca as figurinhas que você ainda <strong>não colou</strong>.</p>
+      <div class="scan-source-options">
+        <button class="scan-source-btn" id="btn-scan-use-camera">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Usar Câmera</span>
+        </button>
+        <button class="scan-source-btn" id="btn-scan-use-gallery">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Da Galeria</span>
+        </button>
+      </div>
+      <input type="file" id="scan-file-input" accept="image/*" capture="environment" style="display:none" />
+      <input type="file" id="scan-gallery-input" accept="image/*" style="display:none" />
+    </div>
+    <!-- Passo 2: Prévia da foto + botão analisar -->
+    <div id="scan-step-preview" class="hidden">
+      <div class="scan-preview-wrap">
+        <img id="scan-preview-img" class="scan-preview-img" alt="Prévia da foto" />
+      </div>
+      <div id="scan-status" class="scan-status hidden"></div>
+      <div class="scan-preview-actions">
+        <button class="btn-capture" id="btn-scan-analyze">🧠 Analisar com IA</button>
+        <button class="btn-outline" id="btn-scan-retake">↩ Trocar foto</button>
+      </div>
+    </div>
+    <!-- Passo 3: Confirmação dos resultados -->
+    <div id="scan-step-confirm" class="hidden">
+      <p class="camera-desc">A IA identificou os códigos abaixo como <strong>espaços vazios</strong>. Desmarque os que estiverem errados e confirme.</p>
+      <div class="scan-confirm-summary" id="scan-confirm-summary"></div>
+      <div id="scan-results-list" class="scan-results-list"></div>
+      <div class="scan-confirm-actions">
+        <button class="btn-capture" id="btn-scan-confirm-save">✅ Confirmar e Salvar</button>
+        <button class="btn-outline" id="btn-scan-confirm-cancel">↩ Voltar</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
