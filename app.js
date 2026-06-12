@@ -932,19 +932,44 @@ const GROUP_ORDER = ['FIFA', ...'ABCDEFGHIJKL'.split('').map(g => `Grupo ${g}`),
 
 // Mapa de bandeiras por país
 const COUNTRY_FLAGS = {
-  'ALG': '🇩🇿', 'ARG': '🇦🇷', 'AUT': '🇦🇹', 'Australia': '🇦🇺',
-  'BEL': '🇧🇪', 'Bosnia and Herzegovina': '🇧🇦', 'Brazil': '🇧🇷',
-  'COD': '🇨🇩', 'COL': '🇨🇴', 'CPV': '🇨🇻', 'CRO': '🇭🇷',
-  'Canada': '🇨🇦', 'Curaçao': '🇨🇼', 'Czechia': '🇨🇿',
-  'EGY': '🇪🇬', 'ENG': '🏴󐁧󐁢󐁥󐁮󐁧󐁿', 'ESP': '🇪🇸', 'Ecuador': '🇪🇨',
-  'FIFA World Cup': '🏆', 'FRA': '🇫🇷', 'GHA': '🇬🇭', 'Germany': '🇩🇪',
-  'Haiti': '🇭🇹', 'IRN': '🇮🇷', 'IRQ': '🇮🇶', 'Ivory Coast': '🇨🇮',
-  'JOR': '🇯🇴', 'Japan': '🇯🇵', 'KAS': '🇰🇿', 'KSA': '🇸🇦',
-  'Mexico': '🇲🇽', 'Morocco': '🇲🇦', 'NOR': '🇳🇴', 'NZL': '🇳🇿',
-  'Netherlands': '🇳🇱', 'PAN': '🇵🇦', 'POR': '🇵🇹', 'Paraguay': '🇵🇾',
-  'Qatar': '🇶🇦', 'SEN': '🇸🇳', 'SWE': '🇸🇪', 'Scotland': '🏴󐁧󐁢󐁳󐁣󐁴󐁿',
-  'South Africa': '🇿🇦', 'South Korea': '🇰🇷', 'Switzerland': '🇨🇭',
-  'TUN': '🇹🇳', 'Türkiye': '🇹🇷', 'URU': '🇺🇾', 'USA': '🇺🇸', 'UZB': '🇺🇿',
+  // Siglas
+  'ALG': '🇩🇿', 'ARG': '🇦🇷', 'AUT': '🇦🇹',
+  'BEL': '🇧🇪', 'COD': '🇨🇩', 'COL': '🇨🇴',
+  'CPV': '🇨🇻', 'CRO': '🇭🇷', 'EGY': '🇪🇬',
+  'ENG': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'ESP': '🇪🇸', 'FRA': '🇫🇷',
+  'GHA': '🇬🇭', 'IRN': '🇮🇷', 'IRQ': '🇮🇶',
+  'JOR': '🇯🇴', 'KAS': '🇰🇿', 'KSA': '🇸🇦',
+  'NOR': '🇳🇴', 'NZL': '🇳🇿', 'PAN': '🇵🇦',
+  'POR': '🇵🇹', 'SEN': '🇸🇳', 'SWE': '🇸🇪',
+  'TUN': '🇹🇳', 'URU': '🇺🇾', 'USA': '🇺🇸',
+  'UZB': '🇺🇿',
+  // Nomes completos (como aparecem no stickers.json)
+  'Australia': '🇦🇺',
+  'Bosnia and Herzegovina': '🇧🇦',
+  'Brazil': '🇧🇷',
+  'Canada': '🇨🇦',
+  'Colômbia': '🇨🇴',
+  'Curaçao': '🇨🇼',
+  'Czechia': '🇨🇿',
+  'Ecuador': '🇪🇨',
+  'FIFA World Cup': '🏆',
+  'Germany': '🇩🇪',
+  'Haiti': '🇭🇹',
+  'Ivory Coast': '🇨🇮',
+  'Japan': '🇯🇵',
+  'Mexico': '🇲🇽',
+  'Morocco': '🇲🇦',
+  'Netherlands': '🇳🇱',
+  'Paraguay': '🇵🇾',
+  'Qatar': '🇶🇦',
+  'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'South Africa': '🇿🇦',
+  'South Korea': '🇰🇷',
+  'Switzerland': '🇨🇭',
+  'Türkiye': '🇹🇷',
+  'Uruguay': '🇺🇾',
+  // Grupos especiais
+  'Coca-Cola Stars': '🥤',
 };
 
 function getFlag(country) {
@@ -1126,10 +1151,65 @@ function renderGrid() {
   }
   emptyState.classList.add('hidden');
 
-  // Usar DocumentFragment para performance
-  const frag = document.createDocumentFragment();
+  // Agrupar por seleção (country) e ordenar alfabeticamente
+  // CC stickers são agrupados como 'Coca-Cola Stars' independente do country original
+  const byCountry = {};
   filtered.forEach(s => {
-    frag.appendChild(createStickerCard(s));
+    const groupKey = s.code.startsWith('CC') ? 'Coca-Cola Stars' : s.country;
+    if (!byCountry[groupKey]) byCountry[groupKey] = [];
+    byCountry[groupKey].push(s);
+  });
+  const sortedCountries = Object.keys(byCountry).sort((a, b) => {
+    // FIFA World Cup sempre primeiro, Coca-Cola Stars sempre último
+    if (a === 'FIFA World Cup') return -1;
+    if (b === 'FIFA World Cup') return 1;
+    if (a === 'Coca-Cola Stars') return 1;
+    if (b === 'Coca-Cola Stars') return -1;
+    return a.localeCompare(b, 'pt-BR');
+  });
+
+  const frag = document.createDocumentFragment();
+  sortedCountries.forEach(country => {
+    const stickers = byCountry[country];
+    const firstSticker = stickers[0];
+    const flag = COUNTRY_FLAGS[country] || '🏳️';
+    // Label do grupo: CC → Coca-Cola, FWC → FIFA, outros normal
+    let group;
+    if (country === 'Coca-Cola Stars') {
+      group = 'Coca-Cola';
+    } else if (country === 'FIFA World Cup') {
+      group = 'FIFA';
+    } else {
+      group = firstSticker.group && firstSticker.group !== '-' ? `Grupo ${firstSticker.group}` : 'FIFA';
+    }
+    const ownedCount = stickers.filter(s => myCollection.has(s.code)).length;
+    const total = stickers.length;
+
+    const section = document.createElement('div');
+    section.className = 'sticker-section collapsed';
+    section.dataset.country = country;
+    const header = document.createElement('div');
+    header.className = 'sticker-section-header';
+    header.innerHTML = `
+      <div class="sticker-section-left">
+        <span class="sticker-section-flag">${flag}</span>
+        <span class="sticker-section-name">${country}</span>
+        <span class="sticker-section-group">${group}</span>
+      </div>
+      <div class="sticker-section-right">
+        <span class="sticker-section-count ${dupCount > 0 ? 'complete' : ''}">${dupCount}/${total}</span>
+        <svg class="sticker-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    `;
+    const grid = document.createElement('div');
+    grid.className = 'sticker-section-grid';
+    stickers.forEach(s => grid.appendChild(createDupCard(s)));
+    header.addEventListener('click', () => {
+      section.classList.toggle('collapsed');
+    });
+    section.appendChild(header);
+    section.appendChild(grid);
+    frag.appendChild(section);
   });
   stickerGrid.appendChild(frag);
 }
@@ -1147,10 +1227,6 @@ function createStickerCard(s) {
     </div>
     <div class="sticker-code">${s.code}</div>
     <div class="sticker-name">${s.name}</div>
-    <div class="sticker-meta">
-      ${s.group && s.group !== '-' ? `<span class="sticker-group">Grupo ${s.group}</span>` : s.group === '-' ? '<span class="sticker-group">FIFA</span>' : ''}
-      <span class="sticker-page">Pág. ${s.page}</span>
-    </div>
   `;
   card.addEventListener('click', () => toggleSticker(s.code, card));
   return card;
@@ -1167,6 +1243,18 @@ async function toggleSticker(code, card) {
     card.classList.add('owned');
   }
   updateProgress();
+  // Atualizar contador da seção da seleção
+  const section = card.closest('.sticker-section');
+  if (section) {
+    const countEl = section.querySelector('.sticker-section-count');
+    if (countEl) {
+      const cards = section.querySelectorAll('.sticker-card');
+      const ownedNow = section.querySelectorAll('.sticker-card.owned').length;
+      const total = cards.length;
+      countEl.textContent = `${ownedNow}/${total}`;
+      countEl.classList.toggle('complete', ownedNow === total);
+    }
+  }
 
   // Persistir no Firestore
   try {
@@ -1208,9 +1296,67 @@ function renderDuplicatesGrid() {
   }
   emptyStateDup.classList.add('hidden');
 
-  const frag = document.createDocumentFragment();
+  // Agrupar por seleção e ordenar alfabeticamente
+  // CC stickers são agrupados como 'Coca-Cola Stars' independente do country original
+  const byCountry = {};
   filtered.forEach(s => {
-    frag.appendChild(createDupCard(s));
+    const groupKey = s.code.startsWith('CC') ? 'Coca-Cola Stars' : s.country;
+    if (!byCountry[groupKey]) byCountry[groupKey] = [];
+    byCountry[groupKey].push(s);
+  });
+  const sortedCountries = Object.keys(byCountry).sort((a, b) => {
+    if (a === 'FIFA World Cup') return -1;
+    if (b === 'FIFA World Cup') return 1;
+    if (a === 'Coca-Cola Stars') return 1;
+    if (b === 'Coca-Cola Stars') return -1;
+    return a.localeCompare(b, 'pt-BR');
+  });
+
+  const frag = document.createDocumentFragment();
+  sortedCountries.forEach(country => {
+    const stickers = byCountry[country];
+    const firstSticker = stickers[0];
+    const flag = COUNTRY_FLAGS[country] || '🏳️';
+    // Label do grupo: CC → Coca-Cola, FWC → FIFA, outros normal
+    let group;
+    if (country === 'Coca-Cola Stars') {
+      group = 'Coca-Cola';
+    } else if (country === 'FIFA World Cup') {
+      group = 'FIFA';
+    } else {
+      group = firstSticker.group && firstSticker.group !== '-' ? `Grupo ${firstSticker.group}` : 'FIFA';
+    }
+    const dupCount = stickers.filter(s => (myDuplicates[s.code] || 0) > 0).length;
+    const total = stickers.length;
+    const section = document.createElement('div');
+    section.className = 'sticker-section collapsed';
+    section.dataset.country = country;
+
+    const header = document.createElement('div');
+    header.className = 'sticker-section-header';
+    header.innerHTML = `
+      <div class="sticker-section-left">
+        <span class="sticker-section-flag">${flag}</span>
+        <span class="sticker-section-name">${country}</span>
+        <span class="sticker-section-group">${group}</span>
+      </div>
+      <div class="sticker-section-right">
+        <span class="sticker-section-count ${dupCount > 0 ? 'complete' : ''}">${dupCount}/${total}</span>
+        <svg class="sticker-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    `;
+
+    const grid = document.createElement('div');
+    grid.className = 'sticker-section-grid';
+    stickers.forEach(s => grid.appendChild(createDupCard(s)));
+
+    header.addEventListener('click', () => {
+      section.classList.toggle('collapsed');
+    });
+
+    section.appendChild(header);
+    section.appendChild(grid);
+    frag.appendChild(section);
   });
   stickerGridDup.appendChild(frag);
 }
@@ -1223,10 +1369,6 @@ function createDupCard(s) {
   card.innerHTML = `
     <div class="sticker-code">${s.code}</div>
     <div class="sticker-name">${s.name}</div>
-    <div class="sticker-meta">
-      ${s.group && s.group !== '-' ? `<span class="sticker-group">Grupo ${s.group}</span>` : s.group === '-' ? '<span class="sticker-group">FIFA</span>' : ''}
-      <span class="sticker-page">Pág. ${s.page}</span>
-    </div>
     <div class="dup-controls">
       <button class="dup-btn" data-action="dec">−</button>
       <span class="dup-qty ${qty > 0 ? 'has-dup' : ''}">${qty}</span>
@@ -1261,6 +1403,22 @@ async function updateDuplicate(code, newQty, card) {
   qtyEl.textContent = newQty;
   qtyEl.className = 'dup-qty' + (newQty > 0 ? ' has-dup' : '');
   card.classList.toggle('owned', newQty > 0);
+
+  // Atualizar contador da seção da seleção
+  const section = card.closest('.sticker-section');
+  if (section) {
+    const countEl = section.querySelector('.sticker-section-count');
+    if (countEl) {
+      const allCards = section.querySelectorAll('.sticker-card');
+      const withDup = [...allCards].filter(c => {
+        const qEl = c.querySelector('.dup-qty');
+        return qEl && parseInt(qEl.textContent, 10) > 0;
+      }).length;
+      const total = allCards.length;
+      countEl.textContent = `${withDup}/${total}`;
+      countEl.classList.toggle('complete', withDup > 0);
+    }
+  }
 
   // Atualizar contador do header imediatamente (otimista)
   updateProgress();
@@ -1441,6 +1599,12 @@ function renderGroupStats(colSnaps, dupSnaps) {
   colSnaps.forEach(snap => { colByUid[snap.id] = snap.data().codes || []; });
   dupSnaps.forEach(snap => { dupByUid[snap.id] = snap.data().items || {}; });
 
+  // Garantir que o usuário atual sempre esteja incluído com os dados em memória
+  // (evita que ele fique de fora por dessincronização com o Firestore)
+  const activeUid = getActiveUid();
+  colByUid[activeUid] = [...myCollection];
+  dupByUid[activeUid] = myDuplicates;
+
   const allUids = new Set([...Object.keys(colByUid), ...Object.keys(dupByUid)]);
   const activeUids = new Set();
   allUids.forEach(u => {
@@ -1450,17 +1614,15 @@ function renderGroupStats(colSnaps, dupSnaps) {
   });
 
   const ownerCount = {};
-  colSnaps.forEach(snap => {
-    if (!activeUids.has(snap.id)) return; // ignorar inativos
-    (snap.data().codes || []).forEach(code => {
+  activeUids.forEach(uid => {
+    (colByUid[uid] || []).forEach(code => {
       ownerCount[code] = (ownerCount[code] || 0) + 1;
     });
   });
 
   const dupCount = {};
-  dupSnaps.forEach(snap => {
-    if (!activeUids.has(snap.id)) return; // ignorar inativos
-    Object.entries(snap.data().items || {}).forEach(([code, qty]) => {
+  activeUids.forEach(uid => {
+    Object.entries(dupByUid[uid] || {}).forEach(([code, qty]) => {
       if (qty > 0) dupCount[code] = (dupCount[code] || 0) + qty;
     });
   });
@@ -1507,31 +1669,41 @@ function renderGroupStats(colSnaps, dupSnaps) {
     .slice(0, 3)
     .map(([pos, cnt]) => ({ pos: parseInt(pos, 10), cnt }));
 
-  // Posições mais ausentes no grupo
-  // Para cada posição, conta quantos participantes ativos NÃO possuem NENHUMA figurinha daquela posição
-  const allPositions = [...new Set(
-    allStickers.map(s => { const m = s.code.match(posRegex); return m ? parseInt(m[1], 10) : null; }).filter(p => p !== null)
-  )];
-  const groupMissingByPos = {};
-  activeUids.forEach(uid => {
-    const userCodes = new Set(colByUid[uid] || []);
-    const posHas = {};
-    allStickers.forEach(s => {
-      const m = s.code.match(posRegex);
-      if (!m) return;
-      const pos = parseInt(m[1], 10);
-      if (userCodes.has(s.code)) posHas[pos] = true;
-    });
-    allPositions.forEach(pos => {
-      if (!posHas[pos]) {
-        groupMissingByPos[pos] = (groupMissingByPos[pos] || 0) + 1;
-      }
-    });
+  // Posições mais ausentes no grupo (Opção B)
+  // Para cada posição, soma quantas figurinhas daquela posição faltam no total para todos os membros ativos
+  // Ex: posição 13 tem 50 figurinhas × 6 membros = 300 possíveis; se o grupo tem 180, faltam 120 → exibe 120/300
+
+  // Mapa: posição → lista de códigos daquela posição
+  const stickersByPos = {};
+  allStickers.forEach(s => {
+    const m = s.code.match(posRegex);
+    if (!m) return;
+    const pos = parseInt(m[1], 10);
+    if (!stickersByPos[pos]) stickersByPos[pos] = [];
+    stickersByPos[pos].push(s.code);
   });
+
+  const groupMissingByPos = {}; // posição → total de figurinhas faltando no grupo
+  const groupTotalByPos = {};   // posição → total possível (stickers_na_posição × membros_ativos)
+
+  Object.entries(stickersByPos).forEach(([posStr, codes]) => {
+    const pos = parseInt(posStr, 10);
+    let missingCount = 0;
+    activeUids.forEach(uid => {
+      const userCodes = new Set(colByUid[uid] || []);
+      codes.forEach(code => {
+        if (!userCodes.has(code)) missingCount++;
+      });
+    });
+    groupMissingByPos[pos] = missingCount;
+    groupTotalByPos[pos] = codes.length * activeUids.size;
+  });
+
   const groupTopMissingPos = Object.entries(groupMissingByPos)
+    .filter(([, cnt]) => cnt > 0)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
-    .map(([pos, cnt]) => ({ pos: parseInt(pos, 10), cnt }));
+    .map(([pos, cnt]) => ({ pos: parseInt(pos, 10), cnt, total: groupTotalByPos[parseInt(pos, 10)] }));
 
   // Verificar se o usuário atual é admin sem impersonação (não tem coleção própria)
   const isAdminNoImpersonation = currentUser && ADMIN_EMAILS.includes(currentUser.email) && !impersonatedUser;
@@ -1627,9 +1799,9 @@ function renderGroupStats(colSnaps, dupSnaps) {
             <span class="stats-rank">${i + 1}</span>
             <div class="stats-info">
               <span class="stats-code">Posição ${x.pos}</span>
-              <span class="stats-name">${x.cnt} membro${x.cnt !== 1 ? 's' : ''} sem esta posição</span>
+              <span class="stats-name">${x.cnt} figurinha${x.cnt !== 1 ? 's' : ''} faltando no grupo</span>
             </div>
-            <span class="stats-value blue">${x.cnt}/${totalParticipants}</span>
+            <span class="stats-value blue">${x.cnt}/${x.total}</span>
           </div>
         `).join('')
       }
@@ -1999,11 +2171,7 @@ document.querySelectorAll('.member-subtype-btn').forEach(btn => {
     document.querySelectorAll('.member-subtype-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     proposalState.subtype = btn.dataset.subtype;
-    const saleFields = document.getElementById('member-sale-fields');
-    if (proposalState.subtype === 'sale') {
-      saleFields.classList.remove('hidden');
-    } else {
-      saleFields.classList.add('hidden');
+    if (proposalState.subtype !== 'sale') {
       proposalState.saleRole = null;
       proposalState.saleValue = 0;
     }
@@ -2019,9 +2187,7 @@ document.querySelectorAll('[data-member-role]').forEach(btn => {
   });
 });
 
-document.getElementById('member-sale-value').addEventListener('input', function() {
-  proposalState.saleValue = parseFloat(this.value) || 0;
-});
+// member-sale-value foi movido para o passo de build
 
 // Tipo: avulsa
 document.getElementById('proposal-type-external').addEventListener('click', () => {
@@ -2068,16 +2234,12 @@ document.querySelectorAll('[data-role]').forEach(btn => {
   });
 });
 
-document.getElementById('external-sale-value').addEventListener('input', function() {
-  proposalState.saleValue = parseFloat(this.value) || 0;
-  checkExternalNextBtn();
-});
+// external-sale-value foi movido para o passo de build
 
 function checkExternalNextBtn() {
   const nameOk = document.getElementById('proposal-external-name').value.trim().length >= 2;
-  const saleOk = proposalState.subtype === 'trade' ||
-    (proposalState.saleRole && proposalState.saleValue > 0);
-  document.getElementById('proposal-external-next').disabled = !(nameOk && saleOk);
+  // Valor será preenchido no passo de build, então aqui só valida o nome
+  document.getElementById('proposal-external-next').disabled = !nameOk;
 }
 
 // Voltar do membro
@@ -2153,6 +2315,14 @@ function buildProposalLists() {
   // Resetar seleções
   proposalState.offeredCodes = [];
   proposalState.requestedCodes = [];
+  // Resetar campo de valor no build step
+  proposalState.saleRole = null;
+  proposalState.saleValue = 0;
+  document.querySelectorAll('[data-build-role]').forEach(b => b.classList.remove('active'));
+  const buildSaleValueInput = document.getElementById('build-sale-value');
+  if (buildSaleValueInput) buildSaleValueInput.value = '';
+  const buildSaleFields = document.getElementById('proposal-build-sale-fields');
+  if (buildSaleFields) buildSaleFields.classList.add('hidden');
   updateBuildCounts();
 
   // Listas de oferta (minhas repetidas que o parceiro não tem)
@@ -2278,9 +2448,31 @@ function updateBuildCounts() {
   document.getElementById('offer-count').textContent = proposalState.offeredCodes.length;
   document.getElementById('want-count').textContent = proposalState.requestedCodes.length;
   const hasAny = proposalState.offeredCodes.length > 0 || proposalState.requestedCodes.length > 0;
-  document.getElementById('proposal-build-next').disabled = !hasAny;
+  // Mostrar campo de valor apenas quando tipo=venda e pelo menos 1 figurinha selecionada
+  const buildSaleFields = document.getElementById('proposal-build-sale-fields');
+  if (buildSaleFields) {
+    const isSale = proposalState.subtype === 'sale';
+    buildSaleFields.classList.toggle('hidden', !(isSale && hasAny));
+  }
+  // Validar botão próximo
+  const saleOk = proposalState.subtype !== 'sale' || (proposalState.saleRole && proposalState.saleValue > 0);
+  document.getElementById('proposal-build-next').disabled = !(hasAny && saleOk);
 }
 
+// Papel (vendedor/comprador) no build step
+document.querySelectorAll('[data-build-role]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-build-role]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    proposalState.saleRole = btn.dataset.buildRole;
+    updateBuildCounts();
+  });
+});
+// Valor no build step
+document.getElementById('build-sale-value')?.addEventListener('input', function() {
+  proposalState.saleValue = parseFloat(this.value) || 0;
+  updateBuildCounts();
+});
 // Próximo no build → confirmar
 document.getElementById('proposal-build-next').addEventListener('click', () => {
   buildProposalSummary();
@@ -3941,3 +4133,297 @@ document.getElementById('btn-share-link')?.addEventListener('click', () => openS
 document.getElementById('btn-copy-share-link')?.addEventListener('click', () => copyShareLink());
 document.getElementById('btn-close-share-link')?.addEventListener('click', () => closeShareLinkModal());
 document.getElementById('share-link-toggle')?.addEventListener('change', (e) => toggleShareLink(e.target.checked));
+
+
+// ══════════════════════════════════════════════════════════════
+// ESCANEAR ÁLBUM COM IA (Gemini Vision)
+// ══════════════════════════════════════════════════════════════
+
+// Chave pública do Gemini (Google AI Studio — free tier)
+// Substitua pela sua chave em https://aistudio.google.com/app/apikey
+// Chave configurada via Firebase Remote Config ou meta tag no index.html
+// Para configurar: adicione <meta name="gemini-key" content="SUA_CHAVE"> no index.html
+const GEMINI_API_KEY = document.querySelector('meta[name="gemini-key"]')?.content || '';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+let scanImageBase64 = null; // imagem atual em base64 (sem prefixo data:...)
+let scanImageMime = 'image/jpeg';
+let scanDetectedCodes = []; // códigos detectados pela IA
+
+// ── Abrir modal ──
+document.getElementById('btn-scan-album')?.addEventListener('click', () => openScanAlbumModal());
+
+function openScanAlbumModal() {
+  scanImageBase64 = null;
+  scanDetectedCodes = [];
+  showScanStep('source');
+  document.getElementById('modal-scan-album').classList.remove('hidden');
+}
+
+function closeScanAlbumModal() {
+  document.getElementById('modal-scan-album').classList.add('hidden');
+  scanImageBase64 = null;
+  scanDetectedCodes = [];
+}
+
+document.getElementById('btn-close-scan-album')?.addEventListener('click', closeScanAlbumModal);
+
+// ── Controle de passos ──
+function showScanStep(step) {
+  ['source', 'preview', 'confirm'].forEach(s => {
+    document.getElementById(`scan-step-${s}`)?.classList.toggle('hidden', s !== step);
+  });
+}
+
+// ── Câmera ──
+document.getElementById('btn-scan-use-camera')?.addEventListener('click', () => {
+  document.getElementById('scan-file-input').click();
+});
+
+document.getElementById('scan-file-input')?.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if (file) loadScanImage(file);
+  e.target.value = '';
+});
+
+// ── Galeria ──
+document.getElementById('btn-scan-use-gallery')?.addEventListener('click', () => {
+  document.getElementById('scan-gallery-input').click();
+});
+
+document.getElementById('scan-gallery-input')?.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if (file) loadScanImage(file);
+  e.target.value = '';
+});
+
+// ── Carregar imagem selecionada ──
+function loadScanImage(file) {
+  scanImageMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const dataUrl = ev.target.result;
+    // Extrair apenas o base64 (sem o prefixo "data:image/...;base64,")
+    scanImageBase64 = dataUrl.split(',')[1];
+    const img = document.getElementById('scan-preview-img');
+    img.src = dataUrl;
+    const statusEl = document.getElementById('scan-status');
+    statusEl.classList.add('hidden');
+    statusEl.textContent = '';
+    showScanStep('preview');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Trocar foto ──
+document.getElementById('btn-scan-retake')?.addEventListener('click', () => {
+  scanImageBase64 = null;
+  showScanStep('source');
+});
+
+// ── Analisar com IA ──
+document.getElementById('btn-scan-analyze')?.addEventListener('click', () => analyzeScanImage());
+
+async function analyzeScanImage() {
+  if (!scanImageBase64) return;
+
+  const btnAnalyze = document.getElementById('btn-scan-analyze');
+  const statusEl = document.getElementById('scan-status');
+
+  btnAnalyze.disabled = true;
+  btnAnalyze.textContent = '⏳ Analisando…';
+  statusEl.classList.remove('hidden');
+  statusEl.textContent = 'Enviando imagem para a IA…';
+
+  // Verificar se a chave foi configurada
+  if (!GEMINI_API_KEY || GEMINI_API_KEY === 'COLE_SUA_CHAVE_GEMINI_AQUI') {
+    statusEl.textContent = '⚠️ Chave da API Gemini não configurada. Contate o administrador.';
+    btnAnalyze.disabled = false;
+    btnAnalyze.textContent = '🧠 Analisar com IA';
+    return;
+  }
+
+  // Construir lista de códigos válidos para o prompt
+  const validCodes = allStickers.map(s => s.code).join(', ');
+
+  const prompt = `Você está analisando uma foto de páginas abertas de um álbum de figurinhas da Copa do Mundo 2026 (Panini).
+
+Nas páginas do álbum, cada espaço para colar uma figurinha mostra um código impresso quando a figurinha NÃO foi colada ainda. O código é composto por letras maiúsculas (sigla do país ou "FWC") seguidas de um número (ex: MEX7, BRA13, ARG1, FWC3, KOR20).
+
+Sua tarefa: identificar TODOS os códigos visíveis nos espaços VAZIOS (onde a figurinha ainda não foi colada).
+
+Lista de todos os códigos válidos do álbum para referência:
+${validCodes}
+
+Instruções:
+1. Analise a imagem cuidadosamente
+2. Identifique todos os espaços vazios que mostram um código impresso
+3. Retorne APENAS os códigos encontrados, separados por vírgula, sem nenhum texto adicional
+4. Use apenas códigos da lista de referência acima
+5. Se não encontrar nenhum código, retorne: NENHUM
+
+Responda apenas com os códigos, exemplo: MEX7, BRA13, ARG1`;
+
+  try {
+    const response = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            {
+              inline_data: {
+                mime_type: scanImageMime,
+                data: scanImageBase64
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 500
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => ({}));
+      throw new Error(errJson?.error?.message || `Erro HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log('Gemini resposta bruta:', rawText);
+
+    if (rawText.trim().toUpperCase() === 'NENHUM' || rawText.trim() === '') {
+      statusEl.textContent = '🔍 Nenhum código identificado. Tente uma foto mais nítida.';
+      btnAnalyze.disabled = false;
+      btnAnalyze.textContent = '🧠 Analisar com IA';
+      return;
+    }
+
+    // Extrair códigos da resposta
+    const rawCodes = rawText
+      .toUpperCase()
+      .replace(/[^A-Z0-9,\s]/g, ' ')
+      .split(/[\s,]+/)
+      .map(c => c.trim())
+      .filter(c => c.length > 0);
+
+    // Validar contra lista de figurinhas reais
+    const validCodeSet = new Set(allStickers.map(s => s.code));
+    scanDetectedCodes = [...new Set(rawCodes.filter(c => validCodeSet.has(c)))];
+
+    if (scanDetectedCodes.length === 0) {
+      statusEl.textContent = `🔍 Nenhum código válido encontrado. Texto lido: "${rawText.slice(0, 80)}". Tente uma foto mais nítida.`;
+      btnAnalyze.disabled = false;
+      btnAnalyze.textContent = '🧠 Analisar com IA';
+      return;
+    }
+
+    // Mostrar tela de confirmação
+    showScanConfirmStep();
+
+  } catch (e) {
+    console.error('Erro Gemini:', e);
+    let errMsg = e.message || 'Erro desconhecido';
+    if (errMsg.includes('quota') || errMsg.includes('Quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+      errMsg = '⚠️ Limite de uso da IA atingido. Tente novamente mais tarde (cota renova a cada minuto).';
+    } else {
+      errMsg = `❌ Erro ao analisar: ${errMsg}. Verifique sua conexão.`;
+    }
+    statusEl.textContent = errMsg;
+    btnAnalyze.disabled = false;
+    btnAnalyze.textContent = '🧠 Analisar com IA';
+  }
+}
+
+// ── Tela de confirmação ──
+function showScanConfirmStep() {
+  const alreadyOwned = scanDetectedCodes.filter(c => myCollection.has(c));
+  const notOwned = scanDetectedCodes.filter(c => !myCollection.has(c));
+
+  // Resumo
+  const summaryEl = document.getElementById('scan-confirm-summary');
+  summaryEl.innerHTML = `
+    <span class="scan-summary-badge new">${notOwned.length} novas</span>
+    <span class="scan-summary-badge owned">${alreadyOwned.length} já possuídas</span>
+    <span class="scan-summary-badge total">${scanDetectedCodes.length} total detectadas</span>
+  `;
+
+  // Lista de figurinhas com checkboxes
+  const listEl = document.getElementById('scan-results-list');
+  listEl.innerHTML = '';
+
+  // Ordenar: novas primeiro, depois já possuídas
+  const sorted = [...notOwned, ...alreadyOwned];
+  sorted.forEach(code => {
+    const sticker = allStickers.find(s => s.code === code);
+    if (!sticker) return;
+    const isOwned = myCollection.has(code);
+    const item = document.createElement('label');
+    item.className = `scan-result-item${isOwned ? ' already-owned' : ''}`;
+    item.innerHTML = `
+      <input type="checkbox" class="scan-result-check" value="${code}" ${!isOwned ? 'checked' : ''} />
+      <div class="scan-result-info">
+        <span class="scan-result-code">${code}</span>
+        <span class="scan-result-name">${sticker.name}</span>
+      </div>
+      ${isOwned ? '<span class="scan-result-tag">já tenho</span>' : '<span class="scan-result-tag new">nova</span>'}
+    `;
+    listEl.appendChild(item);
+  });
+
+  showScanStep('confirm');
+}
+
+// ── Voltar da confirmação ──
+document.getElementById('btn-scan-confirm-cancel')?.addEventListener('click', () => {
+  showScanStep('preview');
+  const btnAnalyze = document.getElementById('btn-scan-analyze');
+  btnAnalyze.disabled = false;
+  btnAnalyze.textContent = '🧠 Analisar com IA';
+  document.getElementById('scan-status').classList.add('hidden');
+});
+
+// ── Confirmar e salvar ──
+document.getElementById('btn-scan-confirm-save')?.addEventListener('click', () => saveScanResults());
+
+async function saveScanResults() {
+  const checked = [...document.querySelectorAll('.scan-result-check:checked')].map(el => el.value);
+  if (checked.length === 0) {
+    showToast('Nenhuma figurinha selecionada.', '');
+    return;
+  }
+
+  const btnSave = document.getElementById('btn-scan-confirm-save');
+  btnSave.disabled = true;
+  btnSave.textContent = '💾 Salvando…';
+
+  // Adicionar à coleção (apenas as que ainda não tem)
+  const newOnes = checked.filter(c => !myCollection.has(c));
+  newOnes.forEach(c => myCollection.add(c));
+  updateProgress();
+  renderGrid();
+
+  try {
+    const uid = getActiveUid();
+    const activeUser = getActiveUser();
+    await setDoc(doc(db, 'collections', uid), {
+      codes: Array.from(myCollection),
+      email: activeUser.email.toLowerCase(),
+      updatedAt: new Date().toISOString()
+    });
+    showToast(`✅ ${newOnes.length} figurinha${newOnes.length !== 1 ? 's' : ''} adicionada${newOnes.length !== 1 ? 's' : ''} à coleção!`, 'success');
+    closeScanAlbumModal();
+  } catch (e) {
+    // Reverter
+    newOnes.forEach(c => myCollection.delete(c));
+    updateProgress();
+    renderGrid();
+    showToast('Erro ao salvar. Tente novamente.', 'error');
+    btnSave.disabled = false;
+    btnSave.textContent = '✅ Confirmar e Salvar';
+  }
+}
