@@ -1182,9 +1182,8 @@ function renderGrid() {
     } else {
       group = firstSticker.group && firstSticker.group !== '-' ? `Grupo ${firstSticker.group}` : 'FIFA';
     }
-    const ownedCount = stickers.filter(s => myCollection.has(s.code)).length;
+        const ownedCount = stickers.filter(s => myCollection.has(s.code)).length;
     const total = stickers.length;
-
     const section = document.createElement('div');
     section.className = 'sticker-section collapsed';
     section.dataset.country = country;
@@ -1197,13 +1196,13 @@ function renderGrid() {
         <span class="sticker-section-group">${group}</span>
       </div>
       <div class="sticker-section-right">
-        <span class="sticker-section-count ${dupCount > 0 ? 'complete' : ''}">${dupCount}/${total}</span>
+        <span class="sticker-section-count ${ownedCount === total ? 'complete' : ''}">${ownedCount}/${total}</span>
         <svg class="sticker-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
     `;
     const grid = document.createElement('div');
     grid.className = 'sticker-section-grid';
-    stickers.forEach(s => grid.appendChild(createDupCard(s)));
+        stickers.forEach(s => grid.appendChild(createStickerCard(s)));
     header.addEventListener('click', () => {
       section.classList.toggle('collapsed');
     });
@@ -1213,7 +1212,6 @@ function renderGrid() {
   });
   stickerGrid.appendChild(frag);
 }
-
 function createStickerCard(s) {
   const owned = myCollection.has(s.code);
   const card = document.createElement('div');
