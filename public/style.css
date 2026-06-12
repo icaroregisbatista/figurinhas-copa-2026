@@ -2474,3 +2474,206 @@ body {
 .toggle-switch input:checked + .toggle-slider::before {
   transform: translateX(20px);
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   MODAL ESCANEAR ÁLBUM COM IA
+   ══════════════════════════════════════════════════════════════ */
+
+.scan-modal {
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Passo 1: Opções de fonte */
+.scan-source-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.scan-source-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1.5rem 1rem;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.scan-source-btn:hover {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+  transform: translateY(-2px);
+}
+.scan-source-btn:active {
+  transform: scale(0.97);
+}
+.scan-source-btn svg {
+  color: var(--gold);
+}
+
+/* Passo 2: Prévia da imagem */
+.scan-preview-wrap {
+  width: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  max-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scan-preview-img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  display: block;
+}
+
+.scan-preview-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.scan-preview-actions .btn-capture,
+.scan-preview-actions .btn-outline {
+  flex: 1;
+}
+
+.scan-status {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0.5rem;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* Passo 3: Confirmação */
+.scan-confirm-summary {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.scan-summary-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-muted);
+}
+.scan-summary-badge.new {
+  background: var(--green-dim);
+  color: var(--green);
+  border-color: rgba(63,185,80,0.35);
+}
+.scan-summary-badge.owned {
+  background: var(--gold-dim);
+  color: var(--gold);
+  border-color: rgba(192,160,32,0.35);
+}
+
+.scan-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.scan-result-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  user-select: none;
+}
+.scan-result-item:hover {
+  background: rgba(255,255,255,0.05);
+}
+.scan-result-item.already-owned {
+  opacity: 0.65;
+}
+
+.scan-result-check {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--green);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.scan-result-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.scan-result-code {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1.1;
+}
+
+.scan-result-name {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scan-result-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.scan-result-tag.new {
+  background: var(--green-dim);
+  color: var(--green);
+  border-color: rgba(63,185,80,0.35);
+}
+
+.scan-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+.scan-confirm-actions .btn-capture,
+.scan-confirm-actions .btn-outline {
+  flex: 1;
+}
