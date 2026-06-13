@@ -2156,8 +2156,6 @@ document.getElementById('proposal-type-member').addEventListener('click', () => 
   // Resetar seleção de subtipo
   document.querySelectorAll('.member-subtype-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('member-subtype-trade').classList.add('active');
-  document.getElementById('member-sale-fields').classList.add('hidden');
-  document.getElementById('member-sale-value').value = '';
   document.querySelectorAll('[data-member-role]').forEach(b => b.classList.remove('active'));
   buildMemberList();
   showProposalStep('member');
@@ -2198,8 +2196,6 @@ document.getElementById('proposal-type-external').addEventListener('click', () =
   // Resetar seleção de subtipo
   document.querySelectorAll('.external-subtype-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('external-subtype-trade').classList.add('active');
-  document.getElementById('external-sale-fields').classList.add('hidden');
-  document.getElementById('external-sale-value').value = '';
   document.querySelectorAll('[data-role]').forEach(b => b.classList.remove('active'));
   showProposalStep('external');
 });
@@ -2210,11 +2206,7 @@ document.querySelectorAll('.external-subtype-btn').forEach(btn => {
     document.querySelectorAll('.external-subtype-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     proposalState.subtype = btn.dataset.subtype;
-    const saleFields = document.getElementById('external-sale-fields');
-    if (proposalState.subtype === 'sale') {
-      saleFields.classList.remove('hidden');
-    } else {
-      saleFields.classList.add('hidden');
+    if (proposalState.subtype !== 'sale') {
       proposalState.saleRole = null;
       proposalState.saleValue = 0;
     }
