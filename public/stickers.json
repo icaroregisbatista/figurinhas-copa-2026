@@ -7891,63 +7891,63 @@
     "id": 987,
     "code": "CC7",
     "name": "Jefferson Lerma",
-    "country": "Colômbia",
+    "country": "Colombia",
     "group": "CC",
     "page": "99"
   },
   {
     "id": 988,
     "code": "CC8",
-    "name": "Virgil van Dijk",
-    "country": "Netherlands",
-    "group": "CC",
-    "page": "99"
-  },
-  {
-    "id": 989,
-    "code": "CC9",
-    "name": "Alphonso Davies",
-    "country": "Canada",
-    "group": "CC",
-    "page": "99"
-  },
-  {
-    "id": 990,
-    "code": "CC10",
     "name": "Enner Valencia",
     "country": "Ecuador",
     "group": "CC",
     "page": "99"
   },
   {
-    "id": 991,
-    "code": "CC11",
-    "name": "Lautaro Martínez",
-    "country": "ARG",
-    "group": "CC",
-    "page": "99"
-  },
-  {
-    "id": 992,
-    "code": "CC12",
+    "id": 989,
+    "code": "CC9",
     "name": "Gabriel Magalhães",
     "country": "Brazil",
     "group": "CC",
     "page": "99"
   },
   {
-    "id": 993,
-    "code": "CC13",
+    "id": 990,
+    "code": "CC10",
+    "name": "Virgil van Dijk",
+    "country": "Netherlands",
+    "group": "CC",
+    "page": "99"
+  },
+  {
+    "id": 991,
+    "code": "CC11",
+    "name": "Alphonso Davies",
+    "country": "Canada",
+    "group": "CC",
+    "page": "99"
+  },
+  {
+    "id": 992,
+    "code": "CC12",
     "name": "Emiliano Martínez",
     "country": "ARG",
     "group": "CC",
     "page": "99"
   },
   {
-    "id": 994,
-    "code": "CC14",
+    "id": 993,
+    "code": "CC13",
     "name": "Raúl Jiménez",
     "country": "Mexico",
+    "group": "CC",
+    "page": "99"
+  },
+  {
+    "id": 994,
+    "code": "CC14",
+    "name": "Lautaro Martínez",
+    "country": "ARG",
     "group": "CC",
     "page": "99"
   }
