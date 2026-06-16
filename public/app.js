@@ -949,6 +949,8 @@ const COUNTRY_FLAGS = {
   'Brazil': '🇧🇷',
   'Canada': '🇨🇦',
   'Colômbia': '🇨🇴',
+  'Colombia': '🇨🇴',
+  'Croatia': '🇭🇷',
   'Curaçao': '🇨🇼',
   'Czechia': '🇨🇿',
   'Ecuador': '🇪🇨',
@@ -2630,7 +2632,7 @@ function renderSentProposals() {
   const proposals = filterByStatus(all);
 
   const countEl = document.getElementById('sent-proposals-count');
-  if (countEl) countEl.textContent = all.length;
+  if (countEl) countEl.textContent = proposals.length;
 
   const sectionEl = document.getElementById('section-sent-proposals');
   if (sectionEl) sectionEl.style.display = all.length === 0 ? 'none' : '';
@@ -2651,9 +2653,8 @@ function renderReceivedProposals() {
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   const proposals = filterByStatus(all);
 
-  const pending = all.filter(p => p.status === 'pending');
   const countEl = document.getElementById('received-proposals-count');
-  if (countEl) countEl.textContent = pending.length || '';
+  if (countEl) countEl.textContent = proposals.length || '';
 
   const sectionEl = document.getElementById('section-received-proposals');
   if (sectionEl) sectionEl.style.display = all.length === 0 ? 'none' : '';
