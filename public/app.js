@@ -2900,31 +2900,46 @@ async function acceptProposal(proposal) {
       const theirCodes = new Set(theirColSnap.data()?.codes || []);
       const theirDups = theirDupSnap.data()?.items || {};
 
-      // Verificar conflito: alguma figurinha que vou receber já existe na coleção?
-      for (const code of (proposal.offeredCodes || [])) {
-        if (myCodes.has(code)) {
-          throw new Error(`Conflito: o usuário já tem a figurinha ${code}.`);
+      const isSale = proposal.subtype === 'sale';
+
+      // Verificar conflito apenas em trocas (em vendas, pode-se comprar repetidas)
+      if (!isSale) {
+        for (const code of (proposal.offeredCodes || [])) {
+          if (myCodes.has(code)) {
+            throw new Error(`Conflito: o usuário já tem a figurinha ${code}.`);
+          }
         }
       }
 
-      // Receptor recebe: offeredCodes do fromUid → entram na coleção
-      for (const code of (proposal.offeredCodes || [])) {
-        myCodes.add(code);
-        // Sair das repetidas do fromUid
-        if ((theirDups[code] || 0) > 0) {
-          theirDups[code] = Math.max(0, theirDups[code] - 1);
-          if (theirDups[code] === 0) delete theirDups[code];
+      // Helper: adicionar figurinha — se já tem na coleção, vai para repetidas
+      function addSticker(codes, dups, code) {
+        if (codes.has(code)) {
+          dups[code] = (dups[code] || 0) + 1;
+        } else {
+          codes.add(code);
         }
       }
 
-      // fromUid recebe: requestedCodes → entram na coleção dele
+      // Helper: remover figurinha das repetidas (1 unidade)
+      function removeFromDups(dups, code) {
+        if ((dups[code] || 0) > 0) {
+          dups[code] = Math.max(0, dups[code] - 1);
+          if (dups[code] === 0) delete dups[code];
+        }
+      }
+
+      // offeredCodes: figurinhas que fromUid oferece
+      // → fromUid perde 1 das repetidas; receptor recebe (coleção se não tem, repetidas se já tem)
+      for (const code of (proposal.offeredCodes || [])) {
+        removeFromDups(theirDups, code);
+        addSticker(myCodes, myDups, code);
+      }
+
+      // requestedCodes: figurinhas que fromUid quer receber
+      // → receptor perde 1 das repetidas; fromUid recebe (coleção se não tem, repetidas se já tem)
       for (const code of (proposal.requestedCodes || [])) {
-        theirCodes.add(code);
-        // Sair das repetidas do receptor
-        if ((myDups[code] || 0) > 0) {
-          myDups[code] = Math.max(0, myDups[code] - 1);
-          if (myDups[code] === 0) delete myDups[code];
-        }
+        removeFromDups(myDups, code);
+        addSticker(theirCodes, theirDups, code);
       }
 
       tx.set(myColRef, { codes: [...myCodes] }, { merge: true });
@@ -2967,10 +2982,16 @@ async function acceptProposal(proposal) {
       showToast(`Financeiro atualizado nos dois lados: R$ ${proposal.saleValue.toFixed(2).replace('.', ',')}`, 'success');
     }
 
-    // Atualizar estado local (reflete no grid imediatamente)
+        // Atualizar estado local (reflete no grid imediatamente)
+    // offeredCodes: receptor recebe (coleção se não tem, repetidas se já tem)
     for (const code of (proposal.offeredCodes || [])) {
-      myCollection.add(code);
+      if (myCollection.has(code)) {
+        myDuplicates[code] = (myDuplicates[code] || 0) + 1;
+      } else {
+        myCollection.add(code);
+      }
     }
+    // requestedCodes: receptor perde 1 das repetidas
     for (const code of (proposal.requestedCodes || [])) {
       if ((myDuplicates[code] || 0) > 0) {
         myDuplicates[code]--;
@@ -2979,7 +3000,6 @@ async function acceptProposal(proposal) {
     }
     updateProgressBar();
     await loadTradingPanel();
-
   } catch (e) {
     console.error('acceptProposal error:', e);
     if (btn) { btn.disabled = false; btn.textContent = '✓ Aceitar'; }
@@ -3002,16 +3022,32 @@ async function confirmExternalTrade(proposal) {
       const myCodes = new Set(myColSnap.data()?.codes || []);
       const myDups = { ...(myDupSnap.data()?.items || {}) };
 
-      // Recebo: requestedCodes entram na minha coleção
-      for (const code of (proposal.requestedCodes || [])) {
-        myCodes.add(code);
-      }
-      // Ofereço: offeredCodes saem das minhas repetidas
-      for (const code of (proposal.offeredCodes || [])) {
-        if (myDups[code] > 0) {
-          myDups[code] = Math.max(0, (myDups[code] || 1) - 1);
-          if (myDups[code] === 0) delete myDups[code];
+      // Helper: adicionar figurinha — se já tem na coleção, vai para repetidas
+      function addStickerExt(codes, dups, code) {
+        if (codes.has(code)) {
+          dups[code] = (dups[code] || 0) + 1;
+        } else {
+          codes.add(code);
         }
+      }
+
+      // Helper: remover figurinha das repetidas (1 unidade)
+      function removeDupExt(dups, code) {
+        if ((dups[code] || 0) > 0) {
+          dups[code] = Math.max(0, dups[code] - 1);
+          if (dups[code] === 0) delete dups[code];
+        }
+      }
+
+      // requestedCodes: figurinhas que quero receber (saem das repetidas de quem vendeu/trocou)
+      // → entram na minha coleção (ou repetidas se já tenho)
+      for (const code of (proposal.requestedCodes || [])) {
+        addStickerExt(myCodes, myDups, code);
+      }
+      // offeredCodes: figurinhas que ofereço / vendo
+      // → saem das minhas repetidas
+      for (const code of (proposal.offeredCodes || [])) {
+        removeDupExt(myDups, code);
       }
 
       tx.set(myColRef, { codes: [...myCodes] }, { merge: true });
@@ -3039,11 +3075,17 @@ async function confirmExternalTrade(proposal) {
     }
 
     // Atualizar estado local
+    // requestedCodes: recebo (coleção se não tenho, repetidas se já tenho)
     for (const code of (proposal.requestedCodes || [])) {
-      myCollection.add(code);
+      if (myCollection.has(code)) {
+        myDuplicates[code] = (myDuplicates[code] || 0) + 1;
+      } else {
+        myCollection.add(code);
+      }
     }
+    // offeredCodes: ofereço/vendo — saem das minhas repetidas
     for (const code of (proposal.offeredCodes || [])) {
-      if (myDuplicates[code] > 0) {
+      if ((myDuplicates[code] || 0) > 0) {
         myDuplicates[code]--;
         if (myDuplicates[code] === 0) delete myDuplicates[code];
       }
