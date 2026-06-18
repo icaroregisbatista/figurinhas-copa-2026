@@ -930,9 +930,52 @@ document.querySelectorAll('[data-scope]').forEach(btn => {
 // Helpers de agrupamento
 const GROUP_ORDER = ['FIFA', ...'ABCDEFGHIJKL'.split('').map(g => `Grupo ${g}`), 'Coca-Cola'];
 
-// Mapa de bandeiras por país
-const COUNTRY_FLAGS = {
+// Mapa país/sigla → código ISO-2 para flagcdn.com
+const COUNTRY_FLAG_ISO = {
   // Siglas
+  'ALG': 'dz', 'ARG': 'ar', 'AUT': 'at',
+  'BEL': 'be', 'BIH': 'ba', 'BRA': 'br', 'CAN': 'ca',
+  'CIV': 'ci', 'COD': 'cd', 'COL': 'co', 'CPV': 'cv',
+  'CRO': 'hr', 'CUW': 'cw', 'CZE': 'cz', 'ECU': 'ec',
+  'EGY': 'eg', 'ENG': 'gb-eng', 'ESP': 'es', 'FRA': 'fr',
+  'GER': 'de', 'GHA': 'gh', 'HAI': 'ht', 'IRN': 'ir',
+  'IRQ': 'iq', 'JOR': 'jo', 'JPN': 'jp', 'KAS': 'kz',
+  'KOR': 'kr', 'KSA': 'sa', 'MAR': 'ma', 'MEX': 'mx',
+  'NED': 'nl', 'NOR': 'no', 'NZL': 'nz', 'PAN': 'pa',
+  'PAR': 'py', 'POR': 'pt', 'QAT': 'qa', 'RSA': 'za',
+  'SCO': 'gb-sct', 'SEN': 'sn', 'SUI': 'ch', 'SWE': 'se',
+  'SWI': 'ch', 'TUN': 'tn', 'TUR': 'tr', 'URU': 'uy',
+  'USA': 'us', 'UZB': 'uz',
+  // Nomes completos (como aparecem no stickers.json)
+  'Australia': 'au',
+  'Bosnia and Herzegovina': 'ba',
+  'Brazil': 'br',
+  'Canada': 'ca',
+  'Colômbia': 'co',
+  'Colombia': 'co',
+  'Croatia': 'hr',
+  'Curaçao': 'cw',
+  'Czechia': 'cz',
+  'Ecuador': 'ec',
+  'Germany': 'de',
+  'Haiti': 'ht',
+  'Ivory Coast': 'ci',
+  'Japan': 'jp',
+  'Mexico': 'mx',
+  'Morocco': 'ma',
+  'Netherlands': 'nl',
+  'Paraguay': 'py',
+  'Qatar': 'qa',
+  'Scotland': 'gb-sct',
+  'South Africa': 'za',
+  'South Korea': 'kr',
+  'Switzerland': 'ch',
+  'Türkiye': 'tr',
+  'Uruguay': 'uy',
+};
+
+// Mantém COUNTRY_FLAGS apenas para compatibilidade com getFlag() usado no WhatsApp/share
+const COUNTRY_FLAGS = {
   'ALG': '🇩🇿', 'ARG': '🇦🇷', 'AUT': '🇦🇹',
   'BEL': '🇧🇪', 'COD': '🇨🇩', 'COL': '🇨🇴',
   'CPV': '🇨🇻', 'CRO': '🇭🇷', 'EGY': '🇪🇬',
@@ -943,39 +986,36 @@ const COUNTRY_FLAGS = {
   'POR': '🇵🇹', 'SEN': '🇸🇳', 'SWE': '🇸🇪',
   'TUN': '🇹🇳', 'URU': '🇺🇾', 'USA': '🇺🇸',
   'UZB': '🇺🇿',
-  // Nomes completos (como aparecem no stickers.json)
-  'Australia': '🇦🇺',
-  'Bosnia and Herzegovina': '🇧🇦',
-  'Brazil': '🇧🇷',
-  'Canada': '🇨🇦',
-  'Colômbia': '🇨🇴',
-  'Colombia': '🇨🇴',
-  'Croatia': '🇭🇷',
-  'Curaçao': '🇨🇼',
-  'Czechia': '🇨🇿',
-  'Ecuador': '🇪🇨',
-  'FIFA World Cup': '🏆',
-  'Germany': '🇩🇪',
-  'Haiti': '🇭🇹',
-  'Ivory Coast': '🇨🇮',
-  'Japan': '🇯🇵',
-  'Mexico': '🇲🇽',
-  'Morocco': '🇲🇦',
-  'Netherlands': '🇳🇱',
-  'Paraguay': '🇵🇾',
-  'Qatar': '🇶🇦',
+  'Australia': '🇦🇺', 'Bosnia and Herzegovina': '🇧🇦',
+  'Brazil': '🇧🇷', 'Canada': '🇨🇦',
+  'Colômbia': '🇨🇴', 'Colombia': '🇨🇴',
+  'Croatia': '🇭🇷', 'Curaçao': '🇨🇼',
+  'Czechia': '🇨🇿', 'Ecuador': '🇪🇨',
+  'FIFA World Cup': '🏆', 'Germany': '🇩🇪',
+  'Haiti': '🇭🇹', 'Ivory Coast': '🇨🇮',
+  'Japan': '🇯🇵', 'Mexico': '🇲🇽',
+  'Morocco': '🇲🇦', 'Netherlands': '🇳🇱',
+  'Paraguay': '🇵🇾', 'Qatar': '🇶🇦',
   'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  'South Africa': '🇿🇦',
-  'South Korea': '🇰🇷',
-  'Switzerland': '🇨🇭',
-  'Türkiye': '🇹🇷',
-  'Uruguay': '🇺🇾',
-  // Grupos especiais
-  'Coca-Cola Stars': '🥤',
+  'South Africa': '🇿🇦', 'South Korea': '🇰🇷',
+  'Switzerland': '🇨🇭', 'Türkiye': '🇹🇷',
+  'Uruguay': '🇺🇾', 'Coca-Cola Stars': '🥤',
 };
 
 function getFlag(country) {
   return COUNTRY_FLAGS[country] || '';
+}
+
+// Retorna HTML de imagem de bandeira via flagcdn.com (funciona em todos os navegadores)
+function getFlagImg(country) {
+  const iso = COUNTRY_FLAG_ISO[country];
+  if (!iso) {
+    // Grupos especiais sem bandeira real
+    if (country === 'FIFA World Cup') return '<span style="font-size:1.2rem">🏆</span>';
+    if (country === 'Coca-Cola Stars') return '<span style="font-size:1.2rem">🥤</span>';
+    return '';
+  }
+  return `<img src="https://flagcdn.com/24x18/${iso}.png" srcset="https://flagcdn.com/48x36/${iso}.png 2x" width="24" height="18" alt="${country}" loading="lazy" />`;
 }
 
 function groupStickers(stickers) {
@@ -1174,7 +1214,7 @@ function renderGrid() {
   sortedCountries.forEach(country => {
     const stickers = byCountry[country];
     const firstSticker = stickers[0];
-    const flag = COUNTRY_FLAGS[country] || '🏳️';
+    const flagHtml = getFlagImg(country);
     // Label do grupo: CC → Coca-Cola, FWC → FIFA, outros normal
     let group;
     if (country === 'Coca-Cola Stars') {
@@ -1193,7 +1233,7 @@ function renderGrid() {
     header.className = 'sticker-section-header';
     header.innerHTML = `
       <div class="sticker-section-left">
-        <span class="sticker-section-flag">${flag}</span>
+        <span class="sticker-section-flag">${flagHtml}</span>
         <span class="sticker-section-name">${country}</span>
         <span class="sticker-section-group">${group}</span>
       </div>
@@ -1316,7 +1356,7 @@ function renderDuplicatesGrid() {
   sortedCountries.forEach(country => {
     const stickers = byCountry[country];
     const firstSticker = stickers[0];
-    const flag = COUNTRY_FLAGS[country] || '🏳️';
+    const flagHtml = getFlagImg(country);
     // Label do grupo: CC → Coca-Cola, FWC → FIFA, outros normal
     let group;
     if (country === 'Coca-Cola Stars') {
@@ -1336,7 +1376,7 @@ function renderDuplicatesGrid() {
     header.className = 'sticker-section-header';
     header.innerHTML = `
       <div class="sticker-section-left">
-        <span class="sticker-section-flag">${flag}</span>
+        <span class="sticker-section-flag">${flagHtml}</span>
         <span class="sticker-section-name">${country}</span>
         <span class="sticker-section-group">${group}</span>
       </div>
