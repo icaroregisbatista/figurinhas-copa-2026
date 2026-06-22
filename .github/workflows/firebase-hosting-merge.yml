@@ -11,14 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-      - name: Write service account key
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_FIGURINHAS_COPA_2026_A4577 }}' > /tmp/sa.json
-      - name: Deploy Firestore Rules
-        run: firebase deploy --only firestore:rules --project figurinhas-copa-2026-a4577
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/sa.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
