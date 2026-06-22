@@ -279,8 +279,9 @@ async function initApp() {
 // PROGRESSO
 // ══════════════════════════════════════════════
 function updateProgress() {
-  const owned = myCollection.size;
+  // Contar apenas figurinhas que existem em allStickers (exclui códigos órfãos)
   const total = allStickers.length;
+  const owned = allStickers.filter(s => myCollection.has(s.code)).length;
   const missing = total - owned;
   const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
   progressFill.style.width = pct + '%';
@@ -3167,7 +3168,8 @@ async function cancelConflictingProposals(receivedCodes) {
 
 function updateProgressBar() {
   const total = allStickers.length;
-  const owned = myCollection.size;
+  // Contar apenas figurinhas que existem em allStickers (exclui códigos órfãos)
+  const owned = allStickers.filter(s => myCollection.has(s.code)).length;
   const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
   if (progressFill) progressFill.style.width = pct + '%';
   if (progressText) progressText.textContent = `${owned} / ${total}`;
