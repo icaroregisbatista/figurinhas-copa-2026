@@ -300,6 +300,21 @@ function updateProgress() {
 // ══════════════════════════════════════════════
 // FILTROS
 // ══════════════════════════════════════════════
+// Helper: detecta se a query é uma lista de códigos (ex: "EGY1, SCO2, BRA5")
+// Retorna array de códigos uppercase se sim, ou null se é busca normal
+function parseMultiCode(query) {
+  if (!query) return null;
+  // Considera multi-código se há vírgula ou se todos os tokens parecem códigos (letras+números)
+  const tokens = query.split(/[,;\s]+/).map(t => t.trim().toUpperCase()).filter(Boolean);
+  if (tokens.length < 2) return null; // busca simples
+  const codePattern = /^[A-Z]{2,5}\d{0,3}[A-Z]?$/;
+  const allLookLikeCodes = tokens.every(t => codePattern.test(t));
+  if (allLookLikeCodes) return tokens;
+  // Também aceita se há vírgula explícita (mesmo que nem todos sejam códigos perfeitos)
+  if (query.includes(',')) return tokens;
+  return null;
+}
+
 searchInput.addEventListener('input', () => {
   searchQuery = searchInput.value.trim().toLowerCase();
   btnClearSearch.classList.toggle('hidden', !searchQuery);
@@ -358,12 +373,18 @@ function getFilteredStickers() {
     if (activeStatus === 'missing' && myCollection.has(s.code)) return false;
     if (activeStatus === 'owned' && !myCollection.has(s.code)) return false;
     if (searchQuery) {
-      const q = searchQuery;
-      if (!s.code.toLowerCase().includes(q) &&
-          !s.name.toLowerCase().includes(q) &&
-          !s.country.toLowerCase().includes(q) &&
-          !s.group.toLowerCase().includes(q) &&
-          !s.page.toLowerCase().includes(q)) return false;
+      const multiCodes = parseMultiCode(searchQuery);
+      if (multiCodes) {
+        // Modo multi-código: mostra apenas as figurinhas cujo código está na lista
+        if (!multiCodes.includes(s.code.toUpperCase())) return false;
+      } else {
+        const q = searchQuery;
+        if (!s.code.toLowerCase().includes(q) &&
+            !s.name.toLowerCase().includes(q) &&
+            !s.country.toLowerCase().includes(q) &&
+            !s.group.toLowerCase().includes(q) &&
+            !s.page.toLowerCase().includes(q)) return false;
+      }
     }
     return true;
   });
@@ -460,13 +481,17 @@ function renderMatchesList() {
     if (activeGroup !== 'all' && sticker.group !== activeGroup) return;
     // Aplicar filtro Tenho/Faltando: "Tenho" = tenho repetida (já filtrado), "Faltando" = não mostrar aqui
     if (activeTradeFilter === 'missing') return; // seção de repetidas não aparece no filtro "Faltando"
-    // Aplicar filtro de busca
+        // Aplicar filtro de busca
     if (tradeSearch) {
-      const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
-      const searchable = `${sticker.code} ${sticker.name} ${groupLabel} ${sticker.page}`.toLowerCase();
-      if (!searchable.includes(tradeSearch)) return;
+      const multiCodes = parseMultiCode(tradeSearch);
+      if (multiCodes) {
+        if (!multiCodes.includes(sticker.code.toUpperCase())) return;
+      } else {
+        const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
+        const searchable = `${sticker.code} ${sticker.name} ${groupLabel} ${sticker.page}`.toLowerCase();
+        if (!searchable.includes(tradeSearch)) return;
+      }
     }
-
     const needers = Object.entries(window._tradeOthersCollection || {})
       .filter(([, oSet]) => !oSet.has(code))
       .map(([oUid]) => oUid);
@@ -533,12 +558,16 @@ function renderNeedsList() {
     if (activeGroup !== 'all' && sticker.group !== activeGroup) return;
     // Aplicar filtro Tenho/Faltando: "Tenho" = não mostrar aqui (são faltantes)
     if (activeTradeFilter === 'owned') return;
-    if (tradeSearch) {
-      const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
-      const searchable = `${sticker.code} ${sticker.name} ${groupLabel} ${sticker.page}`.toLowerCase();
-      if (!searchable.includes(tradeSearch)) return;
+        if (tradeSearch) {
+      const multiCodes = parseMultiCode(tradeSearch);
+      if (multiCodes) {
+        if (!multiCodes.includes(sticker.code.toUpperCase())) return;
+      } else {
+        const groupLabel = sticker.group === '-' ? 'fifa' : sticker.group === 'CC' ? 'coca-cola' : `grupo ${sticker.group.toLowerCase()}`;
+        const searchable = `${sticker.code} ${sticker.name} ${groupLabel} ${sticker.page}`.toLowerCase();
+        if (!searchable.includes(tradeSearch)) return;
+      }
     }
-
     // Quem tem essa figurinha como repetida?
     const providers = Object.entries(othersDuplicates)
       .filter(([, dups]) => (dups[sticker.code] || 0) > 0)
@@ -2429,10 +2458,15 @@ function buildProposalLists() {
     offerSearchEl.value = '';
     offerSearchEl.oninput = function() {
       const q = this.value.trim().toLowerCase();
+      const multiCodes = parseMultiCode(q);
       offerList.querySelectorAll('.proposal-check-item').forEach(item => {
-        const code = item.dataset.code || '';
+        const code = (item.dataset.code || '').toUpperCase();
         const name = item.querySelector('.proposal-check-name')?.textContent.toLowerCase() || '';
-        item.style.display = (!q || code.toLowerCase().includes(q) || name.includes(q)) ? '' : 'none';
+        let show;
+        if (!q) show = true;
+        else if (multiCodes) show = multiCodes.includes(code);
+        else show = code.toLowerCase().includes(q) || name.includes(q);
+        item.style.display = show ? '' : 'none';
       });
     };
   }
@@ -2440,10 +2474,15 @@ function buildProposalLists() {
     wantSearchEl.value = '';
     wantSearchEl.oninput = function() {
       const q = this.value.trim().toLowerCase();
+      const multiCodes = parseMultiCode(q);
       wantList.querySelectorAll('.proposal-check-item').forEach(item => {
-        const code = item.dataset.code || '';
+        const code = (item.dataset.code || '').toUpperCase();
         const name = item.querySelector('.proposal-check-name')?.textContent.toLowerCase() || '';
-        item.style.display = (!q || code.toLowerCase().includes(q) || name.includes(q)) ? '' : 'none';
+        let show;
+        if (!q) show = true;
+        else if (multiCodes) show = multiCodes.includes(code);
+        else show = code.toLowerCase().includes(q) || name.includes(q);
+        item.style.display = show ? '' : 'none';
       });
     };
   }
