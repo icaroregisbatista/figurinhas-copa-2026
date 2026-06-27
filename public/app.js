@@ -276,6 +276,21 @@ async function initApp() {
 }
 
 // ══════════════════════════════════════════════
+// RELOAD DE DADOS DO USUÁRIO
+// ══════════════════════════════════════════════
+async function reloadMyData() {
+  const uid = getActiveUid();
+  const [colSnap, dupSnap] = await Promise.all([
+    getDoc(doc(db, 'collections', uid)),
+    getDoc(doc(db, 'duplicates', uid))
+  ]);
+  myCollection = new Set(colSnap.exists() ? (colSnap.data().codes || []) : []);
+  myDuplicates = dupSnap.exists() ? (dupSnap.data().items || {}) : {};
+  updateProgress();
+  renderGrid();
+  renderDuplicatesGrid();
+}
+// ══════════════════════════════════════════════
 // PROGRESSO
 // ══════════════════════════════════════════════
 function updateProgress() {
@@ -2999,7 +3014,6 @@ async function acceptProposal(proposal) {
           codes.add(code);
         }
       }
-
       // Helper: remover figurinha das repetidas (1 unidade)
       function removeFromDups(dups, code) {
         if ((dups[code] || 0) > 0) {
@@ -3007,7 +3021,6 @@ async function acceptProposal(proposal) {
           if (dups[code] === 0) delete dups[code];
         }
       }
-
       // offeredCodes: figurinhas que fromUid oferece
       // → fromUid perde 1 das repetidas; receptor recebe (coleção se não tem, repetidas se já tem)
       for (const code of (proposal.offeredCodes || [])) {
@@ -3062,23 +3075,8 @@ async function acceptProposal(proposal) {
       showToast(`Financeiro atualizado nos dois lados: R$ ${proposal.saleValue.toFixed(2).replace('.', ',')}`, 'success');
     }
 
-        // Atualizar estado local (reflete no grid imediatamente)
-    // offeredCodes: receptor recebe (coleção se não tem, repetidas se já tem)
-    for (const code of (proposal.offeredCodes || [])) {
-      if (myCollection.has(code)) {
-        myDuplicates[code] = (myDuplicates[code] || 0) + 1;
-      } else {
-        myCollection.add(code);
-      }
-    }
-    // requestedCodes: receptor perde 1 das repetidas
-    for (const code of (proposal.requestedCodes || [])) {
-      if ((myDuplicates[code] || 0) > 0) {
-        myDuplicates[code]--;
-        if (myDuplicates[code] === 0) delete myDuplicates[code];
-      }
-    }
-    updateProgressBar();
+    // Recarregar dados do Firestore para garantir consistência (evita +1 extra por divergencia local)
+    await reloadMyData();
     await loadTradingPanel();
   } catch (e) {
     console.error('acceptProposal error:', e);
@@ -3154,23 +3152,8 @@ async function confirmExternalTrade(proposal) {
       showToast(`Movimento financeiro registrado: ${isIncome ? '+' : '-'} R$ ${proposal.saleValue.toFixed(2).replace('.', ',')}`, 'success');
     }
 
-    // Atualizar estado local
-    // requestedCodes: recebo (coleção se não tenho, repetidas se já tenho)
-    for (const code of (proposal.requestedCodes || [])) {
-      if (myCollection.has(code)) {
-        myDuplicates[code] = (myDuplicates[code] || 0) + 1;
-      } else {
-        myCollection.add(code);
-      }
-    }
-    // offeredCodes: ofereço/vendo — saem das minhas repetidas
-    for (const code of (proposal.offeredCodes || [])) {
-      if ((myDuplicates[code] || 0) > 0) {
-        myDuplicates[code]--;
-        if (myDuplicates[code] === 0) delete myDuplicates[code];
-      }
-    }
-    updateProgressBar();
+    // Recarregar dados do Firestore para garantir consistência
+    await reloadMyData();
     await loadTradingPanel();
 
   } catch (e) {
